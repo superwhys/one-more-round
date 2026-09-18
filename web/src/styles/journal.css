@@ -1,0 +1,230 @@
+.journal-root {
+  --j-control-border: #deded1;
+  --j-control-hover: #b9bca9;
+  --j-focus: #bc5a3b;
+  --j-select-arrow: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='none' viewBox='0 0 16 16'%3E%3Cpath d='m4 6 4 4 4-4' stroke='%23777b69' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  min-height: 100dvh;
+}
+
+/* One control surface across the account switcher, filters and record editor. */
+.journal-root :is(.d-field, .d-filters, .j-score, .d-form-context, .j-account) :is(input:not([type=checkbox]):not([type=file]), select, textarea) {
+  box-sizing: border-box;
+  min-width: 0;
+  max-width: 100%;
+  min-height: 46px;
+  margin: 0;
+  padding: 11px 13px;
+  border: 1px solid var(--j-control-border);
+  border-radius: 9px;
+  background-color: var(--d-paper);
+  color: var(--d-ink);
+  font: inherit;
+  font-size: 14px;
+  line-height: 1.5;
+  box-shadow: 0 1px 2px #35382f03;
+  transition: border-color 130ms ease, box-shadow 130ms ease;
+}
+.journal-root :is(.d-field, .d-filters) :is(input, select, textarea) { width: 100%; }
+.journal-root :is(.d-field, .d-filters label) { gap: 8px; color: #666d5c; font-size: 12px; font-weight: 500; }
+.journal-root .d-field { margin: 18px 0; }
+.journal-root .d-field small { color: #7f8575; font-size: 11px; font-weight: 400; line-height: 1.7; text-align: left; }
+.journal-root .d-field textarea { min-height: 120px; resize: vertical; }
+.journal-root :is(input, textarea)::placeholder { color: #969b8b; opacity: 1; }
+.journal-root input[readonly] { background-color: #f3f3ec; color: #6e7564; }
+.journal-root :is(input, select, textarea):focus-visible {
+  border-color: var(--j-focus);
+  outline: 3px solid #bc5a3b26;
+  outline-offset: 2px;
+}
+.journal-root :is(input, select, textarea):user-invalid { border-color: #b54d3c; }
+.journal-root :is(button, a):focus-visible { outline: 3px solid #bc5a3b66; outline-offset: 3px; }
+.journal-root button:disabled { cursor: not-allowed; opacity: .5; }
+.journal-root .d-text-link { min-height: 44px; display: inline-flex; align-items: center; gap: 6px; }
+.journal-root .d-button { flex-shrink: 0; }
+.journal-root .d-button.secondary:disabled { background: #f3f3ec; }
+
+.journal-root :is(.d-field, .d-filters, .j-score, .j-account) select {
+  appearance: none;
+  padding-right: 40px;
+  background-image: var(--j-select-arrow);
+  background-repeat: no-repeat;
+  background-position: right 13px center;
+  background-size: 16px;
+  cursor: pointer;
+  text-overflow: ellipsis;
+}
+.journal-root select:has(option:checked[value=""]) { color: #838977; }
+.journal-root select:disabled { cursor: not-allowed; background-color: #f0f0e9; color: #969b8b; }
+
+/* Keep native selection/validation; enhance supported browsers' top-layer picker.
+   https://developer.chrome.com/blog/a-customizable-select */
+@supports (appearance: base-select) {
+  .journal-root select:not([multiple]), .journal-root select::picker(select) { appearance: base-select; }
+  .journal-root select::picker-icon { display: none; }
+  .journal-root select::picker(select) {
+    margin-block: 6px;
+    padding: 5px;
+    border: 1px solid #deded1;
+    border-radius: 11px;
+    background: #fffefa;
+    color: #35382f;
+    box-shadow: 0 8px 28px #35382f18, 0 2px 6px #35382f08;
+    min-inline-size: anchor-size(self-inline);
+    max-inline-size: min(420px, calc(100vw - 24px));
+    max-block-size: min(320px, 50dvh);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+  .journal-root select option {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    min-height: 44px;
+    padding: 10px 12px;
+    border-radius: 6px;
+    color: #535d47;
+    font-size: 14px;
+    line-height: 1.5;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    cursor: pointer;
+  }
+  .journal-root select option:checked { background: #f5e9de; color: #a64f32; font-weight: 600; }
+  .journal-root select option:focus-visible { outline: 2px solid #bc5a3b; outline-offset: -2px; background: #f1f0e7; }
+  .journal-root select option::checkmark { content: '✓'; order: 1; margin-left: auto; color: #b75a3b; font-weight: 700; }
+  .journal-root select option:disabled { color: #9c9f93; cursor: not-allowed; }
+  .journal-root select option[value=""] { color: #838977; }
+}
+
+.j-auth { max-width: 480px; margin: 7vh auto; padding: 36px; }
+.journal-root .j-auth h1 { font-size: 30px; letter-spacing: -.04em; margin: 16px 0; }
+.j-auth form { margin-top: 24px; }
+.j-auth hr { border: 0; border-top: 1px solid var(--d-line); margin: 28px 0; }
+.j-account { min-height: 72px; padding: 12px 32px; border-bottom: 1px solid var(--d-line); display: flex; gap: 14px; align-items: center; flex-wrap: wrap; font-size: 12px; }
+.j-account.has-group { margin-left: 232px; }
+.j-account > label { display: flex; align-items: center; gap: 10px; min-width: 0; color: #7b826e; }
+.journal-root .j-account select { width: 200px; font-size: 13px; }
+.j-account > span { margin-left: auto; overflow-wrap: anywhere; color: #7d8374; }
+.j-account button, .j-notice button, .j-invite button, .j-error button {
+  border: 1px solid var(--j-control-border);
+  background: transparent;
+  border-radius: 8px;
+  color: #5f6655;
+  min-height: 44px;
+  padding: 9px 12px;
+  font-size: 12px;
+}
+.j-account > button:first-of-type { margin-left: auto; }
+.j-account > span + button { margin-left: 0; }
+.journal-root .d-sidebar { top: 0; }
+.journal-root .d-brand small { white-space: nowrap; }
+.journal-root .d-main { min-height: 70vh; }
+.journal-root .d-topbar { justify-content: space-between; }
+.journal-root .d-topbar > span { font-size: 11px; color: #7d8374; }
+.journal-root .d-filters { gap: 16px; padding: 18px; border: 1px solid #e6e7dc; }
+.journal-root .d-filter-button { min-height: 44px; }
+.j-filter-actions { display: flex; align-items: center; justify-content: flex-end; gap: 16px; grid-column: 1 / -1; padding-top: 4px; }
+.journal-root .d-search { min-height: 46px; }
+.journal-root .d-search input { font-size: 14px; }
+.journal-root .d-segment button { min-height: 44px; }
+
+.journal-root .j-error { color: #963f30; background: #fff0e9; border: 1px solid #efd6c8; padding: 14px 16px; border-radius: 10px; line-height: 1.7; overflow-wrap: anywhere; margin: 16px 0; }
+.j-error button { margin-left: 8px; }
+.journal-root .j-global-error { margin: 16px auto; max-width: 800px; }
+.journal-root .j-notice { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 14px; padding: 12px 16px; margin-bottom: 20px; background: #f0f0e7; border: 1px solid #e2e4d5; border-radius: 10px; color: #687457; line-height: 1.7; overflow-wrap: anywhere; }
+.j-notice > p { flex-basis: 100%; }
+.j-notice button[aria-label="关闭提示"] { margin-left: auto; border-color: transparent; width: 44px; padding: 0; font-size: 18px; }
+.j-fieldset { border: 0; padding: 0; margin: 0; min-width: 0; }
+.j-fieldset:disabled { opacity: .75; }
+.j-inline { display: flex; align-items: end; gap: 12px; }
+.j-inline .d-field { flex: 1; min-width: 0; }
+.j-inline .d-button { margin-bottom: 18px; min-height: 46px; }
+.j-actions { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; margin: 18px 0; }
+.j-players { display: flex; gap: 10px; flex-wrap: wrap; margin: 16px 0; }
+.j-player { padding: 10px 14px; border: 1px solid #e4e4d9; border-radius: 11px; display: inline-flex; align-items: center; gap: 10px; min-height: 48px; background: var(--d-paper); color: #626c55; }
+.j-player.selected { border-color: #c8a17f; background: #f8ede1; color: #a35d38; }
+.j-player .d-avatar { width: 32px; height: 32px; font-size: 13px; background: #e6dbc5; color: #8a7149; }
+.j-score { display: flex; gap: 16px; align-items: center; padding: 14px 0; flex-wrap: wrap; border-bottom: 1px solid var(--d-line); }
+.j-score > strong { flex: 1; min-width: 70px; color: #5c6650; font-size: 14px; }
+.j-score > label { display: flex; gap: 10px; align-items: center; font-size: 12px; color: #7d866f; }
+.j-score input:not([type=checkbox]) { width: 130px; }
+.j-score-value { margin-left: auto; }
+.j-assignment > label { width: 100%; justify-content: space-between; }
+.j-assignment select { width: 180px; }
+.j-team { background: #f4f3ea; border: 1px solid #e4e6d8; border-radius: 10px; padding: 18px; margin: 14px 0; }
+.j-team .d-field:first-child { margin-top: 0; }
+.j-check { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; color: #687457; font-size: 13px; }
+.journal-root input[type=checkbox] { appearance: none; display: inline-grid; place-content: center; width: 19px; height: 19px; flex: none; margin: 0; border: 1px solid #c9ceba; border-radius: 5px; background: var(--d-paper); cursor: pointer; }
+.journal-root input[type=checkbox]:checked { background: #b16d47; border-color: #b16d47; }
+.journal-root input[type=checkbox]:checked::after { content: ''; width: 9px; height: 5px; margin-top: -3px; border: solid #fffef7; border-width: 0 0 2px 2px; transform: rotate(-45deg); }
+.j-save { position: sticky; bottom: 0; background: var(--d-bg); border-top: 1px solid var(--d-line); padding: 16px 0 max(16px, env(safe-area-inset-bottom)); z-index: 2; text-align: center; }
+.j-save small { color: #8b907f; display: block; margin-top: 10px; }
+.journal-root .d-form-context { gap: 16px; color: #7e876e; font-size: 12px; }
+.journal-root .d-form-context > span { min-width: 0; overflow-wrap: anywhere; }
+.journal-root .d-form-context > label { flex-shrink: 0; }
+.journal-root input[type=date] { font-variant-numeric: tabular-nums; }
+.journal-root .d-field input[type=file] { padding: 10px; font-size: 12px; border: 1px dashed #c9ceba; border-radius: 9px; background: var(--d-paper); color: #7e876e; }
+.journal-root input[type=file]::file-selector-button { min-height: 40px; margin-right: 12px; padding: 8px 14px; border: 1px solid #d6dac8; border-radius: 7px; background: #f2f2e8; color: #667454; font: inherit; cursor: pointer; }
+.j-photos { display: flex; flex-wrap: wrap; gap: 12px; margin: 20px 0; }
+.j-photos img { display: block; width: 150px; height: 110px; object-fit: cover; border-radius: 9px; }
+.j-photos > div { display: flex; flex-direction: column; gap: 8px; }
+.j-photos button { min-height: 44px; padding: 0; border: 0; border-radius: 8px; background: transparent; color: #8f694b; }
+.j-detail { padding: 28px; }
+.j-detail blockquote { margin: 24px 0; padding: 20px; background: #f5f2e9; border-radius: 10px; font-size: 20px; line-height: 1.8; white-space: pre-wrap; overflow-wrap: anywhere; }
+.j-member { border-bottom: 1px solid var(--d-line); padding: 18px 0; overflow-wrap: anywhere; }
+.j-member .d-pill { margin-left: 12px; }
+.j-stat { padding: 16px 0; border-bottom: 1px solid var(--d-line); display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.j-stat small { font-weight: 400; color: #858c79; }
+.j-invite { padding: 14px 0; display: flex; align-items: center; gap: 16px; justify-content: space-between; border-bottom: 1px solid var(--d-line); }
+.j-mini-cover { width: 54px; height: 66px; border-radius: 5px; background: #cba878; display: grid; place-items: center; color: #fff5de; font-size: 32px; flex-shrink: 0; }
+.journal-root .d-round-bottom { gap: 14px; }
+.journal-root .d-round-bottom > span:first-child { overflow-wrap: anywhere; }
+.journal-root .d-member-row > div { min-width: 0; overflow-wrap: anywhere; }
+.journal-root .d-mobile-nav .router-link-exact-active { color: var(--d-accent); }
+.journal-root .d-modal .d-modal-actions { margin-top: 24px; }
+.journal-root .d-modal > p + .d-button { margin-top: 20px; }
+
+@media (hover: hover) and (pointer: fine) {
+  .journal-root :is(.d-field, .d-filters, .j-score, .d-form-context, .j-account) :is(input, select, textarea):hover:not(:disabled):not(:focus-visible) { border-color: var(--j-control-hover); }
+  .j-account button:hover:not(:disabled), .j-notice button:hover:not(:disabled), .j-invite button:hover:not(:disabled), .j-error button:hover:not(:disabled) { background: #eceee1; }
+  .j-player:hover:not(.selected) { border-color: #b8bea6; background: #f7f8ef; }
+  .journal-root select option:hover:not(:disabled) { background: #eeefe4; }
+  .journal-root select option:checked:hover { background: #f0e0d1; }
+}
+@media (max-width: 1150px) and (min-width: 761px) {
+  .j-account.has-group { margin-left: 206px; }
+  .j-account { padding-inline: 30px; }
+  .j-account > span { display: none; }
+  .j-account > span + button { margin-left: auto; }
+}
+@media (max-width: 760px) {
+  .j-account, .j-account.has-group { margin-left: 0; padding: 12px 20px; gap: 8px; }
+  .j-account > span { display: none; }
+  .j-account > label { flex: 1 1 100%; justify-content: space-between; }
+  .journal-root .j-account select { width: calc(100% - 74px); font-size: 16px; }
+  .j-account > button:first-of-type, .j-account > span + button { margin-left: 0; }
+  .j-account > button { flex: 1; }
+  .j-auth { margin: 28px 16px 32px; padding: 26px; max-width: none; }
+  .journal-root .j-auth h1 { font-size: 26px; }
+  .journal-root :is(.d-field, .d-filters, .j-score, .d-form-context) :is(input, select, textarea), .journal-root .d-search input { font-size: 16px; }
+  .journal-root .d-field input[type=file] { font-size: 12px; }
+  .journal-root .d-filters { gap: 14px; padding: 14px; }
+  .j-filter-actions { justify-content: space-between; }
+  .j-score { gap: 10px; }
+  .j-score > strong { flex-basis: 100%; }
+  .j-score > label { font-size: 12px; }
+  .j-score input:not([type=checkbox]) { width: 104px; }
+  .j-inline { flex-wrap: wrap; }
+  .j-inline .d-field { flex-basis: 60%; }
+  .j-detail { padding: 20px; }
+  .j-detail blockquote { font-size: 17px; }
+  .journal-root .d-form-context { align-items: flex-start; flex-direction: column; gap: 10px; }
+  .journal-root .d-form-context > label { width: 100%; justify-content: space-between; }
+  .journal-root .d-form-context input { width: min(190px, 70%); }
+}
+@media (max-width: 360px) {
+  .journal-root .d-filters { grid-template-columns: minmax(0, 1fr); }
+  .j-score-value { flex-basis: 100%; justify-content: space-between; }
+  .j-assignment select { width: 160px; }
+  .j-photos img { width: 124px; height: 96px; }
+}

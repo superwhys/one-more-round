@@ -1,0 +1,9 @@
+{
+  "listen": "127.0.0.1:8080",
+  "app": {
+    "origin": "http://127.0.0.1:8080",
+    "photo_dir": "./data/photos",
+    "mysql": { "instance": "127.0.0.1:3306", "database": "one_more_round", "username": "one_more_round", "password": "", "charset": "utf8mb4", "pool_size": 10 },
+    "smtp": { "host": "127.0.0.1", "port": 1025, "username": "", "password": "", "from": "hello@example.com" }
+  }
+}

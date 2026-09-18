@@ -1,0 +1,11 @@
+/bin/
+/web/node_modules/
+/web/dist/
+/web/.env.local
+/web/.env.*.local
+/config.json
+*.tsbuildinfo
+.DS_Store
+/data/
+/trial-invitation.txt
+/content

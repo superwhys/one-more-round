@@ -1,0 +1,921 @@
+basePath: /api
+definitions:
+  api.Status:
+    properties:
+      name:
+        type: string
+      stage:
+        type: string
+      version:
+        type: string
+    type: object
+  dto.AddGameReq:
+    properties:
+      name:
+        type: string
+    required:
+    - name
+    type: object
+  dto.AddPlayerReq:
+    properties:
+      name:
+        type: string
+    required:
+    - name
+    type: object
+  dto.Claim:
+    properties:
+      player_id:
+        type: string
+      user_id:
+        type: string
+    type: object
+  dto.CreateGroupReq:
+    properties:
+      name:
+        type: string
+    required:
+    - name
+    type: object
+  dto.DeleteRoundReq:
+    properties:
+      groupID:
+        type: string
+      roundID:
+        type: string
+      version:
+        type: integer
+    type: object
+  dto.Game:
+    properties:
+      bgg_id:
+        type: integer
+      id:
+        type: string
+      name:
+        type: string
+      original:
+        type: string
+    type: object
+  dto.GameActivity:
+    properties:
+      count:
+        type: integer
+      last_date:
+        type: string
+    type: object
+  dto.Group:
+    properties:
+      id:
+        type: string
+      name:
+        type: string
+      owner:
+        type: string
+    type: object
+  dto.Invite:
+    properties:
+      expires:
+        type: string
+      id:
+        type: string
+      revoked:
+        type: boolean
+    type: object
+  dto.InviteResp:
+    properties:
+      expires:
+        type: string
+      id:
+        type: string
+      url:
+        type: string
+    type: object
+  dto.JoinReq:
+    properties:
+      token:
+        type: string
+    required:
+    - token
+    type: object
+  dto.LoginReq:
+    properties:
+      code:
+        type: string
+      email:
+        type: string
+    required:
+    - code
+    - email
+    type: object
+  dto.ManageReq:
+    properties:
+      action:
+        type: string
+      target:
+        type: string
+      value:
+        type: string
+    required:
+    - action
+    type: object
+  dto.Member:
+    properties:
+      email:
+        type: string
+      user_id:
+        type: string
+    type: object
+  dto.Page:
+    properties:
+      activity:
+        additionalProperties:
+          $ref: '#/definitions/dto.GameActivity'
+        type: object
+      games:
+        type: integer
+      items:
+        items:
+          $ref: '#/definitions/dto.Round'
+        type: array
+      players:
+        type: integer
+      stats:
+        items:
+          $ref: '#/definitions/dto.Stat'
+        type: array
+      total:
+        type: integer
+    type: object
+  dto.Player:
+    properties:
+      account:
+        type: string
+      id:
+        type: string
+      name:
+        type: string
+    type: object
+  dto.Round:
+    properties:
+      author:
+        type: string
+      date:
+        type: string
+      game_id:
+        type: string
+      id:
+        type: string
+      location:
+        type: string
+      memory:
+        type: string
+      minutes:
+        type: integer
+      mode:
+        type: string
+      outcome:
+        type: string
+      photos:
+        items:
+          type: string
+        type: array
+      players:
+        items:
+          type: string
+        type: array
+      scores:
+        additionalProperties:
+          type: string
+        type: object
+      team_score:
+        type: string
+      teams:
+        items:
+          $ref: '#/definitions/dto.Team'
+        type: array
+      updated_at:
+        type: string
+      updated_by:
+        type: string
+      version:
+        type: integer
+      winners:
+        items:
+          type: string
+        type: array
+    type: object
+  dto.SendCodeReq:
+    properties:
+      email:
+        type: string
+      invite:
+        type: string
+    required:
+    - email
+    type: object
+  dto.Snapshot:
+    properties:
+      claims:
+        items:
+          $ref: '#/definitions/dto.Claim'
+        type: array
+      games:
+        items:
+          $ref: '#/definitions/dto.Game'
+        type: array
+      group:
+        $ref: '#/definitions/dto.Group'
+      locations:
+        items:
+          type: string
+        type: array
+      members:
+        items:
+          $ref: '#/definitions/dto.Member'
+        type: array
+      players:
+        items:
+          $ref: '#/definitions/dto.Player'
+        type: array
+    type: object
+  dto.Stat:
+    properties:
+      game:
+        type: string
+      mode:
+        type: string
+      played:
+        type: integer
+      player:
+        type: string
+      samples:
+        type: integer
+      wins:
+        type: integer
+    type: object
+  dto.Team:
+    properties:
+      id:
+        type: string
+      name:
+        type: string
+      players:
+        items:
+          type: string
+        type: array
+      score:
+        type: string
+      winner:
+        type: boolean
+    type: object
+  dto.UploadPhotoResp:
+    properties:
+      id:
+        type: string
+    type: object
+  dto.User:
+    properties:
+      email:
+        type: string
+      id:
+        type: string
+    type: object
+  ginutils.Ret-any:
+    properties:
+      code:
+        type: integer
+      data: {}
+      message: {}
+    type: object
+  ginutils.Ret-api_Status:
+    properties:
+      code:
+        type: integer
+      data:
+        $ref: '#/definitions/api.Status'
+      message: {}
+    type: object
+  ginutils.Ret-array_dto_Group:
+    properties:
+      code:
+        type: integer
+      data:
+        items:
+          $ref: '#/definitions/dto.Group'
+        type: array
+      message: {}
+    type: object
+  ginutils.Ret-array_dto_Invite:
+    properties:
+      code:
+        type: integer
+      data:
+        items:
+          $ref: '#/definitions/dto.Invite'
+        type: array
+      message: {}
+    type: object
+  ginutils.Ret-dto_Game:
+    properties:
+      code:
+        type: integer
+      data:
+        $ref: '#/definitions/dto.Game'
+      message: {}
+    type: object
+  ginutils.Ret-dto_Group:
+    properties:
+      code:
+        type: integer
+      data:
+        $ref: '#/definitions/dto.Group'
+      message: {}
+    type: object
+  ginutils.Ret-dto_InviteResp:
+    properties:
+      code:
+        type: integer
+      data:
+        $ref: '#/definitions/dto.InviteResp'
+      message: {}
+    type: object
+  ginutils.Ret-dto_Page:
+    properties:
+      code:
+        type: integer
+      data:
+        $ref: '#/definitions/dto.Page'
+      message: {}
+    type: object
+  ginutils.Ret-dto_Player:
+    properties:
+      code:
+        type: integer
+      data:
+        $ref: '#/definitions/dto.Player'
+      message: {}
+    type: object
+  ginutils.Ret-dto_Round:
+    properties:
+      code:
+        type: integer
+      data:
+        $ref: '#/definitions/dto.Round'
+      message: {}
+    type: object
+  ginutils.Ret-dto_Snapshot:
+    properties:
+      code:
+        type: integer
+      data:
+        $ref: '#/definitions/dto.Snapshot'
+      message: {}
+    type: object
+  ginutils.Ret-dto_User:
+    properties:
+      code:
+        type: integer
+      data:
+        $ref: '#/definitions/dto.User'
+      message: {}
+    type: object
+  ginutils.Ret-string:
+    properties:
+      code:
+        type: integer
+      data:
+        type: string
+      message: {}
+    type: object
+info:
+  contact: {}
+  description: |-
+    熟人小组对局日记的接口文档；路径相对 /api 挂载点。
+    除图片读取外，所有接口返回 ginutils.Ret 包络：{code, data, message}；code 为稳定业务码，失败时 HTTP 状态同时表达语义。
+  title: 又一局 API
+  version: "1.0"
+paths:
+  /v1/auth/code:
+    post:
+      consumes:
+      - application/json
+      description: 向目标邮箱发送登录验证码；首次注册需携带试用邀请
+      parameters:
+      - description: 发送验证码请求体
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.SendCodeReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/ginutils.Ret-any'
+      summary: 发送邮箱验证码
+      tags:
+      - Auth
+  /v1/auth/login:
+    post:
+      consumes:
+      - application/json
+      description: 使用邮箱验证码登录；新账号首次登录会消费试用邀请
+      parameters:
+      - description: 登录请求体
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.LoginReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/ginutils.Ret-dto_User'
+      summary: 验证码登录
+      tags:
+      - Auth
+  /v1/auth/logout:
+    post:
+      description: 撤销当前会话并清除会话 Cookie
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/ginutils.Ret-any'
+      security:
+      - SessionCookie: []
+      summary: 退出登录
+      tags:
+      - Auth
+  /v1/groups:
+    get:
+      description: 返回当前账号加入的小组
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/ginutils.Ret-array_dto_Group'
+      security:
+      - SessionCookie: []
+      summary: 获取我的小组
+      tags:
+      - Group
+    post:
+      consumes:
+      - application/json
+      description: 创建小组，创建者成为组主与首位成员
+      parameters:
+      - description: 创建小组请求体
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.CreateGroupReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/ginutils.Ret-dto_Group'
+      security:
+      - SessionCookie: []
+      summary: 创建小组
+      tags:
+      - Group
+  /v1/groups/{group}:
+    get:
+      description: 返回小组成员、玩家、桌游、待确认关联与最近地点
+      parameters:
+      - description: 小组 ID
+        in: path
+        name: group
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/ginutils.Ret-dto_Snapshot'
+      security:
+      - SessionCookie: []
+      summary: 获取小组详情
+      tags:
+      - Group
+  /v1/groups/{group}/bgg/search:
+    get:
+      description: 外部桌游检索；授权未配置时返回明确不可用提示
+      parameters:
+      - description: 小组 ID
+        in: path
+        name: group
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/ginutils.Ret-any'
+      security:
+      - SessionCookie: []
+      summary: 搜索外部桌游
+      tags:
+      - Game
+  /v1/groups/{group}/games:
+    post:
+      consumes:
+      - application/json
+      description: 在小组内添加桌游，同组同名复用已有条目
+      parameters:
+      - description: 小组 ID
+        in: path
+        name: group
+        required: true
+        type: string
+      - description: 添加桌游请求体
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.AddGameReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/ginutils.Ret-dto_Game'
+      security:
+      - SessionCookie: []
+      summary: 添加桌游
+      tags:
+      - Game
+  /v1/groups/{group}/invites:
+    get:
+      description: 组主查看本组邀请记录，不返回明文令牌
+      parameters:
+      - description: 小组 ID
+        in: path
+        name: group
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/ginutils.Ret-array_dto_Invite'
+      security:
+      - SessionCookie: []
+      summary: 获取小组邀请
+      tags:
+      - Group
+    post:
+      description: 组主生成七天有效的小组邀请，明文令牌仅返回一次
+      parameters:
+      - description: 小组 ID
+        in: path
+        name: group
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/ginutils.Ret-dto_InviteResp'
+      security:
+      - SessionCookie: []
+      summary: 生成小组邀请
+      tags:
+      - Group
+  /v1/groups/{group}/manage:
+    post:
+      consumes:
+      - application/json
+      description: 组主或本人执行改名、转让、移除、撤销邀请、关联与审核玩家
+      parameters:
+      - description: 小组 ID
+        in: path
+        name: group
+        required: true
+        type: string
+      - description: 小组操作请求体
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.ManageReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/ginutils.Ret-any'
+      security:
+      - SessionCookie: []
+      summary: 修改小组与成员
+      tags:
+      - Group
+  /v1/groups/{group}/photos:
+    post:
+      consumes:
+      - multipart/form-data
+      description: 上传单张 JPEG/PNG/WebP 图片，服务端重编码后保存
+      parameters:
+      - description: 小组 ID
+        in: path
+        name: group
+        required: true
+        type: string
+      - description: 图片文件
+        in: formData
+        name: photo
+        required: true
+        type: file
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.UploadPhotoResp'
+      security:
+      - SessionCookie: []
+      summary: 上传照片
+      tags:
+      - Photo
+  /v1/groups/{group}/photos/{id}:
+    get:
+      description: 校验成员权限后返回图片，size=thumb 时返回缩略图
+      parameters:
+      - description: 小组 ID
+        in: path
+        name: group
+        required: true
+        type: string
+      - description: 照片 ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: 缩略图传 thumb
+        in: query
+        name: size
+        type: string
+      produces:
+      - image/jpeg
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: file
+      security:
+      - SessionCookie: []
+      summary: 读取照片
+      tags:
+      - Photo
+  /v1/groups/{group}/players:
+    post:
+      consumes:
+      - application/json
+      description: 在小组内添加昵称玩家，重名会被拒绝
+      parameters:
+      - description: 小组 ID
+        in: path
+        name: group
+        required: true
+        type: string
+      - description: 添加玩家请求体
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.AddPlayerReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/ginutils.Ret-dto_Player'
+      security:
+      - SessionCookie: []
+      summary: 添加玩家
+      tags:
+      - Group
+  /v1/groups/{group}/rounds:
+    get:
+      description: 按日期、桌游、玩家筛选对局，返回分页结果与战绩统计
+      parameters:
+      - description: 小组 ID
+        in: path
+        name: group
+        required: true
+        type: string
+      - description: 开始日期
+        in: query
+        name: from
+        type: string
+      - description: 结束日期
+        in: query
+        name: to
+        type: string
+      - description: 桌游 ID
+        in: query
+        name: game
+        type: string
+      - description: 玩家 ID
+        in: query
+        name: player
+        type: string
+      - description: 偏移量
+        in: query
+        name: offset
+        type: integer
+      - description: 每页条数，最大 100
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/ginutils.Ret-dto_Page'
+      security:
+      - SessionCookie: []
+      summary: 获取对局列表
+      tags:
+      - Round
+    post:
+      consumes:
+      - application/json
+      description: 创建对局需携带 Idempotency-Key；修改对局需携带版本号
+      parameters:
+      - description: 小组 ID
+        in: path
+        name: group
+        required: true
+        type: string
+      - description: 对局 ID，修改时必填
+        in: path
+        name: id
+        type: string
+      - description: 提交标识，创建时必填
+        in: header
+        name: Idempotency-Key
+        type: string
+      - description: 对局内容
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.Round'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/ginutils.Ret-dto_Round'
+      security:
+      - SessionCookie: []
+      summary: 记一局或修改对局
+      tags:
+      - Round
+  /v1/groups/{group}/rounds/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: 按版本号删除对局，版本不一致时提示刷新
+      parameters:
+      - description: 小组 ID
+        in: path
+        name: group
+        required: true
+        type: string
+      - description: 对局 ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: 删除对局请求体
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.DeleteRoundReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/ginutils.Ret-any'
+      security:
+      - SessionCookie: []
+      summary: 删除对局
+      tags:
+      - Round
+    get:
+      description: 返回一条对局的完整内容，含版本号
+      parameters:
+      - description: 小组 ID
+        in: path
+        name: group
+        required: true
+        type: string
+      - description: 对局 ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/ginutils.Ret-dto_Round'
+      security:
+      - SessionCookie: []
+      summary: 获取对局详情
+      tags:
+      - Round
+  /v1/join:
+    post:
+      consumes:
+      - application/json
+      description: 使用小组邀请链接中的令牌加入小组
+      parameters:
+      - description: 加入小组请求体
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.JoinReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/ginutils.Ret-string'
+      security:
+      - SessionCookie: []
+      summary: 加入小组
+      tags:
+      - Group
+  /v1/me:
+    get:
+      description: 返回当前会话对应的账号
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/ginutils.Ret-dto_User'
+      security:
+      - SessionCookie: []
+      summary: 获取当前账号
+      tags:
+      - Auth
+  /v1/status:
+    get:
+      description: 返回服务名、构建版本与产品阶段
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/ginutils.Ret-api_Status'
+      summary: 服务健康与版本
+      tags:
+      - Status
+securityDefinitions:
+  SessionCookie:
+    in: cookie
+    name: omr_session
+    type: apiKey
+swagger: "2.0"
