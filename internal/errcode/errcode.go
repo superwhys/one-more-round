@@ -110,6 +110,7 @@ var (
 	ErrTransferTarget    = ErrBadRequest.WithMessage("只能转让给当前成员")
 	ErrClaimLinked       = ErrConflict.WithMessage("该玩家已被关联或不存在")
 	ErrClaimSelf         = ErrConflict.WithMessage("你已关联玩家档案")
+	ErrClaimPending      = ErrConflict.WithMessage("已有待确认的玩家关联申请")
 	ErrClaimAccount      = ErrConflict.WithMessage("该账号已有玩家档案")
 	ErrClaimPlayer       = ErrConflict.WithMessage("该玩家已被关联")
 	ErrActionUnsupported = ErrBadRequest.WithMessage("操作不支持")

@@ -138,7 +138,7 @@ const docTemplate = `{
                         "SessionCookie": []
                     }
                 ],
-                "description": "创建小组，创建者成为组主与首位成员",
+                "description": "创建小组与创建者自己的玩家档案，创建者成为组主与首位成员",
                 "consumes": [
                     "application/json"
                 ],
@@ -887,10 +887,14 @@ const docTemplate = `{
         "dto.CreateGroupReq": {
             "type": "object",
             "required": [
-                "name"
+                "name",
+                "player_name"
             ],
             "properties": {
                 "name": {
+                    "type": "string"
+                },
+                "player_name": {
                     "type": "string"
                 }
             }

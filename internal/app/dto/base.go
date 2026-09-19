@@ -2,10 +2,16 @@
 // JSON field names here are the public contract with the frontend.
 package dto
 
-import "github.com/miebyte/goutils/ginutils"
+import (
+	"encoding/json"
 
-// ResponseSuccess builds an empty success envelope.
-func ResponseSuccess() *ginutils.Ret[any] { return ginutils.SuccessRet[any](nil) }
+	"github.com/miebyte/goutils/ginutils"
+)
+
+// ResponseSuccess builds an empty success envelope. ginutils omits a nil data
+// field, so null is written explicitly to keep the `{code, data, message}`
+// contract that callers rely on.
+func ResponseSuccess() *ginutils.Ret[any] { return ginutils.SuccessRet[any](json.RawMessage("null")) }
 
 // ResponseWithData builds a success envelope carrying data.
 func ResponseWithData[T any](data T) *ginutils.Ret[T] { return ginutils.SuccessRet(data) }

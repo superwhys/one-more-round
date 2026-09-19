@@ -37,12 +37,16 @@ func (a *GroupApp) List(ctx context.Context, userID string) ([]dto.Group, error)
 	return a.converter.GroupDomainListToDTOList(groups), nil
 }
 
-// Create creates a group owned by the account.
+// Create creates a group and the owner's linked player profile atomically.
 func (a *GroupApp) Create(ctx context.Context, userID string, req *dto.CreateGroupReq) (dto.Group, error) {
 	var created *group.Group
 	if err := a.repos.WithTransaction(ctx, func(repos ports.Repositories) error {
 		var e error
 		created, e = groupService(repos).Create(ctx, userID, req.Name)
+		if e != nil {
+			return e
+		}
+		_, e = groupService(repos).AddOwnerPlayer(ctx, created.ID, userID, req.PlayerName)
 		return e
 	}); err != nil {
 		return dto.Group{}, err

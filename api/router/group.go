@@ -58,7 +58,7 @@ func listGroupsHandler(groupApp *services.GroupApp) gin.HandlerFunc {
 
 // createGroupHandler 创建小组
 // @Summary 创建小组
-// @Description 创建小组，创建者成为组主与首位成员
+// @Description 创建小组与创建者自己的玩家档案，创建者成为组主与首位成员
 // @Tags Group
 // @Accept json
 // @Produce json

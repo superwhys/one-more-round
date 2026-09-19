@@ -1,4 +1,4 @@
-.design-prototype {
+.journal-app {
   --d-bg: #f8f7f3;
   --d-paper: #fffefa;
   --d-ink: #35382f;
@@ -12,15 +12,15 @@
   font-size: 14px;
   line-height: 1.6;
 }
-.design-prototype button, .design-prototype input, .design-prototype textarea, .design-prototype select { font: inherit; }
-.design-prototype button { cursor: pointer; }
-.design-prototype button:disabled { cursor: default; opacity: .5; }
-.design-prototype button, .design-prototype a, .design-prototype input { touch-action: manipulation; }
-.design-prototype input, .design-prototype textarea, .design-prototype select { min-width: 0; }
-.design-prototype h1, .design-prototype h2, .design-prototype h3, .design-prototype p { margin: 0; }
-.design-prototype h2 { font-size: 17px; font-weight: 650; letter-spacing: -.3px; }
-.design-prototype h3 { font-size: 16px; font-weight: 650; }
-.design-prototype svg { flex-shrink: 0; }
+.journal-app button, .journal-app input, .journal-app textarea, .journal-app select { font: inherit; }
+.journal-app button { cursor: pointer; }
+.journal-app button:disabled { cursor: default; opacity: .5; }
+.journal-app button, .journal-app a, .journal-app input { touch-action: manipulation; }
+.journal-app input, .journal-app textarea, .journal-app select { min-width: 0; }
+.journal-app h1, .journal-app h2, .journal-app h3, .journal-app p { margin: 0; }
+.journal-app h2 { font-size: 17px; font-weight: 650; letter-spacing: -.3px; }
+.journal-app h3 { font-size: 16px; font-weight: 650; }
+.journal-app svg { flex-shrink: 0; }
 .d-review-strip { height: 32px; position: sticky; top: 0; z-index: 20; display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 0 28px; background: #343d34; color: #f4f0e5; font-size: 10px; letter-spacing: .4px; }
 .d-review-strip > span, .d-review-strip > div { display: flex; gap: 10px; align-items: center; }
 .d-review-strip i { font-style: normal; opacity: .5; }
@@ -352,7 +352,7 @@
   .d-history-grid { grid-template-columns: 1fr; }
 }
 @media (max-width: 760px) {
-  .design-prototype { padding-bottom: 82px; }
+  .journal-app { padding-bottom: 82px; }
   .d-review-strip { padding: 0 14px; height: 31px; font-size: 9px; letter-spacing: 0; gap: 5px; }
   .d-review-strip > span { gap: 5px; }
   .d-review-strip > div { gap: 0; }
@@ -483,6 +483,6 @@
   .d-game-hero > .d-cover { width: 95px; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .design-prototype *, .design-prototype *::before, .design-prototype *::after { scroll-behavior: auto !important; transition: none !important; }
+  .journal-app *, .journal-app *::before, .journal-app *::after { scroll-behavior: auto !important; transition: none !important; }
   .d-button:active:not(:disabled) { transform: none; }
 }

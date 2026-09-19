@@ -1,11 +1,9 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import { designRoutes } from './modules/design'
 import { useSession } from '@/stores/session'
 
 export const router = createRouter({
   history: createWebHistory(),
   routes: [
-    ...designRoutes,
     { path: '/', component: () => import('@/views/JournalLayoutView.vue'), children: [
       { path: 'login', name: 'login', component: () => import('@/views/auth/LoginView.vue'), meta: { title: '登录', public: true } },
       { path: 'join', name: 'group-setup', component: () => import('@/views/groups/GroupSetupView.vue'), meta: { title: '创建或加入小组' } },
@@ -26,7 +24,6 @@ export const router = createRouter({
 })
 
 router.beforeEach(async to => {
-  if (to.meta.design) return
   const session = useSession()
   if (to.hash) {
     if (to.path === '/join') session.joinToken.value = decodeURIComponent(to.hash.slice(1))

@@ -139,11 +139,32 @@
 .j-inline { display: flex; align-items: end; gap: 12px; }
 .j-inline .d-field { flex: 1; min-width: 0; }
 .j-inline .d-button { margin-bottom: 18px; min-height: 46px; }
+.j-game-picker { position: relative; }
+.j-game-options { max-height: 320px; overflow-y: auto; border: 1px solid #deded1; border-radius: 10px; background: #fffefa; box-shadow: 0 10px 28px #35382f14; }
+.j-game-option { display: flex; align-items: center; justify-content: space-between; gap: 14px; width: 100%; min-height: 48px; padding: 11px 13px; border: 0; border-bottom: 1px solid #edeee1; background: transparent; color: #535d47; text-align: left; }
+.j-game-option:last-child { border-bottom: 0; }
+.j-game-option > span:first-child { min-width: 0; }
+.j-game-option strong, .j-game-option small { display: block; overflow-wrap: anywhere; }
+.j-game-option strong { font-size: 14px; }
+.j-game-option small { margin-top: 3px; color: #858c79; font-size: 11px; font-weight: 400; }
+.j-game-option.selected { background: #f5e9de; color: #a64f32; }
+.j-game-empty { padding: 14px; }
+.j-game-empty p { margin: 0; color: #7f8575; font-size: 12px; font-weight: 400; }
+.j-game-empty .d-button { width: 100%; min-height: 44px; margin-top: 12px; white-space: normal; overflow-wrap: anywhere; }
 .j-actions { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; margin: 18px 0; }
 .j-players { display: flex; gap: 10px; flex-wrap: wrap; margin: 16px 0; }
 .j-player { padding: 10px 14px; border: 1px solid #e4e4d9; border-radius: 11px; display: inline-flex; align-items: center; gap: 10px; min-height: 48px; background: var(--d-paper); color: #626c55; }
 .j-player.selected { border-color: #c8a17f; background: #f8ede1; color: #a35d38; }
 .j-player .d-avatar { width: 32px; height: 32px; font-size: 13px; background: #e6dbc5; color: #8a7149; }
+.j-profile-status, .j-profile-setup { margin-top: 22px; padding: 16px; border: 1px solid #e1e3d7; border-radius: 10px; background: #f5f4eb; }
+.j-profile-status { display: flex; flex-direction: column; gap: 6px; color: #657052; }
+.j-profile-status strong, .j-profile-setup h3 { font-size: 14px; }
+.j-profile-status span, .j-profile-setup > p { color: #7f8575; font-size: 12px; line-height: 1.7; }
+.j-profile-status.pending { border-color: #e4d7be; background: #faf4e8; }
+.j-profile-setup h3 { margin: 0 0 5px; color: #5c6650; }
+.j-profile-setup > p { margin: 0; }
+.j-profile-setup .d-segment { margin: 15px 0 5px; }
+.j-profile-setup .d-field { margin-bottom: 12px; }
 .j-score { display: flex; gap: 16px; align-items: center; padding: 14px 0; flex-wrap: wrap; border-bottom: 1px solid var(--d-line); }
 .j-score > strong { flex: 1; min-width: 70px; color: #5c6650; font-size: 14px; }
 .j-score > label { display: flex; gap: 10px; align-items: center; font-size: 12px; color: #7d866f; }
@@ -187,6 +208,7 @@
 @media (hover: hover) and (pointer: fine) {
   .journal-root :is(.d-field, .d-filters, .j-score, .d-form-context, .j-account) :is(input, select, textarea):hover:not(:disabled):not(:focus-visible) { border-color: var(--j-control-hover); }
   .j-account button:hover:not(:disabled), .j-notice button:hover:not(:disabled), .j-invite button:hover:not(:disabled), .j-error button:hover:not(:disabled) { background: #eceee1; }
+  .j-game-option:hover:not(.selected) { background: #eeefe4; }
   .j-player:hover:not(.selected) { border-color: #b8bea6; background: #f7f8ef; }
   .journal-root select option:hover:not(:disabled) { background: #eeefe4; }
   .journal-root select option:checked:hover { background: #f0e0d1; }

@@ -13,11 +13,11 @@
 
 ## 小组与资料
 
-- GET/POST `/groups`：列出所属小组 / 以 `name` 创建小组。
+- GET/POST `/groups`：列出所属小组 / 以 `name`、`player_name` 创建小组，并在同一事务创建、关联组主的玩家档案。
 - POST `/join`：`token` 为小组邀请密钥，不授予注册资格。
 - GET `/groups/:group`：小组、成员、玩家、游戏、可见的关联申请和近期地点。游戏与玩家按近期参与顺序优先。
 - POST `/groups/:group/players`、`/games`：以 `name` 添加玩家或手动桌游。
-- POST `/groups/:group/manage`：`action`、`target`、`value`。操作包括 `rename`、`alias`、`remove`、`transfer`、`claim`、`approve`、`reject`、`revoke`；服务端区分成员与组主权限。
+- POST `/groups/:group/manage`：`action`、`target`、`value`。`claim` 申请关联 `target` 指定的已有档案；`claim-new` 以 `value` 为昵称创建新档案并同时申请关联。其余操作包括 `rename`、`alias`、`remove`、`transfer`、`approve`、`reject`、`revoke`；关联均由组主确认，服务端拒绝重复申请和重复绑定。
 - GET/POST `/groups/:group/invites`：组主查看/创建邀请；7 天有效，链接密钥只在创建响应中返回。链接使用 fragment，避免进入 HTTP 访问日志。
 - 玩家名称、小组名称、游戏名称最多 255 个 Unicode 字符，与数据库字段一致。同组玩家名唯一；账号与玩家关联由数据库 `UNIQUE(group_id,account)` 约束及事务校验保证。
 

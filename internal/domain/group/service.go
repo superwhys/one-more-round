@@ -22,6 +22,8 @@ type IService interface {
 	RequireMember(ctx context.Context, groupID, userID string) (*Snapshot, error)
 	// AddPlayer creates a nickname profile, rejecting a duplicate name.
 	AddPlayer(ctx context.Context, groupID, userID, name string) (*Player, error)
+	// AddOwnerPlayer creates and links the owner's own player profile.
+	AddOwnerPlayer(ctx context.Context, groupID, ownerID, name string) (*Player, error)
 	// Invite creates a seven-day group invitation and returns the plaintext
 	// token exactly once.
 	Invite(ctx context.Context, groupID, userID string, now time.Time) (*Invite, string, error)
@@ -84,21 +86,40 @@ func (s *service) RequireMember(ctx context.Context, groupID, userID string) (*S
 
 // AddPlayer creates a nickname profile, rejecting a duplicate name.
 func (s *service) AddPlayer(ctx context.Context, groupID, userID, name string) (*Player, error) {
-	name = strings.TrimSpace(name)
-	if !ValidName(name) {
-		return nil, errcode.ErrPlayerName
-	}
 	v, err := s.RequireMember(ctx, groupID, userID)
 	if err != nil {
 		return nil, err
+	}
+	return s.addPlayer(ctx, groupID, v, name, nil)
+}
+
+// AddOwnerPlayer creates the group owner's own profile and links it immediately.
+func (s *service) AddOwnerPlayer(ctx context.Context, groupID, ownerID, name string) (*Player, error) {
+	v, err := s.RequireMember(ctx, groupID, ownerID)
+	if err != nil {
+		return nil, err
+	}
+	if !v.IsOwner(ownerID) {
+		return nil, errcode.ErrForbidden
+	}
+	if playerLinkedTo(v, ownerID) {
+		return nil, errcode.ErrClaimSelf
+	}
+	return s.addPlayer(ctx, groupID, v, name, &ownerID)
+}
+
+func (s *service) addPlayer(ctx context.Context, groupID string, v *Snapshot, name string, account *string) (*Player, error) {
+	name = strings.TrimSpace(name)
+	if !ValidName(name) {
+		return nil, errcode.ErrPlayerName
 	}
 	for _, old := range v.Players {
 		if strings.EqualFold(old.Name, name) {
 			return nil, errcode.ErrPlayerDuplicate
 		}
 	}
-	p := &Player{ID: secure.NewID(), Name: name}
-	if err = s.players.Save(ctx, groupID, p); err != nil {
+	p := &Player{ID: secure.NewID(), Name: name, Account: account}
+	if err := s.players.Save(ctx, groupID, p); err != nil {
 		return nil, err
 	}
 	return p, nil
@@ -195,13 +216,28 @@ func (s *service) Manage(ctx context.Context, groupID, userID, action, target, v
 		v.Group.Owner = target
 		return s.groups.Save(ctx, v.Group)
 	case "claim":
+		if playerLinkedTo(v, userID) {
+			return errcode.ErrClaimSelf
+		}
+		if claimPendingFor(v, userID) {
+			return errcode.ErrClaimPending
+		}
 		if !slices.ContainsFunc(v.Players, func(p *Player) bool { return p.ID == target && !p.Linked() }) {
 			return errcode.ErrClaimLinked
 		}
-		if slices.ContainsFunc(v.Players, func(p *Player) bool { return p.Linked() && *p.Account == userID }) {
+		return s.claims.Save(ctx, groupID, &Claim{UserID: userID, PlayerID: target})
+	case "claim-new":
+		if playerLinkedTo(v, userID) {
 			return errcode.ErrClaimSelf
 		}
-		return s.claims.Save(ctx, groupID, &Claim{UserID: userID, PlayerID: target})
+		if claimPendingFor(v, userID) {
+			return errcode.ErrClaimPending
+		}
+		player, e := s.addPlayer(ctx, groupID, v, value, nil)
+		if e != nil {
+			return e
+		}
+		return s.claims.Save(ctx, groupID, &Claim{UserID: userID, PlayerID: player.ID})
 	case "approve":
 		if !owner {
 			return errcode.ErrForbidden
@@ -240,4 +276,12 @@ func (s *service) Manage(ctx context.Context, groupID, userID, action, target, v
 	default:
 		return errcode.ErrActionUnsupported
 	}
+}
+
+func playerLinkedTo(v *Snapshot, userID string) bool {
+	return slices.ContainsFunc(v.Players, func(p *Player) bool { return p.Linked() && *p.Account == userID })
+}
+
+func claimPendingFor(v *Snapshot, userID string) bool {
+	return slices.ContainsFunc(v.Claims, func(c *Claim) bool { return c.UserID == userID })
 }

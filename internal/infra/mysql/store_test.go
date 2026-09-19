@@ -22,6 +22,7 @@ import (
 	"github.com/superwhys/one-more-round/internal/app/dto"
 	"github.com/superwhys/one-more-round/internal/app/services"
 	"github.com/superwhys/one-more-round/internal/converter"
+	"github.com/superwhys/one-more-round/internal/errcode"
 	storepkg "github.com/superwhys/one-more-round/internal/infra/mysql"
 	"github.com/superwhys/one-more-round/internal/infra/photos"
 	"github.com/superwhys/one-more-round/internal/pkg/secure"
@@ -155,7 +156,7 @@ func TestRealMySQLDiary(t *testing.T) {
 	owner, session := s.signup(t, "owner@example.com")
 	member, _ := s.signup(t, "member@example.com")
 	outsider, _ := s.signup(t, "outsider@example.com")
-	g, e := s.groups.Create(ctx, owner.ID, &dto.CreateGroupReq{Name: "测试小组"})
+	g, e := s.groups.Create(ctx, owner.ID, &dto.CreateGroupReq{Name: "测试小组", PlayerName: "组主"})
 	if e != nil {
 		t.Fatal(e)
 	}
@@ -261,20 +262,20 @@ func TestRealMySQLDiary(t *testing.T) {
 	if e != nil || page.Total != 3 || len(page.Items) != 1 || page.Stats[0].Samples != 2 {
 		t.Fatalf("bad filtered stats: %#v %v", page, e)
 	}
-	other, e := s.groups.Create(ctx, owner.ID, &dto.CreateGroupReq{Name: "其他小组"})
+	other, e := s.groups.Create(ctx, owner.ID, &dto.CreateGroupReq{Name: "其他小组", PlayerName: "组主"})
 	if e != nil {
 		t.Fatal(e)
 	}
 	if _, e = s.rounds.Save(ctx, owner.ID, &dto.SaveRoundReq{Round: r, GroupID: other.ID, IdempotencyKey: secure.NewID()}); e == nil {
 		t.Fatal("cross-group resources accepted")
 	}
-	if e = s.groups.Manage(ctx, g.ID, owner.ID, &dto.ManageReq{Action: "claim", Target: a.ID}); e != nil {
+	if e = s.groups.Manage(ctx, g.ID, member.ID, &dto.ManageReq{Action: "claim", Target: a.ID}); e != nil {
 		t.Fatal(e)
 	}
-	if e = s.groups.Manage(ctx, g.ID, owner.ID, &dto.ManageReq{Action: "approve", Target: owner.ID}); e != nil {
+	if e = s.groups.Manage(ctx, g.ID, owner.ID, &dto.ManageReq{Action: "approve", Target: member.ID}); e != nil {
 		t.Fatal(e)
 	}
-	if e = s.groups.Manage(ctx, g.ID, owner.ID, &dto.ManageReq{Action: "claim", Target: b.ID}); e == nil {
+	if e = s.groups.Manage(ctx, g.ID, member.ID, &dto.ManageReq{Action: "claim", Target: b.ID}); e == nil {
 		t.Fatal("account bound twice")
 	}
 	s.uploadPhoto(t, g.ID, member.ID)
@@ -336,7 +337,7 @@ func TestOTPAndInvites(t *testing.T) {
 	if _, _, e := s.auth.Login(ctx, &dto.LoginReq{Email: "attempts@example.com", Code: s.inbox.code("attempts@example.com")}); e == nil {
 		t.Fatal("attempt cap ignored")
 	}
-	g, e := s.groups.Create(ctx, u.ID, &dto.CreateGroupReq{Name: "邀请"})
+	g, e := s.groups.Create(ctx, u.ID, &dto.CreateGroupReq{Name: "邀请", PlayerName: "发起人"})
 	if e != nil {
 		t.Fatal(e)
 	}
@@ -354,12 +355,85 @@ func TestOTPAndInvites(t *testing.T) {
 	s.client.Gorm.Exec("UPDATE omr_challenges SET expires=? WHERE email=?", time.Now().UTC().Add(-time.Hour), "attempts@example.com")
 }
 
+func TestPlayerProfileOnboarding(t *testing.T) {
+	s := setup(t)
+	ctx := context.Background()
+	owner, _ := s.signup(t, "profile-owner@example.com")
+	member, _ := s.signup(t, "profile-member@example.com")
+
+	g, err := s.groups.Create(ctx, owner.ID, &dto.CreateGroupReq{Name: "档案小组", PlayerName: "小林"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	snapshot, err := s.groups.Snapshot(ctx, g.ID, owner.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(snapshot.Players) != 1 || snapshot.Players[0].Account == nil || *snapshot.Players[0].Account != owner.ID {
+		t.Fatalf("owner profile not created and linked: %#v", snapshot.Players)
+	}
+	groupsBefore, err := s.groups.List(ctx, owner.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err = s.groups.Create(ctx, owner.ID, &dto.CreateGroupReq{Name: "应回滚", PlayerName: ""}); err == nil {
+		t.Fatal("group created without owner player name")
+	}
+	groupsAfter, err := s.groups.List(ctx, owner.ID)
+	if err != nil || len(groupsAfter) != len(groupsBefore) {
+		t.Fatalf("invalid owner profile did not roll back group: before=%d after=%d err=%v", len(groupsBefore), len(groupsAfter), err)
+	}
+
+	_, token, err := s.groups.Invite(ctx, g.ID, owner.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err = s.groups.Join(ctx, member.ID, &dto.JoinReq{Token: token}); err != nil {
+		t.Fatal(err)
+	}
+	if err = s.groups.Manage(ctx, g.ID, member.ID, &dto.ManageReq{Action: "claim-new", Value: "小周"}); err != nil {
+		t.Fatal(err)
+	}
+	snapshot, err = s.groups.Snapshot(ctx, g.ID, member.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var created *dto.Player
+	for i := range snapshot.Players {
+		if snapshot.Players[i].Name == "小周" {
+			created = &snapshot.Players[i]
+		}
+	}
+	if len(snapshot.Claims) != 1 || len(snapshot.Players) != 2 || created == nil || created.Account != nil || snapshot.Claims[0].PlayerID != created.ID {
+		t.Fatalf("new member profile and claim not created together: %#v %#v", snapshot.Players, snapshot.Claims)
+	}
+	if err = s.groups.Manage(ctx, g.ID, member.ID, &dto.ManageReq{Action: "claim-new", Value: "重复"}); err != errcode.ErrClaimPending {
+		t.Fatalf("duplicate claim error = %v", err)
+	}
+	if err = s.groups.Manage(ctx, g.ID, owner.ID, &dto.ManageReq{Action: "approve", Target: member.ID}); err != nil {
+		t.Fatal(err)
+	}
+	snapshot, err = s.groups.Snapshot(ctx, g.ID, member.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	created = nil
+	for i := range snapshot.Players {
+		if snapshot.Players[i].Name == "小周" {
+			created = &snapshot.Players[i]
+		}
+	}
+	if len(snapshot.Claims) != 0 || created == nil || created.Account == nil || *created.Account != member.ID {
+		t.Fatalf("approved member profile not linked: %#v %#v", snapshot.Players, snapshot.Claims)
+	}
+}
+
 func TestPhotoPermissionsRollbackAndCleanup(t *testing.T) {
 	s := setup(t)
 	ctx := context.Background()
 	u, _ := s.signup(t, "photos@example.com")
 	other, _ := s.signup(t, "friend@example.com")
-	g, e := s.groups.Create(ctx, u.ID, &dto.CreateGroupReq{Name: "照片"})
+	g, e := s.groups.Create(ctx, u.ID, &dto.CreateGroupReq{Name: "照片", PlayerName: "拍照人"})
 	if e != nil {
 		t.Fatal(e)
 	}
@@ -464,7 +538,7 @@ func TestHTTPAuthenticationAndCSRF(t *testing.T) {
 	if w := call("POST", "/v1/groups", "https://evil.example", session, map[string]string{"name": "bad"}); w.Code != 403 {
 		t.Fatal("CSRF accepted")
 	}
-	w := call("POST", "/v1/groups", testOrigin, session, map[string]string{"name": "API 小组"})
+	w := call("POST", "/v1/groups", testOrigin, session, map[string]string{"name": "API 小组", "player_name": "接口用户"})
 	if w.Code != 200 {
 		t.Fatal(w.Body.String())
 	}

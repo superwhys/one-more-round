@@ -34,8 +34,11 @@ definitions:
     properties:
       name:
         type: string
+      player_name:
+        type: string
     required:
     - name
+    - player_name
     type: object
   dto.DeleteRoundReq:
     properties:
@@ -473,7 +476,7 @@ paths:
     post:
       consumes:
       - application/json
-      description: 创建小组，创建者成为组主与首位成员
+      description: 创建小组与创建者自己的玩家档案，创建者成为组主与首位成员
       parameters:
       - description: 创建小组请求体
         in: body

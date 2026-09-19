@@ -48,7 +48,8 @@ type Snapshot struct {
 
 // CreateGroupReq creates a group.
 type CreateGroupReq struct {
-	Name string `json:"name" validate:"required"`
+	Name       string `json:"name" validate:"required"`
+	PlayerName string `json:"player_name" validate:"required"`
 }
 
 // JoinReq joins a group with an invitation token.
