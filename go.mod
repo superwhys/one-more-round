@@ -3,6 +3,7 @@ module github.com/superwhys/one-more-round
 go 1.27.1
 
 require (
+	github.com/aliyun/alibabacloud-oss-go-sdk-v2 v1.6.0
 	github.com/gin-gonic/gin v1.12.0
 	github.com/go-sql-driver/mysql v1.8.1
 	github.com/miebyte/goutils v1.2.1
@@ -76,6 +77,7 @@ require (
 	golang.org/x/sync v0.23.0 // indirect
 	golang.org/x/sys v0.48.0 // indirect
 	golang.org/x/text v0.42.0 // indirect
+	golang.org/x/time v0.8.0 // indirect
 	golang.org/x/tools v0.49.0 // indirect
 	google.golang.org/protobuf v1.36.12 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect

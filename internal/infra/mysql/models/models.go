@@ -125,7 +125,8 @@ type Photo struct {
 	GroupID string    `gorm:"column:group_id;type:varchar(64);not null;index:group_id,priority:1"`
 	Owner   string    `gorm:"column:owner;type:varchar(64);not null"`
 	RoundID string    `gorm:"column:round_id;type:varchar(64);not null"`
-	Created time.Time `gorm:"column:created;type:datetime(6);not null;index:group_id,priority:2"`
+	Created time.Time `gorm:"column:created;type:datetime(6);not null;index:group_id,priority:2;index:photo_cleanup,priority:2"`
+	State   string    `gorm:"column:state;type:varchar(16);not null;default:ready;index:photo_cleanup,priority:1"`
 }
 
 func (Photo) TableName() string { return "omr_photos" }

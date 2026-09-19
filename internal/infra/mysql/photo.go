@@ -19,7 +19,7 @@ type photoRepository struct {
 func (r *photoRepository) Save(ctx context.Context, groupID string, p *photo.Photo) error {
 	q := queryOf(r.db).Photo
 	return mapErr(q.WithContext(ctx).Clauses(clause.OnConflict{DoUpdates: clause.AssignmentColumns([]string{
-		string(q.RoundID.ColumnName()),
+		string(q.RoundID.ColumnName()), string(q.Created.ColumnName()), string(q.State.ColumnName()),
 	})}).Create(r.converter.PhotoDomainToModel(groupID, p)))
 }
 
@@ -33,11 +33,12 @@ func (r *photoRepository) Get(ctx context.Context, groupID, id string) (*photo.P
 	return r.converter.PhotoModelToDomain(m), nil
 }
 
-// ListUnattached returns at most limit unbound photos created before the given
-// time.
-func (r *photoRepository) ListUnattached(ctx context.Context, before time.Time, limit int) ([]*photo.Photo, error) {
+// ListCleanup includes failed deletions even when their retention cutoff changed.
+func (r *photoRepository) ListCleanup(ctx context.Context, before time.Time, limit int) ([]*photo.Photo, error) {
 	q := queryOf(r.db).Photo
-	rows, err := q.WithContext(ctx).Where(q.RoundID.Eq(""), q.Created.Lt(before)).Limit(limit).Find()
+	rows, err := q.WithContext(ctx).Where(q.RoundID.Eq("")).
+		Where(q.WithContext(ctx).Where(q.Created.Lt(before)).Or(q.State.Eq(string(photo.StateDeleting)))).
+		Order(q.Created, q.ID).Limit(limit).Find()
 	if err != nil {
 		return nil, mapErr(err)
 	}
@@ -48,13 +49,9 @@ func (r *photoRepository) ListUnattached(ctx context.Context, before time.Time, 
 	return items, nil
 }
 
-// DeleteUnattached removes an unbound photo created before the given time and
-// reports whether a row was deleted.
-func (r *photoRepository) DeleteUnattached(ctx context.Context, groupID, id string, before time.Time) (bool, error) {
+// DeletePending is idempotent, including concurrent cleanup workers.
+func (r *photoRepository) DeletePending(ctx context.Context, groupID, id string) error {
 	q := queryOf(r.db).Photo
-	result, err := q.WithContext(ctx).Where(q.GroupID.Eq(groupID), q.ID.Eq(id), q.RoundID.Eq(""), q.Created.Lt(before)).Delete()
-	if err != nil {
-		return false, mapErr(err)
-	}
-	return result.RowsAffected == 1, nil
+	_, err := q.WithContext(ctx).Where(q.GroupID.Eq(groupID), q.ID.Eq(id), q.RoundID.Eq(""), q.State.Eq(string(photo.StateDeleting))).Delete()
+	return mapErr(err)
 }

@@ -53,7 +53,8 @@ func main() {
 		return
 	}
 
-	photoFiles := &photos.Files{Root: runtime.PhotoDir}
+	photoFiles, err := photos.NewOSS(runtime.OSS)
+	logging.PanicError(err)
 	appCtx := &services.AppContext{
 		Repos:     repos,
 		Mailer:    &mail.Sender{Config: runtime.SMTP},
@@ -71,6 +72,8 @@ func main() {
 
 	httpConfig := &cores.HttpServerConfig{}
 	httpConfig.SetDefault()
+	// Allow the bounded OSS upload and compensation to finish before responding.
+	httpConfig.WriteTimeout = time.Minute
 	srv := cores.NewCores(
 		cores.WithHttpServerConfig(httpConfig),
 		cores.WithNameWorker("photo-cleanup", func(ctx context.Context) error {

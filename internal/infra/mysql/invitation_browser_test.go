@@ -20,6 +20,7 @@ import (
 	"github.com/superwhys/one-more-round/config"
 	"github.com/superwhys/one-more-round/internal/app/dto"
 	"github.com/superwhys/one-more-round/internal/infra/mail"
+	"github.com/superwhys/one-more-round/internal/infra/photos"
 	"github.com/superwhys/one-more-round/web"
 )
 
@@ -111,9 +112,10 @@ func TestInvitationStandaloneBinary(t *testing.T) {
 	listener.Close()
 	origin := "http://" + address
 	conf, err := json.Marshal(map[string]any{"app": config.Runtime{
-		Origin: origin, PhotoDir: filepath.Join(dir, "photos"),
-		MySQL: mysqlutils.MysqlConfig{Instance: os.Getenv("OMR_TEST_MYSQL"), Database: s.client.Gorm.Migrator().CurrentDatabase(), Username: "root"},
-		SMTP:  mail.Config{Host: "127.0.0.1", Port: 2525, From: "test@example.com"},
+		Origin: origin,
+		OSS:    photos.OSSConfig{Bucket: "test-bucket", Region: "cn-shenzhen", Endpoint: "https://oss-cn-shenzhen.aliyuncs.com", Prefix: "image/", AccessID: "test-id", AccessSecret: "test-secret"},
+		MySQL:  mysqlutils.MysqlConfig{Instance: os.Getenv("OMR_TEST_MYSQL"), Database: s.client.Gorm.Migrator().CurrentDatabase(), Username: "root"},
+		SMTP:   mail.Config{Host: "127.0.0.1", Port: 2525, From: "test@example.com"},
 	}})
 	if err != nil {
 		t.Fatal(err)

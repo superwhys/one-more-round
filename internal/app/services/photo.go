@@ -2,7 +2,9 @@ package services
 
 import (
 	"context"
+	"errors"
 	"io"
+	"io/fs"
 	"time"
 
 	"github.com/superwhys/one-more-round/internal/app/ports"
@@ -22,22 +24,40 @@ func NewPhotoApp(ctx *AppContext) *PhotoApp {
 	return &PhotoApp{repos: ctx.Repos, files: ctx.Photos}
 }
 
-// Upload stores an image file and records its metadata, removing the file again
-// when the metadata cannot be written. An upload that failed does not block the
-// rest of the round.
+// Upload tracks the ID before writing any objects. Pending uploads cannot be
+// read or attached, and failed compensation remains discoverable by cleanup.
 func (a *PhotoApp) Upload(ctx context.Context, groupID, userID string, r io.Reader) (string, error) {
-	if err := a.requireMember(ctx, groupID, userID); err != nil {
+	ctx, cancel := context.WithTimeout(ctx, 45*time.Second)
+	defer cancel()
+	id := secure.NewID()
+	if err := a.repos.WithTransaction(ctx, func(repos ports.Repositories) error {
+		if _, err := groupService(repos).RequireMember(ctx, groupID, userID); err != nil {
+			return err
+		}
+		return repos.Photo().Save(ctx, groupID, &photo.Photo{
+			ID: id, GroupID: groupID, Owner: userID, Created: time.Now().UTC(), State: photo.StateUploading,
+		})
+	}); err != nil {
 		return "", err
 	}
-	id := secure.NewID()
 	if err := a.files.Save(ctx, id, r); err != nil {
-		return "", errcode.ErrPhotoUpload
+		return "", errors.Join(err, a.discard(ctx, groupID, id))
 	}
 	if err := a.repos.WithTransaction(ctx, func(repos ports.Repositories) error {
-		return repos.Photo().Save(ctx, groupID, &photo.Photo{ID: id, GroupID: groupID, Owner: userID, Created: time.Now().UTC()})
+		if _, err := groupService(repos).RequireMember(ctx, groupID, userID); err != nil {
+			return err
+		}
+		p, err := repos.Photo().Get(ctx, groupID, id)
+		if err != nil {
+			return err
+		}
+		if p.State != photo.StateUploading {
+			return errcode.ErrPhotoNotFound
+		}
+		p.State = photo.StateReady
+		return repos.Photo().Save(ctx, groupID, p)
 	}); err != nil {
-		a.files.Remove(id)
-		return "", err
+		return "", errors.Join(err, a.discard(ctx, groupID, id))
 	}
 	return id, nil
 }
@@ -47,11 +67,11 @@ func (a *PhotoApp) Read(ctx context.Context, groupID, userID, id string, thumb b
 	if err := a.RequireAccess(ctx, groupID, userID, id); err != nil {
 		return nil, err
 	}
-	data, err := a.files.Read(id, thumb)
-	if err != nil {
+	data, err := a.files.Read(ctx, id, thumb)
+	if errors.Is(err, fs.ErrNotExist) {
 		return nil, errcode.ErrNotFound
 	}
-	return data, nil
+	return data, err
 }
 
 // RequireAccess checks that the member may read the photo. An unattached upload
@@ -65,6 +85,9 @@ func (a *PhotoApp) RequireAccess(ctx context.Context, groupID, userID, id string
 		if e != nil {
 			return e
 		}
+		if p.State != photo.StateReady {
+			return errcode.ErrNotFound
+		}
 		if !p.ReadableBy(userID) {
 			return errcode.ErrForbidden
 		}
@@ -72,10 +95,26 @@ func (a *PhotoApp) RequireAccess(ctx context.Context, groupID, userID, id string
 	})
 }
 
-// requireMember fails unless the account is a current member of the group.
-func (a *PhotoApp) requireMember(ctx context.Context, groupID, userID string) error {
-	return a.repos.WithTransaction(ctx, func(repos ports.Repositories) error {
-		_, e := groupService(repos).RequireMember(ctx, groupID, userID)
-		return e
-	})
+// discard gets a short independent deadline so a canceled upload can still be
+// claimed for deletion. An outage leaves its uploading row for later cleanup.
+func (a *PhotoApp) discard(ctx context.Context, groupID, id string) error {
+	ctx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 10*time.Second)
+	defer cancel()
+	if err := a.repos.WithTransaction(ctx, func(repos ports.Repositories) error {
+		if _, err := repos.Group().GetByID(ctx, groupID); err != nil {
+			return err
+		}
+		p, err := repos.Photo().Get(ctx, groupID, id)
+		if err != nil {
+			return err
+		}
+		if p.Attached() {
+			return errcode.ErrPhotoLinked
+		}
+		p.State = photo.StateDeleting
+		return repos.Photo().Save(ctx, groupID, p)
+	}); err != nil {
+		return err
+	}
+	return deletePhotoFiles(ctx, a.repos, a.files, groupID, id)
 }

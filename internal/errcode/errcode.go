@@ -150,6 +150,7 @@ var (
 	ErrPhotoLinked   = ErrConflict.WithMessage("照片已关联其他对局")
 	ErrPhotoSave     = ErrSysInternal.WithMessage("保存照片失败")
 	ErrPhotoRead     = ErrSysInternal.WithMessage("读取照片失败")
+	ErrPhotoStorage  = New(CodeUnavailable, 503, "图片存储服务暂时不可用，请稍后重试")
 	ErrPhotoMissing  = ErrBadRequest.WithMessage("缺少图片")
 	ErrPhotoTooLarge = ErrBadRequest.WithMessage("请选择不超过 10 MB 的图片")
 )

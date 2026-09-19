@@ -33,6 +33,7 @@ func newPhoto(db *gorm.DB, opts ...gen.DOOption) photo {
 	_photo.Owner = field.NewString(tableName, "owner")
 	_photo.RoundID = field.NewString(tableName, "round_id")
 	_photo.Created = field.NewTime(tableName, "created")
+	_photo.State = field.NewString(tableName, "state")
 
 	_photo.fillFieldMap()
 
@@ -48,6 +49,7 @@ type photo struct {
 	Owner   field.String
 	RoundID field.String
 	Created field.Time
+	State   field.String
 
 	fieldMap map[string]field.Expr
 }
@@ -69,6 +71,7 @@ func (p *photo) updateTableName(table string) *photo {
 	p.Owner = field.NewString(table, "owner")
 	p.RoundID = field.NewString(table, "round_id")
 	p.Created = field.NewTime(table, "created")
+	p.State = field.NewString(table, "state")
 
 	p.fillFieldMap()
 
@@ -93,12 +96,13 @@ func (p *photo) GetFieldByName(fieldName string) (field.OrderExpr, bool) {
 }
 
 func (p *photo) fillFieldMap() {
-	p.fieldMap = make(map[string]field.Expr, 5)
+	p.fieldMap = make(map[string]field.Expr, 6)
 	p.fieldMap["id"] = p.ID
 	p.fieldMap["group_id"] = p.GroupID
 	p.fieldMap["owner"] = p.Owner
 	p.fieldMap["round_id"] = p.RoundID
 	p.fieldMap["created"] = p.Created
+	p.fieldMap["state"] = p.State
 }
 
 func (p photo) clone(db *gorm.DB) photo {

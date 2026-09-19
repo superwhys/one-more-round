@@ -48,6 +48,6 @@ type Mailer interface {
 // PhotoFiles stores uploaded photo files outside the database.
 type PhotoFiles interface {
 	Save(ctx context.Context, id string, r io.Reader) error
-	Read(id string, thumb bool) ([]byte, error)
-	Remove(id string)
+	Read(ctx context.Context, id string, thumb bool) ([]byte, error)
+	Remove(ctx context.Context, id string) error
 }

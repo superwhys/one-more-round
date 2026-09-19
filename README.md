@@ -12,7 +12,7 @@
 
 需要 Go 1.27.1、Node.js >=22.12、pnpm 11.22.0、MySQL（本地验证版本 9.0.1）及 SMTP。MySQL 数据库和专用账号需提前准备；不要使用生产数据库做联调。
 
-1. 将 `config.example.json` 复制为 `config.json`（已忽略入库），填写 `app.mysql`、`app.smtp`、`app.origin` 和私有照片目录 `app.photo_dir`。
+1. 将 `config.example.json` 复制为 `config.json`（已被 Git 和 Docker 构建上下文忽略），填写 `app.mysql`、`app.smtp`、`app.origin` 和 `app.oss`。真实 AccessKey 只放在私有配置文件中，示例中的凭证保持为空。
 2. `app.origin` 必须是浏览器实际访问的源，例如 `http://127.0.0.1:8080`，不能带末尾斜杠。公网部署要求 HTTPS，Cookie 自动启用 Secure。
 3. 构建并启动：
 
@@ -21,9 +21,43 @@ make build
 ./bin/one-more-round --configFile ./config.json
 ```
 
-启动执行 GORM 自动迁移，按 Model 补齐缺失的表、列和索引。业务数据、配置、照片均独立于二进制；生产无需 Node、Vite 或外部 `web/dist`。
+启动执行 GORM 自动迁移，按 Model 补齐缺失的表、列和索引。业务数据、配置、OSS 照片均独立于二进制；生产无需 Node、Vite 或外部 `web/dist`。
 
 SMTP 465 使用直接 TLS，其他外部服务器要求 STARTTLS。只允许本机 SMTP 收件箱使用明文连接；发送操作有连接/读写超时与请求取消。验证码不写入应用日志。生产请填写真实 SMTP 发件地址与账号。
+
+## 照片存储（阿里云 OSS）
+
+`app.oss` 的 Bucket、Region、Endpoint、Prefix 和 AccessKey 均从 `config.json` 读取，不写入代码。当前 Bucket 为 `one-more-round`，Region 为 `cn-shenzhen`，对象前缀为 `image/`（不包含 `*`）；生成 `image/<照片ID>.jpg` 与 `image/<照片ID>-thumb.jpg`。
+
+- 本地测试 Endpoint：`https://oss-cn-shenzhen.aliyuncs.com`。
+- 阿里云深圳服务器 Endpoint：`https://oss-cn-shenzhen-internal.aliyuncs.com`。
+- 也接受控制台复制的完整 Bucket 域名，配置校验会去掉 Bucket 前缀，避免 SDK 重复拼接。
+- `access_id`、`access_secret` 填写专用 RAM 身份的凭证。配置文件使用 `chmod 600 config.json`；容器挂载时保证运行用户可读。不要提交配置文件、将它加入镜像，或开启会输出完整配置的 `--debug --watchConfig` 组合。
+
+Bucket 保持私有，程序上传时明确设置对象为 `private`。浏览器仅通过现有图片 API 访问，由 Go 服务校验成员权限后读取 OSS；不返回公开地址或签名链接。上传后再次校验成员身份，上传中和待删除状态不能读取或关联。OSS 故障返回 503，与图片不存在的 404 区分。
+
+RAM 授权需覆盖以下对象范围；若有其他显式拒绝或资源组限制，还需检查对应策略。无需为了上传授予整个账号的 OSS 管理权限。
+
+```json
+{
+  "Version": "1",
+  "Statement": [{
+    "Effect": "Allow",
+    "Action": ["oss:PutObject", "oss:GetObject", "oss:DeleteObject"],
+    "Resource": ["acs:oss:*:*:one-more-round/image/*"]
+  }]
+}
+```
+
+首次接入需使用真实凭证验证，不能以编译通过代替。以下测试会在配置前缀下上传两张随机命名的测试图片，读取校验后删除，不修改业务数据库；平时测试不会自动访问 OSS：
+
+```sh
+OMR_TEST_OSS_CONFIG="$PWD/config.json" go test -count=1 -run '^TestOSSLive$' -v ./internal/infra/photos
+```
+
+存储实现使用 [OSS Go SDK V2](https://help.aliyun.com/zh/oss/developer-reference/manual-for-go-sdk-v2/)，权限依据 [PutObject](https://help.aliyun.com/zh/oss/developer-reference/putobject)。原有本地照片如需保留，应先按相同文件名上传到配置的前缀并校验，再切换服务；本次不会自动迁移或删除旧目录。
+
+切换时同时更新二进制与 `app.oss` 配置，旧的 `app.photo_dir` 配置不再使用。`AutoMigrate` 新增照片状态列，已有元数据默认就绪；切换期间避免新旧版本同时写入，因为旧版本不识别上传中和待删除状态。
 
 ## 发放首次试用邀请
 
@@ -54,7 +88,7 @@ Vite 将 API 代理到 `127.0.0.1:8080`。切回单二进制访问前，将 orig
 
 ## Docker 镜像发布
 
-`Dockerfile` 会先按 `pnpm-lock.yaml` 构建前端，再编译内嵌前端资源的 Linux Go 二进制；运行镜像以非 root 用户启动，监听 `0.0.0.0:8080`。部署时将生产配置挂载到 `/app/config.json`，并将 `/app/data` 挂载到持久化存储；配置中的 `app.photo_dir` 使用 `/app/data/photos`。
+`Dockerfile` 会先按 `pnpm-lock.yaml` 构建前端，再编译内嵌前端资源的 Linux Go 二进制；运行镜像以非 root 用户启动，监听 `0.0.0.0:8080`。部署时将私有生产配置只读挂载到 `/app/config.json`，照片存入 OSS，不再需要本地照片数据卷。深圳服务器使用上述内网 Endpoint。
 
 推送形如 `server/0.1.0` 的 Git 标签会触发 `.github/workflows/docker-image.yml`，并发布：
 

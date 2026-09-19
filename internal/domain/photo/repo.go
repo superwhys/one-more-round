@@ -11,10 +11,8 @@ type IPhotoRepository interface {
 	Save(ctx context.Context, groupID string, p *Photo) error
 	// Get returns the metadata of one photo of the group.
 	Get(ctx context.Context, groupID, id string) (*Photo, error)
-	// ListUnattached returns at most limit unbound photos created before the
-	// given time.
-	ListUnattached(ctx context.Context, before time.Time, limit int) ([]*Photo, error)
-	// DeleteUnattached removes an unbound photo created before the given time
-	// and reports whether a row was deleted.
-	DeleteUnattached(ctx context.Context, groupID, id string, before time.Time) (bool, error)
+	// ListCleanup returns expired unbound uploads and previously claimed deletions.
+	ListCleanup(ctx context.Context, before time.Time, limit int) ([]*Photo, error)
+	// DeletePending removes metadata only after its claimed objects were deleted.
+	DeletePending(ctx context.Context, groupID, id string) error
 }

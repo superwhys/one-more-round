@@ -8,15 +8,16 @@ import (
 
 	"github.com/miebyte/goutils/mysqlutils"
 	smtp "github.com/superwhys/one-more-round/internal/infra/mail"
+	"github.com/superwhys/one-more-round/internal/infra/photos"
 )
 
 type Runtime struct {
-	Listen   string                 `json:"-"`
-	IsProd   bool                   `json:"is_prod"`
-	MySQL    mysqlutils.MysqlConfig `json:"mysql"`
-	SMTP     smtp.Config            `json:"smtp"`
-	Origin   string                 `json:"origin"`
-	PhotoDir string                 `json:"photo_dir"`
+	Listen string                 `json:"-"`
+	IsProd bool                   `json:"is_prod"`
+	MySQL  mysqlutils.MysqlConfig `json:"mysql"`
+	SMTP   smtp.Config            `json:"smtp"`
+	Origin string                 `json:"origin"`
+	OSS    photos.OSSConfig       `json:"oss"`
 }
 
 func (c *Runtime) Validate() error {
@@ -40,8 +41,8 @@ func (c *Runtime) Validate() error {
 	if u.Scheme == "http" && u.Hostname() != "localhost" && u.Hostname() != "127.0.0.1" && u.Hostname() != "::1" {
 		return errors.New("production origin requires HTTPS")
 	}
-	if c.PhotoDir == "" {
-		return errors.New("app.photo_dir is required")
+	if e = c.OSS.Validate(); e != nil {
+		return e
 	}
 	a, e := mail.ParseAddress(c.SMTP.From)
 	if e != nil || a.Address != c.SMTP.From || strings.ContainsAny(c.SMTP.From, "\r\n") {

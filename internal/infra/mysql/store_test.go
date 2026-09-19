@@ -505,8 +505,13 @@ type countingFiles struct {
 func (f countingFiles) Save(ctx context.Context, id string, r io.Reader) error {
 	return f.inner.Save(ctx, id, r)
 }
-func (f countingFiles) Read(id string, thumb bool) ([]byte, error) { return f.inner.Read(id, thumb) }
-func (f countingFiles) Remove(id string)                           { *f.removed = true; f.inner.Remove(id) }
+func (f countingFiles) Read(ctx context.Context, id string, thumb bool) ([]byte, error) {
+	return f.inner.Read(ctx, id, thumb)
+}
+func (f countingFiles) Remove(ctx context.Context, id string) error {
+	*f.removed = true
+	return f.inner.Remove(ctx, id)
+}
 
 func TestHTTPAuthenticationAndCSRF(t *testing.T) {
 	s := setup(t)

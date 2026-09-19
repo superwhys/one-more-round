@@ -21,7 +21,7 @@ func TestReencodeAndBounds(t *testing.T) {
 		t.Fatal(e)
 	}
 	for _, thumb := range []bool{false, true} {
-		data, e := f.Read(id, thumb)
+		data, e := f.Read(context.Background(), id, thumb)
 		if e != nil {
 			t.Fatal(e)
 		}
@@ -39,8 +39,8 @@ func TestReencodeAndBounds(t *testing.T) {
 	if e := f.Save(context.Background(), id, bytes.NewReader([]byte("fake.jpg"))); e == nil {
 		t.Fatal("invalid content accepted")
 	}
-	f.Remove(id)
-	if _, e := f.Read(id, false); !os.IsNotExist(e) {
+	f.Remove(context.Background(), id)
+	if _, e := f.Read(context.Background(), id, false); !os.IsNotExist(e) {
 		t.Fatal("not removed")
 	}
 }

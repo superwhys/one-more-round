@@ -43,7 +43,7 @@ ARG BINARY_NAME=one-more-round
 RUN apk add --no-cache ca-certificates tzdata \
     && addgroup -S app \
     && adduser -S -G app app \
-    && mkdir -p /app/data/photos \
+    && mkdir -p /app \
     && chown -R app:app /app
 
 WORKDIR /app
@@ -53,7 +53,6 @@ COPY --from=go-builder /out/${BINARY_NAME} /app/one-more-round
 USER app
 
 EXPOSE 8080
-VOLUME ["/app/data"]
 
 HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
   CMD wget -q -O /dev/null http://127.0.0.1:8080/health_check || exit 1
