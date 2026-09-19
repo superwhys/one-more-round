@@ -2,11 +2,13 @@ package mysql
 
 import (
 	"context"
+	"errors"
 	"time"
 
 	"github.com/superwhys/one-more-round/internal/converter"
 	"github.com/superwhys/one-more-round/internal/domain/game"
 	"github.com/superwhys/one-more-round/internal/domain/group"
+	"github.com/superwhys/one-more-round/internal/errcode"
 	"github.com/superwhys/one-more-round/internal/infra/mysql/models"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
@@ -188,9 +190,18 @@ func (r *inviteRepository) Revoke(ctx context.Context, groupID, id string) error
 // Resolve returns the group of a live, unrevoked invitation digest.
 func (r *inviteRepository) Resolve(ctx context.Context, hash string, now time.Time) (string, error) {
 	q := queryOf(r.db).Invite
-	m, err := q.WithContext(ctx).Where(q.Hash.Eq(hash), q.Expires.Gt(now), q.Revoked.Is(false)).Take()
+	m, err := q.WithContext(ctx).Where(q.Hash.Eq(hash)).Take()
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return "", errcode.ErrInviteInvalid
+	}
 	if err != nil {
 		return "", mapErr(err)
+	}
+	if m.Revoked {
+		return "", errcode.ErrInviteRevoked
+	}
+	if !m.Expires.After(now) {
+		return "", errcode.ErrInviteExpired
 	}
 	return m.GroupID, nil
 }

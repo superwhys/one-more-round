@@ -33,6 +33,11 @@ func (a *AuthApp) SendCode(ctx context.Context, req *dto.SendCodeReq, ip string)
 	now := time.Now().UTC()
 	var code, digest string
 	if err = a.repos.WithTransaction(ctx, func(repos ports.Repositories) error {
+		if req.GroupToken != "" {
+			if _, e := groupService(repos).InvitedGroup(ctx, req.GroupToken, now); e != nil {
+				return e
+			}
+		}
 		var e error
 		code, digest, e = identityService(repos).SendCode(ctx, email, req.Invite, ip, now)
 		return e
@@ -47,9 +52,9 @@ func (a *AuthApp) SendCode(ctx context.Context, req *dto.SendCodeReq, ip string)
 	})
 }
 
-// Login verifies the code, registering a first-time account against the trial
-// invitation, and returns the session token of the caller.
-func (a *AuthApp) Login(ctx context.Context, req *dto.LoginReq) (*dto.User, string, error) {
+// Login verifies the code and atomically registers, joins the invited group and
+// opens a session. Without a group invitation, registration consumes a trial.
+func (a *AuthApp) Login(ctx context.Context, req *dto.LoginReq) (*dto.LoginResp, string, error) {
 	email, err := identity.NormalizeEmail(req.Email)
 	if err != nil {
 		return nil, "", err
@@ -58,10 +63,22 @@ func (a *AuthApp) Login(ctx context.Context, req *dto.LoginReq) (*dto.User, stri
 		user     *identity.User
 		token    string
 		rejected error
+		groupID  string
 	)
 	err = a.repos.WithTransaction(ctx, func(repos ports.Repositories) error {
+		if req.GroupToken != "" {
+			if _, e := groupService(repos).InvitedGroup(ctx, req.GroupToken, time.Now().UTC()); e != nil {
+				return e
+			}
+		}
 		var e error
-		user, token, rejected, e = identityService(repos).Login(ctx, email, req.Code, time.Now().UTC())
+		user, token, rejected, e = identityService(repos).Login(ctx, email, req.Code, req.GroupToken != "", time.Now().UTC())
+		if e != nil || rejected != nil {
+			return e
+		}
+		if req.GroupToken != "" {
+			groupID, e = groupService(repos).Join(ctx, user.ID, req.GroupToken, time.Now().UTC())
+		}
 		return e
 	})
 	if err != nil {
@@ -70,7 +87,7 @@ func (a *AuthApp) Login(ctx context.Context, req *dto.LoginReq) (*dto.User, stri
 	if rejected != nil {
 		return nil, "", rejected
 	}
-	return a.converter.UserDomainToDTO(user), token, nil
+	return &dto.LoginResp{User: *a.converter.UserDomainToDTO(user), GroupID: groupID}, token, nil
 }
 
 // Authenticate resolves a session token into the current account.

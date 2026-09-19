@@ -33,7 +33,7 @@ SMTP 465 使用直接 TLS，其他外部服务器要求 STARTTLS。只允许本�
 ./bin/one-more-round --configFile ./config.json --trial-output ./trial-invitation.txt
 ```
 
-命令不覆盖已有文件。把文件内链接交给试用者即可；不要提交或公开该文件。已有账号无需再用试用邀请。组主登录后可在小组页生成/撤销小组邀请，首次注册资格和入组资格分开管理。
+命令不覆盖已有文件。把文件内链接交给首批试用者即可；不要提交或公开该文件。已有账号无需再用试用邀请。组主可在小组页生成/撤销小组邀请：朋友只需打开一条链接并验证邮箱，即可注册或登录并加入，不需要额外试用邀请码。小组链接 7 天内可供多人使用，获得或被转发链接的人均可加入，请只分享给信任的朋友。
 
 撤销尚未使用的试用邀请：
 
@@ -51,6 +51,18 @@ make dev-web
 ```
 
 Vite 将 API 代理到 `127.0.0.1:8080`。切回单二进制访问前，将 origin 改为实际服务地址。服务端使用数据库 Cookie 会话，写操作校验 Origin，不启用任意跨域。
+
+## Docker 镜像发布
+
+`Dockerfile` 会先按 `pnpm-lock.yaml` 构建前端，再编译内嵌前端资源的 Linux Go 二进制；运行镜像以非 root 用户启动，监听 `0.0.0.0:8080`。部署时将生产配置挂载到 `/app/config.json`，并将 `/app/data` 挂载到持久化存储；配置中的 `app.photo_dir` 使用 `/app/data/photos`。
+
+推送形如 `server/0.1.0` 的 Git 标签会触发 `.github/workflows/docker-image.yml`，并发布：
+
+```text
+crpi-zl1i6kvg9tgjh9f7.cn-shenzhen.personal.cr.aliyuncs.com/hoven-prod/one-more-round:0.1.0
+```
+
+GitHub 仓库需配置与参考项目相同的 `DOCKERHUB_USERNAME`、`DOCKERHUB_TOKEN` Secrets，内容分别为阿里云 ACR 用户名和访问凭据。镜像标签只接受字母、数字、点、下划线和连字符。
 
 数据库表 Model 位于 `internal/infra/mysql/models`（`models.AllModels()` 供 `AutoMigrate` 使用），业务仓储使用 `gorm.io/gen` 生成的 `internal/infra/mysql/query`，按业务上下文拆在 `internal/infra/mysql/{identity,group,game,diary,photo}.go`，由 `RepositoryFactory` 汇总；Model ↔ Domain ↔ DTO 的转换集中在 `internal/converter`。API DTO 在 `internal/app/dto`，用例在 `internal/app/services`（每个边界一个 `XxxApp`），事务/邮件/文件等端口在 `internal/app/ports`；业务错误与随机标识分别在 `internal/errcode`、`internal/pkg/secure`。修改 Model 后执行：
 
@@ -94,6 +106,10 @@ make integration  # 需要 mysqld/mysqladmin/python3；创建独立临时 MySQL 
 ```
 
 没有 `OMR_TEST_MYSQL` 时，普通 Go 测试会明确跳过 MySQL 集成用例；不能把跳过视为通过。`make integration` 不访问本机已有 MySQL 服务，不修改已有业务库。已有专用测试实例也可通过 `OMR_TEST_MYSQL=127.0.0.1:端口 go test -race ./...` 验证（需要 root 空密码，仅用于隔离测试实例）。测试创建并删除随机名称的独立数据库。
+
+安装 Playwright 与 Chrome 后，使用 `OMR_BROWSER_TEST=1 make integration` 运行小组邀请的真实浏览器回归（新邮箱注册入组、刷新恢复、已有成员进入、加入第二个组、注销清理及邀请失效提示）。若 Playwright 不在默认模块路径，可用 `OMR_PLAYWRIGHT_MODULE=file:///绝对路径/playwright/index.mjs` 指向现有安装；`OMR_BROWSER_ARTIFACTS` 可指定已存在的截图目录。测试使用隔离数据库和仅在测试服务器中存在的内存收件箱，不向外部邮箱发信。
+
+`make build` 后可同时设置 `OMR_TEST_BINARY` 为新二进制的绝对路径，集成测试会将它复制到不含 `web/dist` 的临时目录，用隔离配置/数据库启动，检查首页、邀请/登录深链接、嵌入资源及 API/资源错误分流。
 
 已验证：并发重复提交、同键异内容冲突、旧版本编辑/删除、非成员与移除成员隔离、验证码限制、跨组资源拒绝、共同获胜与统计分母、照片权限、事务失败回滚、临时照片清理。浏览器验证了登录、建组、手动游戏/玩家、草稿刷新恢复、保存与编辑、再记一局、照片上传，以及 320/390px 与桌面布局。
 

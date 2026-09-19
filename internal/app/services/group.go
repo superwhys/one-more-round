@@ -187,6 +187,20 @@ func (a *GroupApp) Invites(ctx context.Context, groupID, userID string) ([]dto.I
 	return a.converter.InviteDomainListToDTOList(invites), nil
 }
 
+// PreviewInvite returns only the invited group's ID and name before login.
+func (a *GroupApp) PreviewInvite(ctx context.Context, token string) (dto.InvitePreview, error) {
+	var invited *group.Group
+	err := a.repos.WithTransaction(ctx, func(repos ports.Repositories) error {
+		var e error
+		invited, e = groupService(repos).InvitedGroup(ctx, token, time.Now().UTC())
+		return e
+	})
+	if err != nil {
+		return dto.InvitePreview{}, err
+	}
+	return a.converter.GroupDomainToInvitePreviewDTO(invited), nil
+}
+
 // Join accepts a group invitation and returns the joined group.
 func (a *GroupApp) Join(ctx context.Context, userID string, req *dto.JoinReq) (string, error) {
 	var groupID string

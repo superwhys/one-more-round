@@ -321,7 +321,7 @@
 .d-success { max-width: 500px; margin: 30px auto; padding: 50px 25px; text-align: center; display: flex; flex-direction: column; align-items: center; }
 .d-success-mark { width: 75px; height: 75px; display: grid; place-items: center; border-radius: 50%; background: #e8eddc; color: #899c6a; margin-bottom: 27px; }
 .d-success h1 { font: 30px 'Songti SC', serif; margin: 4px 0 20px; }
-.d-success > p:not(.d-eyebrow) { color: #8a9a73; font-size: 12px; line-height: 2; }
+.d-success > p:not(.d-eyebrow) { color: #8a9a73; font-size: 12px; line-height: 2; margin-bottom: 24px; }
 .d-success > small { color: #a4b08e; font-size: 10px; margin: 15px 0 28px; }
 .d-success > .d-button { min-width: 190px; margin-bottom: 12px; }
 @media (hover: hover) and (pointer: fine) {

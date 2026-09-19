@@ -25,9 +25,7 @@ export const router = createRouter({
 
 router.beforeEach(async to => {
   const session = useSession()
-  if (to.hash) {
-    if (to.path === '/join') session.joinToken.value = decodeURIComponent(to.hash.slice(1))
-    else session.invitation.value = new URLSearchParams(to.hash.slice(1)).get('trial') ?? ''
+  if (session.captureInvitation(to.path, to.hash)) {
     return { path: to.path, query: to.query, hash: '', replace: true }
   }
   await session.initialize()

@@ -57,6 +57,12 @@ type JoinReq struct {
 	Token string `json:"token" validate:"required"`
 }
 
+// InvitePreview is the only group information visible before joining.
+type InvitePreview struct {
+	GroupID string `json:"group_id"`
+	Name    string `json:"name"`
+}
+
 // AddPlayerReq creates a nickname profile.
 type AddPlayerReq struct {
 	Name string `json:"name" validate:"required"`

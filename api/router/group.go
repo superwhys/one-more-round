@@ -16,6 +16,30 @@ type groupRouterFn func(router gin.IRouter)
 
 func (fn groupRouterFn) Init(router gin.IRouter) { fn(router) }
 
+// GroupInvitationRouter registers the minimal public invitation preview.
+func GroupInvitationRouter(groupApp *services.GroupApp) groupRouterFn {
+	return func(router gin.IRouter) { router.POST("/group-invite", previewInviteHandler(groupApp)) }
+}
+
+// previewInviteHandler 查看小组邀请
+// @Summary 查看小组邀请
+// @Description 无需登录，凭有效邀请仅返回小组 ID 与名称，不展示成员或记录
+// @Tags Auth
+// @Accept json
+// @Produce json
+// @Param request body dto.JoinReq true "邀请令牌"
+// @Success 200 {object} ginutils.Ret[dto.InvitePreview]
+// @Router /v1/auth/group-invite [post]
+func previewInviteHandler(groupApp *services.GroupApp) gin.HandlerFunc {
+	return ginutils.RequestHandler(func(ctx *gin.Context, req *dto.JoinReq) {
+		preview, err := groupApp.PreviewInvite(ctx.Request.Context(), req.Token)
+		if common.HandleRouterError(ctx, err, "preview invitation failed", errcode.ErrSysInternal) {
+			return
+		}
+		ctx.JSON(http.StatusOK, dto.ResponseWithData(preview))
+	})
+}
+
 // GroupRouter registers the group collection endpoints.
 func GroupRouter(groupApp *services.GroupApp) groupRouterFn {
 	return func(router gin.IRouter) {

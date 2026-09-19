@@ -12,7 +12,7 @@
     "typecheck": "vue-tsc --noEmit",
     "build": "pnpm typecheck && vite build",
     "preview": "vite preview --host 127.0.0.1",
-    "test": "node --experimental-strip-types --test src/api/__tests__/*.test.ts"
+    "test": "node --experimental-strip-types --test src/api/__tests__/*.test.ts src/stores/__tests__/*.test.ts"
   },
   "dependencies": {
     "vue": "3.5.43",

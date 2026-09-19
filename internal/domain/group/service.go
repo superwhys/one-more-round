@@ -29,6 +29,8 @@ type IService interface {
 	Invite(ctx context.Context, groupID, userID string, now time.Time) (*Invite, string, error)
 	// Invites lists the group's invitations for the owner.
 	Invites(ctx context.Context, groupID, userID string) ([]*Invite, error)
+	// InvitedGroup validates an invitation and locks its group until commit.
+	InvitedGroup(ctx context.Context, token string, now time.Time) (*Group, error)
 	// Join accepts a group invitation and grants membership.
 	Join(ctx context.Context, userID, token string, now time.Time) (string, error)
 	// Manage applies an owner or member action on the group; the game alias
@@ -155,24 +157,34 @@ func (s *service) Invites(ctx context.Context, groupID, userID string) ([]*Invit
 	return s.invites.ListByGroup(ctx, groupID)
 }
 
-// Join accepts a group invitation and grants membership.
-func (s *service) Join(ctx context.Context, userID, token string, now time.Time) (string, error) {
+// InvitedGroup validates the invitation under the group's membership lock.
+func (s *service) InvitedGroup(ctx context.Context, token string, now time.Time) (*Group, error) {
 	hash := secure.Hash(token)
 	groupID, err := s.invites.Resolve(ctx, hash, now)
 	if err != nil {
-		return "", errcode.ErrInviteInvalid
+		return nil, err
 	}
-	if _, err = s.groups.GetByID(ctx, groupID); err != nil {
-		return "", err
+	g, err := s.groups.GetByID(ctx, groupID)
+	if err != nil {
+		return nil, err
 	}
 	// The invitation is re-read so a concurrent revoke still blocks the join.
 	if _, err = s.invites.Resolve(ctx, hash, now); err != nil {
-		return "", errcode.ErrInviteInvalid
+		return nil, err
 	}
-	if err = s.groups.AddMember(ctx, groupID, userID); err != nil {
+	return g, nil
+}
+
+// Join accepts a group invitation and grants membership idempotently.
+func (s *service) Join(ctx context.Context, userID, token string, now time.Time) (string, error) {
+	g, err := s.InvitedGroup(ctx, token, now)
+	if err != nil {
 		return "", err
 	}
-	return groupID, nil
+	if err = s.groups.AddMember(ctx, g.ID, userID); err != nil {
+		return "", err
+	}
+	return g.ID, nil
 }
 
 // Manage applies an owner or member action on the group; the game alias action

@@ -64,7 +64,7 @@ func (api *API) SetupRouter() http.Handler {
 		// The authentication entry points are the only routes without a session.
 		ginutils.WithGroupHandlers(
 			ginutils.WithPrefix("/v1/auth"),
-			ginutils.WithRouterHandler(router.AuthRouter(api.authApp, api.sessionOptions())),
+			ginutils.WithRouterHandler(router.AuthRouter(api.authApp, api.sessionOptions()), router.GroupInvitationRouter(api.groupApp)),
 		),
 		// Everything else requires a current session and group membership.
 		ginutils.WithGroupHandlers(

@@ -31,6 +31,11 @@ func (c *Converter) GroupDomainToDTO(g *group.Group) dto.Group {
 	return dto.Group{ID: g.ID, Name: g.Name, Owner: g.Owner}
 }
 
+// GroupDomainToInvitePreviewDTO omits the owner and all member-only content.
+func (c *Converter) GroupDomainToInvitePreviewDTO(g *group.Group) dto.InvitePreview {
+	return dto.InvitePreview{GroupID: g.ID, Name: g.Name}
+}
+
 // GroupDomainListToDTOList converts a group list into API DTOs.
 func (c *Converter) GroupDomainListToDTOList(groups []*group.Group) []dto.Group {
 	items := make([]dto.Group, 0, len(groups))

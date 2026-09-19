@@ -22,7 +22,9 @@ type IService interface {
 	// Login verifies the code and opens a session. A rejected login still has
 	// committed side effects (the attempt counter), so it is reported apart
 	// from err, which means the transaction must roll back.
-	Login(ctx context.Context, email, code string, now time.Time) (user *User, token string, rejected, err error)
+	// groupRegistration is granted only after a group invitation is validated
+	// under lock in the same transaction that registers and joins the account.
+	Login(ctx context.Context, email, code string, groupRegistration bool, now time.Time) (user *User, token string, rejected, err error)
 	// Authenticate resolves a session token into its account.
 	Authenticate(ctx context.Context, token string) (*User, error)
 	// Logout revokes the session of a token.
@@ -88,7 +90,7 @@ func (s *service) MarkCodeSent(ctx context.Context, email, digest string) error 
 // Login verifies the code and opens a session. A rejected login still has
 // committed side effects (the attempt counter), so it is reported apart from
 // err, which means the transaction must roll back.
-func (s *service) Login(ctx context.Context, email, code string, now time.Time) (*User, string, error, error) {
+func (s *service) Login(ctx context.Context, email, code string, groupRegistration bool, now time.Time) (*User, string, error, error) {
 	c, err := s.codes.Get(ctx, email)
 	if err != nil {
 		return nil, "", nil, err
@@ -102,8 +104,10 @@ func (s *service) Login(ctx context.Context, email, code string, now time.Time) 
 	}
 	user, err := s.users.GetByEmail(ctx, email)
 	if errors.Is(err, errcode.ErrNotFound) {
-		if err = s.trials.Consume(ctx, c.Invite, now); err != nil {
-			return nil, "", nil, err
+		if !groupRegistration {
+			if err = s.trials.Consume(ctx, c.Invite, now); err != nil {
+				return nil, "", nil, err
+			}
 		}
 		user = &User{ID: secure.NewID(), Email: email}
 		if err = s.users.Create(ctx, user); err != nil {

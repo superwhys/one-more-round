@@ -36,7 +36,7 @@ func AuthRouter(authApp *services.AuthApp, opts SessionOptions) authRouterFn {
 
 // sendCodeHandler 发送邮箱验证码
 // @Summary 发送邮箱验证码
-// @Description 向目标邮箱发送登录验证码；首次注册需携带试用邀请
+// @Description 向目标邮箱发送登录验证码；可携带试用邀请 invite 或小组邀请 group_token
 // @Tags Auth
 // @Accept json
 // @Produce json
@@ -55,12 +55,12 @@ func sendCodeHandler(authApp *services.AuthApp) gin.HandlerFunc {
 
 // loginHandler 验证码登录
 // @Summary 验证码登录
-// @Description 使用邮箱验证码登录；新账号首次登录会消费试用邀请
+// @Description 验证邮箱；携带 group_token 时原子注册并加入小组，否则新账号消费试用邀请
 // @Tags Auth
 // @Accept json
 // @Produce json
 // @Param request body dto.LoginReq true "登录请求体"
-// @Success 200 {object} ginutils.Ret[dto.User]
+// @Success 200 {object} ginutils.Ret[dto.LoginResp]
 // @Router /v1/auth/login [post]
 func loginHandler(authApp *services.AuthApp, opts SessionOptions) gin.HandlerFunc {
 	return ginutils.RequestHandler(func(ctx *gin.Context, req *dto.LoginReq) {

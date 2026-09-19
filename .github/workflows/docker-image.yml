@@ -1,0 +1,58 @@
+name: Docker Image CI
+
+on:
+  push:
+    tags:
+      - 'server/*'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: docker-image-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Extract image tag
+        id: vars
+        shell: bash
+        run: |
+          image_tag="${GITHUB_REF_NAME#server/}"
+          if [[ -z "$image_tag" || "$image_tag" == */* || "$image_tag" =~ [^A-Za-z0-9_.-] ]]; then
+            echo "Invalid server image tag: $image_tag" >&2
+            exit 1
+          fi
+          echo "image_tag=$image_tag" >> "$GITHUB_OUTPUT"
+
+      - name: Login to Aliyun ACR
+        uses: docker/login-action@v3
+        with:
+          registry: crpi-zl1i6kvg9tgjh9f7.cn-shenzhen.personal.cr.aliyuncs.com
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build and push image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: Dockerfile
+          platforms: linux/amd64
+          build-args: |
+            BINARY_NAME=one-more-round
+            VERSION=${{ steps.vars.outputs.image_tag }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          push: true
+          provenance: false
+          sbom: false
+          tags: crpi-zl1i6kvg9tgjh9f7.cn-shenzhen.personal.cr.aliyuncs.com/hoven-prod/one-more-round:${{ steps.vars.outputs.image_tag }}

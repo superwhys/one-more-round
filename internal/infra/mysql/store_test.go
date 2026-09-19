@@ -131,7 +131,7 @@ func (s *stack) signup(t *testing.T, email string) (dto.User, string) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	return *user, session
+	return user.User, session
 }
 
 // uploadPhoto stores a tiny generated image and returns its identifier.

@@ -4,14 +4,16 @@ import { listGroups } from '@/api/group'
 import { ApiError } from '@/api/request'
 import { clearDrafts } from '@/utils/draft'
 import { message } from '@/utils/error'
+import { createInvitationState } from '@/stores/invitation'
 import type { Group, User } from '@/types/journal'
 
 const user = ref<User | null>(null)
 const groups = ref<Group[]>([])
 const selected = ref('')
 const error = ref('')
-const invitation = ref('')
-const joinToken = ref('')
+let invitationStorage: Storage | undefined
+try { invitationStorage = window.sessionStorage } catch { /* Browser storage is optional. */ }
+const invitations = createInvitationState(invitationStorage)
 let initialized = false
 let initialization: Promise<void> | undefined
 
@@ -52,6 +54,8 @@ async function initialize(force = false) {
 }
 async function logout() {
   await logoutRequest()
+  invitations.clearInvitations()
+  try { sessionStorage.removeItem('omr:pending-login') } catch { /* optional recovery */ }
   try { clearDrafts() } catch { error.value = '已退出登录，但浏览器未能清除本地草稿' }
   user.value = null
   groups.value = []
@@ -59,5 +63,5 @@ async function logout() {
 }
 
 export function useSession() {
-  return { user, groups, selected, error, invitation, joinToken, initialize, acceptUser, selectGroup, loadGroups, expire, logout }
+  return { user, groups, selected, error, ...invitations, initialize, acceptUser, selectGroup, loadGroups, expire, logout }
 }

@@ -17,7 +17,7 @@ const docTemplate = `{
     "paths": {
         "/v1/auth/code": {
             "post": {
-                "description": "向目标邮箱发送登录验证码；首次注册需携带试用邀请",
+                "description": "向目标邮箱发送登录验证码；可携带试用邀请 invite 或小组邀请 group_token",
                 "consumes": [
                     "application/json"
                 ],
@@ -49,9 +49,43 @@ const docTemplate = `{
                 }
             }
         },
+        "/v1/auth/group-invite": {
+            "post": {
+                "description": "无需登录，凭有效邀请仅返回小组 ID 与名称，不展示成员或记录",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Auth"
+                ],
+                "summary": "查看小组邀请",
+                "parameters": [
+                    {
+                        "description": "邀请令牌",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.JoinReq"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/ginutils.Ret-dto_InvitePreview"
+                        }
+                    }
+                }
+            }
+        },
         "/v1/auth/login": {
             "post": {
-                "description": "使用邮箱验证码登录；新账号首次登录会消费试用邀请",
+                "description": "验证邮箱；携带 group_token 时原子注册并加入小组，否则新账号消费试用邀请",
                 "consumes": [
                     "application/json"
                 ],
@@ -77,7 +111,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/ginutils.Ret-dto_User"
+                            "$ref": "#/definitions/ginutils.Ret-dto_LoginResp"
                         }
                     }
                 }
@@ -969,6 +1003,17 @@ const docTemplate = `{
                 }
             }
         },
+        "dto.InvitePreview": {
+            "type": "object",
+            "properties": {
+                "group_id": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
         "dto.InviteResp": {
             "type": "object",
             "properties": {
@@ -1005,6 +1050,23 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "email": {
+                    "type": "string"
+                },
+                "group_token": {
+                    "type": "string"
+                }
+            }
+        },
+        "dto.LoginResp": {
+            "type": "object",
+            "properties": {
+                "email": {
+                    "type": "string"
+                },
+                "group_id": {
+                    "type": "string"
+                },
+                "id": {
                     "type": "string"
                 }
             }
@@ -1164,6 +1226,9 @@ const docTemplate = `{
             ],
             "properties": {
                 "email": {
+                    "type": "string"
+                },
+                "group_token": {
                     "type": "string"
                 },
                 "invite": {
@@ -1350,6 +1415,18 @@ const docTemplate = `{
                 "message": {}
             }
         },
+        "ginutils.Ret-dto_InvitePreview": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "integer"
+                },
+                "data": {
+                    "$ref": "#/definitions/dto.InvitePreview"
+                },
+                "message": {}
+            }
+        },
         "ginutils.Ret-dto_InviteResp": {
             "type": "object",
             "properties": {
@@ -1358,6 +1435,18 @@ const docTemplate = `{
                 },
                 "data": {
                     "$ref": "#/definitions/dto.InviteResp"
+                },
+                "message": {}
+            }
+        },
+        "ginutils.Ret-dto_LoginResp": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "integer"
+                },
+                "data": {
+                    "$ref": "#/definitions/dto.LoginResp"
                 },
                 "message": {}
             }

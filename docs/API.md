@@ -4,21 +4,22 @@
 
 ## 身份与安全
 
-- POST `/auth/code`：`email`、首次注册所需的 `invite`（试用邀请原始密钥）。验证码 10 分钟有效、60 秒重发、5 次尝试；每邮箱每小时最多 10 次、每来源 IP 每小时最多 30 次发送请求。失败邮件不返回验证码。
-- POST `/auth/login`：`email`、`code`。首次注册原子消费一次性试用邀请；已有账号无需邀请码。数据库只保存验证码摘要、会话摘要和邀请摘要。
+- POST `/auth/code`：`email`，普通注册传 `invite`（试用邀请密钥）；通过小组邀请进入时传 `group_token`，先检查其有效性，无需试用邀请。验证码 10 分钟有效、60 秒重发、5 次尝试；每邮箱每小时最多 10 次、每来源 IP 每小时最多 30 次发送请求。失败邮件不返回验证码。
+- POST `/auth/login`：`email`、`code`，可选 `group_token`。携带小组邀请时，在同一事务内锁定小组、校验邀请、验证邮箱、必要时注册、加入小组和创建会话；任一步失败整体回滚，错误验证码的尝试次数仍提交。小组邀请不会被消费，返回 `{id,email,group_id}`。不携带小组邀请时保留原有一次性试用注册/已有账号登录，返回 `{id,email}`。数据库只保存验证码摘要、会话摘要和邀请摘要。
+- POST `/auth/group-invite`：无需登录，Body 为 `{token}`，仅返回有效邀请的小组 `{group_id,name}`。不返回组主、成员、记录或其他组内数据；令牌不放在请求 URL 中。
 - GET `/me`：当前账号；POST `/auth/logout`：撤销服务端会话。
-- `omr_session` Cookie 使用 HttpOnly、SameSite=Strict、生产 Secure；有效期固定 30 天，退出立即失效，不自动续期。浏览器存储只保存草稿和当前小组偏好。
+- `omr_session` Cookie 使用 HttpOnly、SameSite=Strict、生产 Secure；有效期固定 30 天，退出立即失效，不自动续期。localStorage 只保存草稿和当前小组偏好；sessionStorage 保存当前标签页的待处理邀请（最多 7 天）及邮箱/验证码发送时间（恢复期 10 分钟），不保存验证码。成功/取消清除相应邀请，退出清除邀请及登录进度。
 - 所有非 GET/HEAD 业务请求的 Origin 必须与配置 `app.origin` 完全一致。命令行调用也必须带此 Header。不开放跨域访问。
 - 业务错误：400 输入无效、401 未登录、403 权限/来源失败、404 不存在、409 并发/重复/关联冲突、429 请求过多、502 邮件失败、503 BGG 未接入。
 
 ## 小组与资料
 
 - GET/POST `/groups`：列出所属小组 / 以 `name`、`player_name` 创建小组，并在同一事务创建、关联组主的玩家档案。
-- POST `/join`：`token` 为小组邀请密钥，不授予注册资格。
+- POST `/join`：已登录账号凭 `token` 加入小组；重复加入幂等。未登录账号使用 `/auth/login` 的 `group_token` 完成注册/登录并加入。
 - GET `/groups/:group`：小组、成员、玩家、游戏、可见的关联申请和近期地点。游戏与玩家按近期参与顺序优先。
 - POST `/groups/:group/players`、`/games`：以 `name` 添加玩家或手动桌游。
 - POST `/groups/:group/manage`：`action`、`target`、`value`。`claim` 申请关联 `target` 指定的已有档案；`claim-new` 以 `value` 为昵称创建新档案并同时申请关联。其余操作包括 `rename`、`alias`、`remove`、`transfer`、`approve`、`reject`、`revoke`；关联均由组主确认，服务端拒绝重复申请和重复绑定。
-- GET/POST `/groups/:group/invites`：组主查看/创建邀请；7 天有效，链接密钥只在创建响应中返回。链接使用 fragment，避免进入 HTTP 访问日志。
+- GET/POST `/groups/:group/invites`：组主查看/创建邀请；7 天有效、可多人使用、可撤销，链接密钥只在创建响应中返回。链接仍为 `/join#令牌`，使用 fragment 避免进入 HTTP 访问日志。无效、过期和撤销返回不同中文提示，HTTP 400；数据库故障保留系统错误语义。
 - 玩家名称、小组名称、游戏名称最多 255 个 Unicode 字符，与数据库字段一致。同组玩家名唯一；账号与玩家关联由数据库 `UNIQUE(group_id,account)` 约束及事务校验保证。
 
 ## 对局

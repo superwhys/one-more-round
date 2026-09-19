@@ -85,6 +85,13 @@ definitions:
       revoked:
         type: boolean
     type: object
+  dto.InvitePreview:
+    properties:
+      group_id:
+        type: string
+      name:
+        type: string
+    type: object
   dto.InviteResp:
     properties:
       expires:
@@ -107,9 +114,20 @@ definitions:
         type: string
       email:
         type: string
+      group_token:
+        type: string
     required:
     - code
     - email
+    type: object
+  dto.LoginResp:
+    properties:
+      email:
+        type: string
+      group_id:
+        type: string
+      id:
+        type: string
     type: object
   dto.ManageReq:
     properties:
@@ -211,6 +229,8 @@ definitions:
   dto.SendCodeReq:
     properties:
       email:
+        type: string
+      group_token:
         type: string
       invite:
         type: string
@@ -335,12 +355,28 @@ definitions:
         $ref: '#/definitions/dto.Group'
       message: {}
     type: object
+  ginutils.Ret-dto_InvitePreview:
+    properties:
+      code:
+        type: integer
+      data:
+        $ref: '#/definitions/dto.InvitePreview'
+      message: {}
+    type: object
   ginutils.Ret-dto_InviteResp:
     properties:
       code:
         type: integer
       data:
         $ref: '#/definitions/dto.InviteResp'
+      message: {}
+    type: object
+  ginutils.Ret-dto_LoginResp:
+    properties:
+      code:
+        type: integer
+      data:
+        $ref: '#/definitions/dto.LoginResp'
       message: {}
     type: object
   ginutils.Ret-dto_Page:
@@ -403,7 +439,7 @@ paths:
     post:
       consumes:
       - application/json
-      description: 向目标邮箱发送登录验证码；首次注册需携带试用邀请
+      description: 向目标邮箱发送登录验证码；可携带试用邀请 invite 或小组邀请 group_token
       parameters:
       - description: 发送验证码请求体
         in: body
@@ -421,11 +457,33 @@ paths:
       summary: 发送邮箱验证码
       tags:
       - Auth
+  /v1/auth/group-invite:
+    post:
+      consumes:
+      - application/json
+      description: 无需登录，凭有效邀请仅返回小组 ID 与名称，不展示成员或记录
+      parameters:
+      - description: 邀请令牌
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.JoinReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/ginutils.Ret-dto_InvitePreview'
+      summary: 查看小组邀请
+      tags:
+      - Auth
   /v1/auth/login:
     post:
       consumes:
       - application/json
-      description: 使用邮箱验证码登录；新账号首次登录会消费试用邀请
+      description: 验证邮箱；携带 group_token 时原子注册并加入小组，否则新账号消费试用邀请
       parameters:
       - description: 登录请求体
         in: body
@@ -439,7 +497,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/ginutils.Ret-dto_User'
+            $ref: '#/definitions/ginutils.Ret-dto_LoginResp'
       summary: 验证码登录
       tags:
       - Auth
