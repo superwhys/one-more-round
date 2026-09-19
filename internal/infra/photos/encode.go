@@ -8,6 +8,7 @@ import (
 	_ "image/png"
 	"io"
 
+	"github.com/superwhys/one-more-round/internal/domain/photo"
 	"github.com/superwhys/one-more-round/internal/errcode"
 	"golang.org/x/image/draw"
 	_ "golang.org/x/image/webp"
@@ -16,11 +17,11 @@ import (
 // encodePhoto strips upload metadata and produces the large image and thumbnail.
 func encodePhoto(ctx context.Context, r io.Reader) ([2][]byte, error) {
 	var output [2][]byte
-	data, err := io.ReadAll(io.LimitReader(r, 10*1024*1024+1))
+	data, err := io.ReadAll(io.LimitReader(r, photo.MaxUploadBytes+1))
 	if err != nil {
 		return output, err
 	}
-	if len(data) > 10*1024*1024 {
+	if len(data) > photo.MaxUploadBytes {
 		return output, errcode.ErrPhotoTooLarge
 	}
 	cfg, format, err := image.DecodeConfig(bytes.NewReader(data))

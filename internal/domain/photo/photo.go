@@ -10,6 +10,9 @@ import (
 
 type State string
 
+// MaxUploadBytes limits each original upload before image processing.
+const MaxUploadBytes = 2 * 1024 * 1024
+
 const (
 	StateReady     State = "ready"
 	StateUploading State = "uploading"

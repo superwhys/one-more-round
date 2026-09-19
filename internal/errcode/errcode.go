@@ -152,7 +152,7 @@ var (
 	ErrPhotoRead     = ErrSysInternal.WithMessage("读取照片失败")
 	ErrPhotoStorage  = New(CodeUnavailable, 503, "图片存储服务暂时不可用，请稍后重试")
 	ErrPhotoMissing  = ErrBadRequest.WithMessage("缺少图片")
-	ErrPhotoTooLarge = ErrBadRequest.WithMessage("请选择不超过 10 MB 的图片")
+	ErrPhotoTooLarge = ErrBadRequest.WithMessage("请选择不超过 2 MB 的图片")
 )
 
 // 外部依赖
@@ -165,7 +165,7 @@ var (
 	ErrRouteNotFound    = New(CodeNotFound, 404, "接口不存在")
 	ErrMethodNotAllowed = New(CodeMethodNotAllowed, 405, "请求方法不支持")
 	ErrOrigin           = ErrForbidden.WithMessage("请求来源校验失败，请从本站重试")
-	ErrPhotoForm        = ErrBadRequest.WithMessage("请选择不超过 10 MB 的图片")
+	ErrPhotoForm        = ErrBadRequest.WithMessage("请选择不超过 2 MB 的图片")
 )
 
 // AsErrcode extracts the business error from err.

@@ -38,7 +38,7 @@
 | `team` | 至少两队，`outcome=win/draw/unknown`；每队 `id/name/players/score/winner`，win 可多队 winner=true；每人恰好属于一队。顶层 winners/scores 为空 |
 | `coop` | 一人起，`outcome=win/loss/unknown`；填写 team_score，顶层 winners/scores/teams 为空 |
 
-分数使用十进制字符串或 null，最多 12 位整数和 4 位小数，允许负数，超精度拒绝而不舍入。零传 `"0"`，空分数传 null。不接受指数表达式。`minutes` 是正整数或 null。回忆最多 500 个 Unicode 字符；照片 ID 不重复且最多 6 个。
+分数使用十进制字符串或 null，最多 12 位整数和 4 位小数，允许负数，超精度拒绝而不舍入。零传 `"0"`，空分数传 null。不接受指数表达式。`minutes` 是正整数或 null。回忆最多 500 个 Unicode 字符；照片 ID 不重复且最多 3 个。
 
 每次敏感写入和成员撤销都在同一小组行锁下执行；保存对局、照片关联、幂等键同事务提交。Domain 校验模式与结果；API 不直接操作数据库。
 
@@ -46,9 +46,10 @@
 
 ## 照片
 
-- POST `/groups/:group/photos`：multipart `photo`，单张原文件不超过 10 MiB，仅 JPEG/PNG/WebP；服务端检查实际解码格式及最多 4000 万像素。
+- POST `/groups/:group/photos`：multipart `photo`，单张原文件不超过 2 MiB，仅 JPEG/PNG/WebP；服务端检查实际解码格式及最多 4000 万像素。
 - 响应 `id`，保存对局时关联成功上传的 ID。未关联照片仅上传人可读；已关联照片仅当前小组成员可读。
-- GET `/groups/:group/photos/:id[?size=thumb]`：服务端鉴权，`Cache-Control: private, no-store`。重编码去除 EXIF/GPS 元数据，长边最多 2400px，缩略图最多 480px，输出 JPEG。大图为处理后的图，不保留未经处理的原始上传。
+- 每局最多关联 3 张照片，创建和编辑均在服务端校验。已有照片不会自动删除；超过 3 张的历史记录或草稿需先由用户移除多余照片再保存。
+- GET `/groups/:group/photos/:id[?size=thumb]`：服务端鉴权后直接流式转发图片，已知大小时设置 `Content-Length`，保持 `Cache-Control: private, no-store`。不在读取链路缓存完整图片，响应结束、读取超时或请求取消时释放上游连接；已发送正文后发生错误只停止传输，不追加 JSON 错误。图片在上传时重编码去除 EXIF/GPS 元数据，长边最多 2400px，缩略图最多 480px，输出 JPEG。大图为处理后的图，不保留未经处理的原始上传。
 - 失败上传可重试/移除，其余字段允许保存。运行期间每小时清理超过 7 天未关联的上传；启动时也执行一次。长期草稿中被清理的图片需要重新上传。
 - 照片保存到配置的私有 OSS Bucket 与前缀。浏览器接口和照片 ID 不变，凭证及 OSS 地址不下发前端；网络/权限等 OSS 故障返回 503，只有对象确实不存在才返回 404。
 - 上传前记录 `uploading` 状态，大小图均上传成功且重新验证成员身份后标记为 `ready`。失败上传补偿删除，取消请求也有独立且有界的清理期限；进程异常退出留下的上传记录由过期清理回收。

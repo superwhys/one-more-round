@@ -1,21 +1,29 @@
 package router
 
 import (
+	"context"
 	"net/http"
 	"strings"
 
 	"github.com/gin-gonic/gin"
+	"github.com/miebyte/goutils/logging"
 	"github.com/superwhys/one-more-round/api/common"
 	"github.com/superwhys/one-more-round/internal/app/dto"
+	"github.com/superwhys/one-more-round/internal/app/ports"
 	"github.com/superwhys/one-more-round/internal/app/services"
+	"github.com/superwhys/one-more-round/internal/domain/photo"
 	"github.com/superwhys/one-more-round/internal/errcode"
 )
 
 // maxPhotoRequest bounds the whole multipart request, leaving room for the
-// multipart envelope around the ten megabyte image limit.
-const maxPhotoRequest = 10*1024*1024 + 64*1024
+// multipart envelope around the two mebibyte image limit.
+const maxPhotoRequest = photo.MaxUploadBytes + 64*1024
 
 type photoRouterFn func(router gin.IRouter)
+
+type photoReader interface {
+	Read(context.Context, string, string, string, bool) (*ports.PhotoContent, error)
+}
 
 func (fn photoRouterFn) Init(router gin.IRouter) { fn(router) }
 
@@ -29,7 +37,7 @@ func PhotoRouter(photoApp *services.PhotoApp) photoRouterFn {
 
 // uploadPhotoHandler 上传照片
 // @Summary 上传照片
-// @Description 上传单张 JPEG/PNG/WebP 图片，服务端重编码后保存
+// @Description 上传单张不超过 2 MiB 的 JPEG/PNG/WebP 图片，服务端重编码后保存
 // @Tags Photo
 // @Accept multipart/form-data
 // @Produce json
@@ -46,12 +54,16 @@ func uploadPhotoHandler(photoApp *services.PhotoApp) gin.HandlerFunc {
 			return
 		}
 		defer ctx.Request.MultipartForm.RemoveAll()
-		file, _, err := ctx.Request.FormFile("photo")
+		file, header, err := ctx.Request.FormFile("photo")
 		if err != nil {
 			common.RespondError(ctx, errcode.ErrPhotoMissing)
 			return
 		}
 		defer file.Close()
+		if header.Size > photo.MaxUploadBytes {
+			common.RespondError(ctx, errcode.ErrPhotoTooLarge)
+			return
+		}
 		id, err := photoApp.Upload(ctx.Request.Context(), ctx.Param("group"), common.UserID(ctx), file)
 		if common.HandleRouterError(ctx, err, "upload photo failed", errcode.ErrPhotoSave) {
 			return
@@ -62,7 +74,7 @@ func uploadPhotoHandler(photoApp *services.PhotoApp) gin.HandlerFunc {
 
 // readPhotoHandler 读取照片
 // @Summary 读取照片
-// @Description 校验成员权限后返回图片，size=thumb 时返回缩略图
+// @Description 校验成员权限后流式返回图片，size=thumb 时返回缩略图
 // @Tags Photo
 // @Produce image/jpeg
 // @Security SessionCookie
@@ -71,15 +83,28 @@ func uploadPhotoHandler(photoApp *services.PhotoApp) gin.HandlerFunc {
 // @Param size query string false "缩略图传 thumb"
 // @Success 200 {file} file
 // @Router /v1/groups/{group}/photos/{id} [get]
-func readPhotoHandler(photoApp *services.PhotoApp) gin.HandlerFunc {
+func readPhotoHandler(photoApp photoReader) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		thumb := strings.EqualFold(ctx.Query("size"), "thumb")
-		data, err := photoApp.Read(ctx.Request.Context(), ctx.Param("group"), common.UserID(ctx), ctx.Param("id"), thumb)
+		content, err := photoApp.Read(ctx.Request.Context(), ctx.Param("group"), common.UserID(ctx), ctx.Param("id"), thumb)
 		if common.HandleRouterError(ctx, err, "read photo failed", errcode.ErrPhotoRead) {
 			return
 		}
+		defer content.Body.Close()
 		ctx.Header("Cache-Control", "private, no-store")
 		ctx.Header("X-Content-Type-Options", "nosniff")
-		ctx.Data(http.StatusOK, "image/jpeg", data)
+		previousErrors := len(ctx.Errors)
+		ctx.DataFromReader(http.StatusOK, content.Size, "image/jpeg", content.Body, nil)
+		if len(ctx.Errors) > previousErrors {
+			if !ctx.Writer.Written() {
+				ctx.Header("Content-Length", "")
+				ctx.Header("Content-Type", "")
+				common.HandleRouterError(ctx, ctx.Errors.Last().Err, "read photo stream failed", errcode.ErrPhotoRead)
+			} else if ctx.Request.Context().Err() == nil {
+				// Headers/body are already committed: never append a JSON error
+				// to an incomplete image. Gin has aborted further handlers.
+				logging.Errorc(ctx.Request.Context(), "Photo stream interrupted")
+			}
+		}
 	}
 }

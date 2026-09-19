@@ -47,7 +47,7 @@ func (f *interruptedFiles) Remove(ctx context.Context, id string) error {
 	return f.PhotoFiles.Remove(ctx, id)
 }
 
-func (f *interruptedFiles) Read(ctx context.Context, id string, thumb bool) ([]byte, error) {
+func (f *interruptedFiles) Read(ctx context.Context, id string, thumb bool) (*ports.PhotoContent, error) {
 	if f.readErr != nil {
 		return nil, f.readErr
 	}
@@ -89,9 +89,11 @@ func TestPhotoFailedUploadAndCleanupRetry(t *testing.T) {
 		t.Fatalf("failed upload exposed: %v", err)
 	}
 	for _, thumb := range []bool{false, true} {
-		if _, err := files.PhotoFiles.Read(ctx, id, thumb); err != nil {
+		content, err := files.PhotoFiles.Read(ctx, id, thumb)
+		if err != nil {
 			t.Fatal("failure fixture did not leave remote bytes")
 		}
+		content.Body.Close()
 	}
 	if err := services.CleanPhotos(ctx, s.repos, files, services.PhotoCutoff(time.Now())); !errors.Is(err, errcode.ErrPhotoStorage) {
 		t.Fatalf("cleanup failure hidden: %v", err)
@@ -224,6 +226,9 @@ func TestPhotoStorageFailureIsNotNotFound(t *testing.T) {
 	id := s.uploadPhoto(t, g.ID, u.ID)
 	files := &interruptedFiles{PhotoFiles: &photos.Files{Root: s.photoRoot}, readErr: errcode.ErrPhotoStorage}
 	app := services.NewPhotoApp(&services.AppContext{Repos: s.repos, Photos: files})
+	if _, err := app.Read(ctx, g.ID, "non-member", id, false); !errors.Is(err, errcode.ErrForbidden) {
+		t.Fatalf("non-member reached image storage: %v", err)
+	}
 	if _, err := app.Read(ctx, g.ID, u.ID, id, false); !errors.Is(err, errcode.ErrPhotoStorage) {
 		t.Fatalf("storage outage reported as missing photo: %v", err)
 	}

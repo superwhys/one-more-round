@@ -437,7 +437,7 @@ const docTemplate = `{
                         "SessionCookie": []
                     }
                 ],
-                "description": "上传单张 JPEG/PNG/WebP 图片，服务端重编码后保存",
+                "description": "上传单张不超过 2 MiB 的 JPEG/PNG/WebP 图片，服务端重编码后保存",
                 "consumes": [
                     "multipart/form-data"
                 ],
@@ -481,7 +481,7 @@ const docTemplate = `{
                         "SessionCookie": []
                     }
                 ],
-                "description": "校验成员权限后返回图片，size=thumb 时返回缩略图",
+                "description": "校验成员权限后流式返回图片，size=thumb 时返回缩略图",
                 "produces": [
                     "image/jpeg"
                 ],

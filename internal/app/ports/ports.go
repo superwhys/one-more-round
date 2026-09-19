@@ -45,9 +45,16 @@ type Mailer interface {
 	SendCode(ctx context.Context, email, code string) error
 }
 
+// PhotoContent is an opened image stream. The caller must close Body when done.
+// Size is the content length, or -1 when the storage does not provide it.
+type PhotoContent struct {
+	Body io.ReadCloser
+	Size int64
+}
+
 // PhotoFiles stores uploaded photo files outside the database.
 type PhotoFiles interface {
 	Save(ctx context.Context, id string, r io.Reader) error
-	Read(ctx context.Context, id string, thumb bool) ([]byte, error)
+	Read(ctx context.Context, id string, thumb bool) (*PhotoContent, error)
 	Remove(ctx context.Context, id string) error
 }

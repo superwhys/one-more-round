@@ -49,8 +49,8 @@ func (r Round) Validate() error {
 	if utf8.RuneCountInString(r.Memory) > 500 {
 		return errors.New("回忆最多 500 字")
 	}
-	if len(r.Photos) > 6 {
-		return errors.New("照片最多 6 张")
+	if len(r.Photos) > 3 {
+		return errors.New("照片最多 3 张")
 	}
 	photos := map[string]bool{}
 	for _, id := range r.Photos {

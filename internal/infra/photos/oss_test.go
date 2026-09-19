@@ -79,16 +79,18 @@ func TestOSSReencodeReadAndRemove(t *testing.T) {
 		t.Fatal(err)
 	}
 	for _, thumb := range []bool{false, true} {
-		data, err := store.Read(ctx, testPhotoID, thumb)
+		content, err := store.Read(ctx, testPhotoID, thumb)
 		if err != nil {
 			t.Fatal(err)
 		}
-		cfg, format, err := image.DecodeConfig(bytes.NewReader(data))
+		cfg, format, err := image.DecodeConfig(content.Body)
+		_, drainErr := io.Copy(io.Discard, content.Body)
+		closeErr := content.Body.Close()
 		want := 900
 		if thumb {
 			want = 480
 		}
-		if err != nil || format != "jpeg" || cfg.Width != want {
+		if err != nil || drainErr != nil || closeErr != nil || format != "jpeg" || cfg.Width != want {
 			t.Fatalf("unexpected image: %v %s %v", cfg, format, err)
 		}
 	}
@@ -170,7 +172,7 @@ func TestOSSRejectsInvalidUploadsBeforeNetwork(t *testing.T) {
 	binary.BigEndian.PutUint32(oversized[16:20], 10000)
 	binary.BigEndian.PutUint32(oversized[20:24], 10000)
 	binary.BigEndian.PutUint32(oversized[29:33], crc32.ChecksumIEEE(oversized[12:29]))
-	for name, data := range map[string][]byte{"fake": []byte("fake.jpg"), "too-large": make([]byte, 10*1024*1024+1), "too-many-pixels": oversized} {
+	for name, data := range map[string][]byte{"fake": []byte("fake.jpg"), "too-large": make([]byte, 2*1024*1024+1), "too-many-pixels": oversized} {
 		t.Run(name, func(t *testing.T) {
 			if err := store.Save(context.Background(), testPhotoID, bytes.NewReader(data)); err == nil {
 				t.Fatal("invalid photo accepted")

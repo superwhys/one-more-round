@@ -20,6 +20,7 @@ import (
 	"github.com/superwhys/one-more-round/api"
 	"github.com/superwhys/one-more-round/config"
 	"github.com/superwhys/one-more-round/internal/app/dto"
+	"github.com/superwhys/one-more-round/internal/app/ports"
 	"github.com/superwhys/one-more-round/internal/app/services"
 	"github.com/superwhys/one-more-round/internal/converter"
 	"github.com/superwhys/one-more-round/internal/errcode"
@@ -465,9 +466,11 @@ func TestPhotoPermissionsRollbackAndCleanup(t *testing.T) {
 	if e = s.photos.RequireAccess(ctx, g.ID, other.ID, photo); e != nil {
 		t.Fatal(e)
 	}
-	if _, e = s.photos.Read(ctx, g.ID, other.ID, photo, false); e != nil {
+	content, e := s.photos.Read(ctx, g.ID, other.ID, photo, false)
+	if e != nil {
 		t.Fatal(e)
 	}
+	content.Body.Close()
 	if e = s.groups.Manage(ctx, g.ID, u.ID, &dto.ManageReq{Action: "remove", Target: other.ID}); e != nil {
 		t.Fatal(e)
 	}
@@ -505,7 +508,7 @@ type countingFiles struct {
 func (f countingFiles) Save(ctx context.Context, id string, r io.Reader) error {
 	return f.inner.Save(ctx, id, r)
 }
-func (f countingFiles) Read(ctx context.Context, id string, thumb bool) ([]byte, error) {
+func (f countingFiles) Read(ctx context.Context, id string, thumb bool) (*ports.PhotoContent, error) {
 	return f.inner.Read(ctx, id, thumb)
 }
 func (f countingFiles) Remove(ctx context.Context, id string) error {

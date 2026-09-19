@@ -62,16 +62,16 @@ func (a *PhotoApp) Upload(ctx context.Context, groupID, userID string, r io.Read
 	return id, nil
 }
 
-// Read returns one stored image after checking member access.
-func (a *PhotoApp) Read(ctx context.Context, groupID, userID, id string, thumb bool) ([]byte, error) {
+// Read opens a stored image after checking member access. The caller closes it.
+func (a *PhotoApp) Read(ctx context.Context, groupID, userID, id string, thumb bool) (*ports.PhotoContent, error) {
 	if err := a.RequireAccess(ctx, groupID, userID, id); err != nil {
 		return nil, err
 	}
-	data, err := a.files.Read(ctx, id, thumb)
+	content, err := a.files.Read(ctx, id, thumb)
 	if errors.Is(err, fs.ErrNotExist) {
 		return nil, errcode.ErrNotFound
 	}
-	return data, err
+	return content, err
 }
 
 // RequireAccess checks that the member may read the photo. An unattached upload

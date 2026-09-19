@@ -7,6 +7,8 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+
+	"github.com/superwhys/one-more-round/internal/app/ports"
 )
 
 // Files is the local adapter used by isolated application tests.
@@ -48,14 +50,23 @@ func (f *Files) Save(ctx context.Context, id string, r io.Reader) error {
 	return nil
 }
 
-func (f *Files) Read(ctx context.Context, id string, thumb bool) ([]byte, error) {
+func (f *Files) Read(ctx context.Context, id string, thumb bool) (*ports.PhotoContent, error) {
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
 	if !identifier.MatchString(id) {
 		return nil, os.ErrNotExist
 	}
-	return os.ReadFile(filepath.Join(f.Root, photoName(id, thumb)))
+	file, err := os.Open(filepath.Join(f.Root, photoName(id, thumb)))
+	if err != nil {
+		return nil, err
+	}
+	info, err := file.Stat()
+	if err != nil {
+		file.Close()
+		return nil, err
+	}
+	return &ports.PhotoContent{Body: file, Size: info.Size()}, nil
 }
 
 func (f *Files) Remove(ctx context.Context, id string) error {

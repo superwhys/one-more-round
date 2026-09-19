@@ -14,6 +14,7 @@ import (
 
 	"github.com/aliyun/alibabacloud-oss-go-sdk-v2/oss"
 	"github.com/aliyun/alibabacloud-oss-go-sdk-v2/oss/credentials"
+	"github.com/superwhys/one-more-round/internal/app/ports"
 	"github.com/superwhys/one-more-round/internal/errcode"
 )
 
@@ -108,28 +109,46 @@ func (s *OSS) Save(ctx context.Context, id string, r io.Reader) error {
 	return nil
 }
 
-func (s *OSS) Read(ctx context.Context, id string, thumb bool) ([]byte, error) {
+func (s *OSS) Read(ctx context.Context, id string, thumb bool) (*ports.PhotoContent, error) {
 	if !identifier.MatchString(id) {
 		return nil, fs.ErrNotExist
 	}
 	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
-	defer cancel()
 	result, err := s.client.GetObject(ctx, &oss.GetObjectRequest{
 		Bucket: oss.Ptr(s.bucket), Key: oss.Ptr(s.prefix + photoName(id, thumb)),
 	})
 	if err != nil {
+		cancel()
 		var serviceErr *oss.ServiceError
 		if errors.As(err, &serviceErr) && serviceErr.Code == "NoSuchKey" {
 			return nil, fs.ErrNotExist
 		}
 		return nil, ossError(err)
 	}
-	defer result.Body.Close()
-	data, err := io.ReadAll(result.Body)
-	if err != nil {
-		return nil, ossError(err)
+	return &ports.PhotoContent{Body: &ossPhotoBody{ReadCloser: result.Body, cancel: cancel}, Size: result.ContentLength}, nil
+}
+
+// Keep the request deadline alive while the caller streams the response. Close
+// cancels pending reads as well as releasing the underlying OSS connection.
+type ossPhotoBody struct {
+	io.ReadCloser
+	cancel context.CancelFunc
+}
+
+func (b *ossPhotoBody) Read(p []byte) (int, error) {
+	n, err := b.ReadCloser.Read(p)
+	if err != nil && !errors.Is(err, io.EOF) {
+		return n, ossError(err)
 	}
-	return data, nil
+	return n, err
+}
+
+func (b *ossPhotoBody) Close() error {
+	b.cancel()
+	if err := b.ReadCloser.Close(); err != nil {
+		return ossError(err)
+	}
+	return nil
 }
 
 func (s *OSS) Remove(ctx context.Context, id string) error {

@@ -34,7 +34,7 @@ SMTP 465 使用直接 TLS，其他外部服务器要求 STARTTLS。只允许本�
 - 也接受控制台复制的完整 Bucket 域名，配置校验会去掉 Bucket 前缀，避免 SDK 重复拼接。
 - `access_id`、`access_secret` 填写专用 RAM 身份的凭证。配置文件使用 `chmod 600 config.json`；容器挂载时保证运行用户可读。不要提交配置文件、将它加入镜像，或开启会输出完整配置的 `--debug --watchConfig` 组合。
 
-Bucket 保持私有，程序上传时明确设置对象为 `private`。浏览器仅通过现有图片 API 访问，由 Go 服务校验成员权限后读取 OSS；不返回公开地址或签名链接。上传后再次校验成员身份，上传中和待删除状态不能读取或关联。OSS 故障返回 503，与图片不存在的 404 区分。
+Bucket 保持私有，程序上传时明确设置对象为 `private`。浏览器仅通过现有图片 API 访问，由 Go 服务校验成员权限后打开 OSS 响应流，并通过 `DataFromReader` 分块转发，不预先读取整张图片；不返回公开地址或签名链接。读取超时覆盖整个传输过程，结束或客户端断开时关闭上游流。上传后再次校验成员身份，上传中和待删除状态不能读取或关联。打开图片失败时，OSS 故障返回 503，与图片不存在的 404 区分；图片已开始发送后发生故障会停止传输，不向图片正文追加 JSON。
 
 RAM 授权需覆盖以下对象范围；若有其他显式拒绝或资源组限制，还需检查对应策略。无需为了上传授予整个账号的 OSS 管理权限。
 
@@ -142,6 +142,8 @@ make integration  # 需要 mysqld/mysqladmin/python3；创建独立临时 MySQL 
 没有 `OMR_TEST_MYSQL` 时，普通 Go 测试会明确跳过 MySQL 集成用例；不能把跳过视为通过。`make integration` 不访问本机已有 MySQL 服务，不修改已有业务库。已有专用测试实例也可通过 `OMR_TEST_MYSQL=127.0.0.1:端口 go test -race ./...` 验证（需要 root 空密码，仅用于隔离测试实例）。测试创建并删除随机名称的独立数据库。
 
 安装 Playwright 与 Chrome 后，使用 `OMR_BROWSER_TEST=1 make integration` 运行小组邀请的真实浏览器回归（新邮箱注册入组、刷新恢复、已有成员进入、加入第二个组、注销清理及邀请失效提示）。若 Playwright 不在默认模块路径，可用 `OMR_PLAYWRIGHT_MODULE=file:///绝对路径/playwright/index.mjs` 指向现有安装；`OMR_BROWSER_ARTIFACTS` 可指定已存在的截图目录。测试使用隔离数据库和仅在测试服务器中存在的内存收件箱，不向外部邮箱发信。
+
+使用 `OMR_PHOTO_BROWSER_TEST=1 make integration` 验证照片限制：每局最多 3 张、单张原始文件最多 2 MiB，覆盖批量选择、编辑替换、旧草稿、直接 API 拦截和 320/390px/桌面布局。沿用上述 Playwright 和截图配置，图片写入隔离的临时目录，不访问 OSS。
 
 `make build` 后可同时设置 `OMR_TEST_BINARY` 为新二进制的绝对路径，集成测试会将它复制到不含 `web/dist` 的临时目录，用隔离配置/数据库启动，检查首页、邀请/登录深链接、嵌入资源及 API/资源错误分流。
 
