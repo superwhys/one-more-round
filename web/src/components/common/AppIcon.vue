@@ -17,6 +17,8 @@ const paths: Record<string, string> = {
   link: 'm9 15 6-6M7 17l-1 1a4 4 0 0 1-6-6l5-5a4 4 0 0 1 6 0m2 10a4 4 0 0 0 6 0l5-5a4 4 0 0 0-6-6l-1 1',
   heart: 'M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8L12 21l8.8-8.6a5.5 5.5 0 0 0 0-7.8Z',
   more: 'M5 12h.01M12 12h.01M19 12h.01',
+  lock: 'M6 10h12v11H6V10Zm3 0V6a3 3 0 0 1 6 0v4M12 14v3',
+  logout: 'M9 4H4v16h5M10 12h11m-4-4 4 4-4 4',
 }
 </script>
 <template><svg :width="size" :height="size" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path :d="paths[name] ?? paths.game" /></svg></template>

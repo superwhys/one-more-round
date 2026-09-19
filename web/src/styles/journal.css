@@ -100,12 +100,36 @@
 .journal-root .j-auth h1 { font-size: 30px; letter-spacing: -.04em; margin: 16px 0; }
 .j-auth form { margin-top: 24px; }
 .j-auth hr { border: 0; border-top: 1px solid var(--d-line); margin: 28px 0; }
-.j-account { min-height: 72px; padding: 12px 32px; border-bottom: 1px solid var(--d-line); display: flex; gap: 14px; align-items: center; flex-wrap: wrap; font-size: 12px; }
+.j-account { position: relative; z-index: 16; min-height: 80px; padding: 12px 48px; border-bottom: 1px solid var(--d-line); display: flex; gap: 24px; align-items: center; font-size: 12px; }
 .j-account.has-group { margin-left: 232px; }
-.j-account > label { display: flex; align-items: center; gap: 10px; min-width: 0; color: #7b826e; }
-.journal-root .j-account select { width: 200px; font-size: 13px; }
-.j-account > span { margin-left: auto; overflow-wrap: anywhere; color: #7d8374; }
-.j-account button, .j-notice button, .j-invite button, .j-error button {
+.j-header-context { display: flex; align-items: center; gap: 20px; flex: 1; min-width: 0; }
+.j-header-brand { display: inline-flex; align-items: center; gap: 10px; flex-shrink: 0; font-size: 20px; font-weight: 650; letter-spacing: 1px; }
+.j-header-brand img { display: block; width: 32px; height: 32px; }
+.has-group .j-header-brand { display: none; }
+.j-header-back { display: inline-flex; align-items: center; gap: 4px; flex-shrink: 0; min-height: 44px; color: #737b66; }
+.j-header-group { display: flex; align-items: center; gap: 12px; min-width: 0; color: #7d8374; }
+.j-header-group > span { flex-shrink: 0; font-size: 11px; }
+.journal-root .j-account .j-header-group select.j-group-select { display: block; width: 200px; min-height: 44px; padding-block: 9px; border-color: transparent; background-color: transparent; box-shadow: none; font-size: 14px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.j-group-button { display: none; }
+@supports (appearance: base-select) {
+  .j-account .j-group-button { display: block; width: 100%; min-width: 0; padding: 0; border: 0; background: transparent; color: inherit; text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+}
+.j-header-private { display: inline-flex; align-items: center; gap: 6px; flex-shrink: 0; color: #828776; font-size: 11px; }
+.j-header-private > span { color: #969a8d; }
+.j-account-menu { position: relative; flex-shrink: 0; margin-left: auto; }
+.j-account-trigger { display: flex; align-items: center; gap: 9px; min-height: 44px; padding: 4px 7px; border: 1px solid transparent; border-radius: 24px; background: transparent; color: #657059; }
+.j-account-trigger[aria-expanded=true] { border-color: #deded1; background: #eeeee5; }
+.j-account-avatar { display: grid; place-items: center; width: 32px; height: 32px; border-radius: 50%; background: #e8ebdf; color: #657454; font-size: 13px; font-weight: 650; }
+.j-account-label { font-size: 12px; }
+.j-account-panel { position: absolute; top: calc(100% + 12px); right: 0; width: 288px; max-width: calc(100vw - 32px); max-height: calc(100dvh - 100px); overflow-y: auto; overscroll-behavior: contain; padding: 8px; border: 1px solid #e2e3d7; border-radius: 14px; background: var(--d-paper); box-shadow: 0 14px 42px #35382f16, 0 3px 8px #35382f08; }
+.j-account-identity { padding: 12px 12px 17px; }
+.j-account-identity > span, .j-account-identity > small { display: block; color: #878d7c; font-size: 11px; }
+.j-account-identity > strong { display: block; margin: 6px 0; font-size: 14px; font-weight: 600; overflow-wrap: anywhere; }
+.j-account .j-account-action { display: flex; align-items: center; gap: 10px; width: 100%; min-height: 46px; padding: 11px 12px; border: 0; border-radius: 7px; background: transparent; color: #626d55; text-align: left; font-size: 13px; }
+.j-account-action > svg:last-child:not(:first-child) { margin-left: auto; color: #929985; }
+.j-account-signout { border-top: 1px solid var(--d-line); margin-top: 7px; padding-top: 7px; }
+.j-account-signout .j-account-action { color: #8b7564; }
+.j-notice button, .j-invite button, .j-error button {
   border: 1px solid var(--j-control-border);
   background: transparent;
   border-radius: 8px;
@@ -114,13 +138,9 @@
   padding: 9px 12px;
   font-size: 12px;
 }
-.j-account > button:first-of-type { margin-left: auto; }
-.j-account > span + button { margin-left: 0; }
 .journal-root .d-sidebar { top: 0; }
 .journal-root .d-brand small { white-space: nowrap; }
 .journal-root .d-main { min-height: 70vh; }
-.journal-root .d-topbar { justify-content: space-between; }
-.journal-root .d-topbar > span { font-size: 11px; color: #7d8374; }
 .journal-root .d-filters { gap: 16px; padding: 18px; border: 1px solid #e6e7dc; }
 .journal-root .d-filter-button { min-height: 44px; }
 .j-filter-actions { display: flex; align-items: center; justify-content: flex-end; gap: 16px; grid-column: 1 / -1; padding-top: 4px; }
@@ -207,7 +227,7 @@
 
 @media (hover: hover) and (pointer: fine) {
   .journal-root :is(.d-field, .d-filters, .j-score, .d-form-context, .j-account) :is(input, select, textarea):hover:not(:disabled):not(:focus-visible) { border-color: var(--j-control-hover); }
-  .j-account button:hover:not(:disabled), .j-notice button:hover:not(:disabled), .j-invite button:hover:not(:disabled), .j-error button:hover:not(:disabled) { background: #eceee1; }
+  .j-account-trigger:hover, .j-account-action:hover:not(:disabled), .j-notice button:hover:not(:disabled), .j-invite button:hover:not(:disabled), .j-error button:hover:not(:disabled) { background: #eceee1; }
   .j-game-option:hover:not(.selected) { background: #eeefe4; }
   .j-player:hover:not(.selected) { border-color: #b8bea6; background: #f7f8ef; }
   .journal-root select option:hover:not(:disabled) { background: #eeefe4; }
@@ -216,16 +236,21 @@
 @media (max-width: 1150px) and (min-width: 761px) {
   .j-account.has-group { margin-left: 206px; }
   .j-account { padding-inline: 30px; }
-  .j-account > span { display: none; }
-  .j-account > span + button { margin-left: auto; }
+  .j-header-private { display: none; }
+  .j-header-group > span { display: none; }
 }
 @media (max-width: 760px) {
-  .j-account, .j-account.has-group { margin-left: 0; padding: 12px 20px; gap: 8px; }
-  .j-account > span { display: none; }
-  .j-account > label { flex: 1 1 100%; justify-content: space-between; }
-  .journal-root .j-account select { width: calc(100% - 74px); font-size: 16px; }
-  .j-account > button:first-of-type, .j-account > span + button { margin-left: 0; }
-  .j-account > button { flex: 1; }
+  .j-account, .j-account.has-group { min-height: 72px; margin-left: 0; padding: 12px 20px; gap: 12px; }
+  .j-header-context { gap: 10px; }
+  .has-group .j-header-brand { display: flex; }
+  .j-header-brand { gap: 8px; font-size: 17px; }
+  .j-header-brand img { width: 28px; height: 28px; }
+  .j-header-group > span, .j-header-back > span, .j-header-private, .j-account-label, .j-account-trigger > svg { display: none; }
+  .j-header-back { width: 32px; justify-content: center; }
+  .j-header-group { flex: 1; }
+  .journal-root .j-account .j-header-group select.j-group-select { width: 100%; padding-left: 5px; padding-right: 28px; background-position: right 5px center; font-size: 16px; }
+  .j-account-trigger { width: 44px; padding: 5px; justify-content: center; }
+  .j-account-panel { top: calc(100% + 10px); }
   .j-auth { margin: 28px 16px 32px; padding: 26px; max-width: none; }
   .journal-root .j-auth h1 { font-size: 26px; }
   .journal-root :is(.d-field, .d-filters, .j-score, .d-form-context) :is(input, select, textarea), .journal-root .d-search input { font-size: 16px; }

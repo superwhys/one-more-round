@@ -21,7 +21,7 @@ onMounted(load)
 </script>
 
 <template>
-<JournalLayout :group-name="snapshot?.group.name ?? ''" :section="String(route.meta.section ?? 'review')" :editor="!!route.meta.editor" :back="!!route.meta.back">
+<JournalLayout :group-name="snapshot?.group.name ?? ''" :section="String(route.meta.section ?? 'review')" :editor="!!route.meta.editor">
   <RequestStatus :loading="loading" :error="error" @retry="load" />
   <RouterView v-if="snapshot" v-slot="{ Component }"><component :is="Component" :key="route.fullPath" /></RouterView>
 </JournalLayout>

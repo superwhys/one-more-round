@@ -26,7 +26,7 @@ async function retry() { await session.initialize(true); await router.replace(ro
 <template>
 <div class="journal-app journal-root">
   <a v-if="hasGroup" class="skip-link" href="#main-content">跳到主要内容</a>
-  <AccountBar v-if="user" :user="user" :groups="groups" :selected="selected" :has-group="hasGroup" :busy="busy" @select="switchGroup" @setup="router.push('/join')" @logout="logout" />
+  <AccountBar v-if="user" :user="user" :groups="groups" :selected="selected" :has-group="hasGroup" :back="!!route.meta.back" :busy="busy" @select="switchGroup" @setup="router.push('/join')" @logout="logout" />
   <p v-if="error" class="j-error j-global-error" role="alert">{{ error }} <button @click="retry">重新加载</button></p>
   <RouterView :key="`${user?.id ?? 'guest'}:${selected}`" />
 </div>
