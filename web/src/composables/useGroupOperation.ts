@@ -8,14 +8,23 @@ export function useGroupOperation() {
   const error = ref('')
   const notice = ref('')
   let active = true
-  onScopeDispose(() => { active = false })
+  onScopeDispose(() => {
+    active = false
+  })
   async function run(action: () => Promise<void>) {
     if (busy.value) return
     busy.value = true
     error.value = ''
-    try { await action() }
-    catch (cause) { if (active) { error.value = message(cause); await handleAccessError(cause) } }
-    finally { if (active) busy.value = false }
+    try {
+      await action()
+    } catch (cause) {
+      if (active) {
+        error.value = message(cause)
+        await handleAccessError(cause)
+      }
+    } finally {
+      if (active) busy.value = false
+    }
   }
   return { busy, error, notice, run }
 }

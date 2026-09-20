@@ -39,10 +39,11 @@ test('reports HTML proxy responses and malformed envelopes', async () => {
 })
 
 test('reports network failures without exposing implementation errors', async () => {
-  mock.method(globalThis, 'fetch', async () => { throw new TypeError('fetch failed') })
+  mock.method(globalThis, 'fetch', async () => {
+    throw new TypeError('fetch failed')
+  })
   await assert.rejects(request('/status'), { status: 0, message: '连接中断或超时，请重试' })
 })
-
 
 test('JSON writes preserve concurrency headers, decimal strings, zero and null', async () => {
   const round = { version: 3, scores: { a: '-1.2500', b: '0', c: null } }

@@ -12,7 +12,11 @@ const groups = ref<Group[]>([])
 const selected = ref('')
 const error = ref('')
 let invitationStorage: Storage | undefined
-try { invitationStorage = window.sessionStorage } catch { /* Browser storage is optional. */ }
+try {
+  invitationStorage = window.sessionStorage
+} catch {
+  /* Browser storage is optional. */
+}
 const invitations = createInvitationState(invitationStorage)
 let initialized = false
 let initialization: Promise<void> | undefined
@@ -20,7 +24,11 @@ let initialization: Promise<void> | undefined
 function selectGroup(id: string) {
   selected.value = id
   if (user.value) {
-    try { localStorage.setItem(`omr:group:${user.value.id}`, id) } catch { /* optional preference */ }
+    try {
+      localStorage.setItem(`omr:group:${user.value.id}`, id)
+    } catch {
+      /* optional preference */
+    }
   }
 }
 async function loadGroups() {
@@ -30,7 +38,11 @@ async function loadGroups() {
 async function acceptUser(account: User) {
   error.value = ''
   user.value = account
-  try { selected.value = localStorage.getItem(`omr:group:${account.id}`) ?? '' } catch { selected.value = '' }
+  try {
+    selected.value = localStorage.getItem(`omr:group:${account.id}`) ?? ''
+  } catch {
+    selected.value = ''
+  }
   await loadGroups()
 }
 function expire() {
@@ -44,24 +56,54 @@ async function initialize(force = false) {
   if (initialized && !force) return
   initialization = (async () => {
     error.value = ''
-    try { await acceptUser(await getCurrentUser()) }
-    catch (cause) {
-      if (cause instanceof ApiError && cause.status === 401) { user.value = null; groups.value = []; selected.value = '' }
-      else error.value = message(cause)
-    } finally { initialized = true }
+    try {
+      await acceptUser(await getCurrentUser())
+    } catch (cause) {
+      if (cause instanceof ApiError && cause.status === 401) {
+        user.value = null
+        groups.value = []
+        selected.value = ''
+      } else error.value = message(cause)
+    } finally {
+      initialized = true
+    }
   })()
-  try { await initialization } finally { initialization = undefined }
+  try {
+    await initialization
+  } finally {
+    initialization = undefined
+  }
 }
 async function logout() {
   await logoutRequest()
   invitations.clearInvitations()
-  try { sessionStorage.removeItem('omr:pending-login') } catch { /* optional recovery */ }
-  try { clearDrafts() } catch { error.value = '已退出登录，但浏览器未能清除本地草稿' }
+  try {
+    sessionStorage.removeItem('omr:pending-login')
+  } catch {
+    /* optional recovery */
+  }
+  try {
+    clearDrafts()
+  } catch {
+    error.value = '已退出登录，但浏览器未能清除本地草稿'
+  }
   user.value = null
   groups.value = []
   selected.value = ''
 }
 
 export function useSession() {
-  return { user, groups, selected, error, ...invitations, initialize, acceptUser, selectGroup, loadGroups, expire, logout }
+  return {
+    user,
+    groups,
+    selected,
+    error,
+    ...invitations,
+    initialize,
+    acceptUser,
+    selectGroup,
+    loadGroups,
+    expire,
+    logout,
+  }
 }

@@ -14,7 +14,10 @@ function createGroupContext(groupId: string) {
   const owner = computed(() => snapshot.value?.group.owner === session.user.value?.id)
   let generation = 0
   let active = true
-  onScopeDispose(() => { generation++; active = false })
+  onScopeDispose(() => {
+    generation++
+    active = false
+  })
   async function refresh() {
     const run = ++generation
     const result = await getGroup(groupId)
@@ -27,7 +30,12 @@ function createGroupContext(groupId: string) {
       session.expire()
       await router.replace('/login')
     } else if (error.status === 403) {
-      try { await session.loadGroups() } catch (cause) { session.error.value = message(cause); return }
+      try {
+        await session.loadGroups()
+      } catch (cause) {
+        session.error.value = message(cause)
+        return
+      }
       if (session.selected.value !== groupId) {
         snapshot.value = null
         await router.replace('/')

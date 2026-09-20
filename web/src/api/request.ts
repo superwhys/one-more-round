@@ -46,7 +46,11 @@ export async function request<T>(path: string, options: RequestInit = {}): Promi
 }
 
 export function send<T>(path: string, data: unknown, method = 'POST', key?: string): Promise<T> {
-  return request<T>(path, { method, headers: { 'Content-Type': 'application/json', ...(key ? { 'Idempotency-Key': key } : {}) }, body: JSON.stringify(data) })
+  return request<T>(path, {
+    method,
+    headers: { 'Content-Type': 'application/json', ...(key ? { 'Idempotency-Key': key } : {}) },
+    body: JSON.stringify(data),
+  })
 }
 
 // download keeps binary exports outside the JSON response helper while using
@@ -61,8 +65,10 @@ export async function download(path: string): Promise<Blob> {
   if (response.ok) return response.blob()
   let message = '导出失败，请重试'
   try {
-    const payload = await response.json() as { message?: unknown }
+    const payload = (await response.json()) as { message?: unknown }
     if (typeof payload.message === 'string') message = payload.message
-  } catch { /* Keep the transport fallback for non-JSON failures. */ }
+  } catch {
+    /* Keep the transport fallback for non-JSON failures. */
+  }
   throw new ApiError(message, response.status)
 }

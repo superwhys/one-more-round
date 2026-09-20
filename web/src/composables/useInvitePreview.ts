@@ -10,16 +10,22 @@ export function useInvitePreview(token: Ref<string>) {
   let request = 0
   async function refresh() {
     const current = ++request
-    preview.value = null; error.value = ''; loading.value = !!token.value
+    preview.value = null
+    error.value = ''
+    loading.value = !!token.value
     if (!token.value) return
     try {
       const result = await previewGroupInvite(token.value)
       if (current === request) preview.value = result
     } catch (cause) {
       if (current === request) error.value = message(cause)
-    } finally { if (current === request) loading.value = false }
+    } finally {
+      if (current === request) loading.value = false
+    }
   }
   watch(token, refresh, { immediate: true })
-  onScopeDispose(() => { request++ })
+  onScopeDispose(() => {
+    request++
+  })
   return { preview, loading, error, refresh }
 }

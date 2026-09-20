@@ -6,8 +6,12 @@ function storage() {
   const data = new Map<string, string>()
   return {
     getItem: (key: string) => data.get(key) ?? null,
-    setItem: (key: string, value: string) => { data.set(key, value) },
-    removeItem: (key: string) => { data.delete(key) },
+    setItem: (key: string, value: string) => {
+      data.set(key, value)
+    },
+    removeItem: (key: string) => {
+      data.delete(key)
+    },
   }
 }
 
@@ -52,7 +56,11 @@ test('pending invitations are isolated by browser tab', () => {
 
 test('expired or malformed recovery data cannot restore an invitation', () => {
   const tab = storage()
-  for (const value of ['broken-json', JSON.stringify({ group: 'expired', expires: Date.now() - 1 }), JSON.stringify({ group: {}, expires: Date.now() + 10000 })]) {
+  for (const value of [
+    'broken-json',
+    JSON.stringify({ group: 'expired', expires: Date.now() - 1 }),
+    JSON.stringify({ group: {}, expires: Date.now() + 10000 }),
+  ]) {
     tab.setItem('omr:pending-invitation', value)
     assert.equal(createInvitationState(tab).joinToken.value, '')
   }
@@ -68,9 +76,15 @@ test('unrelated anchors and malformed encoding do not break navigation', () => {
 
 test('unavailable browser storage still permits the current invitation flow', () => {
   const state = createInvitationState({
-    getItem: () => { throw new Error('disabled') },
-    setItem: () => { throw new Error('disabled') },
-    removeItem: () => { throw new Error('disabled') },
+    getItem: () => {
+      throw new Error('disabled')
+    },
+    setItem: () => {
+      throw new Error('disabled')
+    },
+    removeItem: () => {
+      throw new Error('disabled')
+    },
   })
   state.captureInvitation('/join', '#group-token')
   assert.equal(state.joinToken.value, 'group-token')

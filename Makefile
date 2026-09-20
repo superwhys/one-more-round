@@ -23,6 +23,7 @@ build: web-build
 	$(GO) build -trimpath -ldflags "-X github.com/miebyte/goutils/buildinfo.Version=$(VERSION) -X github.com/miebyte/goutils/buildinfo.ServiceName=one-more-round" -o bin/one-more-round .
 
 check: web-build
+	$(PNPM) --dir web format:check
 	$(PNPM) --dir web test
 	$(GO) test ./...
 	$(GO) vet ./...
