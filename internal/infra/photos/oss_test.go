@@ -78,6 +78,12 @@ func TestOSSReencodeReadAndRemove(t *testing.T) {
 	if err := store.Save(ctx, testPhotoID, bytes.NewReader(pngPhoto(t))); err != nil {
 		t.Fatal(err)
 	}
+	mu.Lock()
+	count := len(objects)
+	mu.Unlock()
+	if count != 1 {
+		t.Fatalf("expected exactly one object, got %d", count)
+	}
 	for _, thumb := range []bool{false, true} {
 		content, err := store.Read(ctx, testPhotoID, thumb)
 		if err != nil {
@@ -87,9 +93,6 @@ func TestOSSReencodeReadAndRemove(t *testing.T) {
 		_, drainErr := io.Copy(io.Discard, content.Body)
 		closeErr := content.Body.Close()
 		want := 900
-		if thumb {
-			want = 480
-		}
 		if err != nil || drainErr != nil || closeErr != nil || format != "jpeg" || cfg.Width != want {
 			t.Fatalf("unexpected image: %v %s %v", cfg, format, err)
 		}
@@ -135,12 +138,10 @@ func TestOSSPartialUploadCanBeRemoved(t *testing.T) {
 		mu.Lock()
 		defer mu.Unlock()
 		if r.Method == http.MethodPut {
-			if strings.HasSuffix(r.URL.Path, "-thumb.jpg") {
-				w.WriteHeader(503)
-				io.WriteString(w, "<Error><Code>ServiceUnavailable</Code></Error>")
-				return
-			}
 			objects[r.URL.Path], _ = io.ReadAll(r.Body)
+			// The object exists, but the client receives an unsuccessful reply.
+			w.WriteHeader(503)
+			io.WriteString(w, "<Error><Code>ServiceUnavailable</Code></Error>")
 		} else if r.Method == http.MethodDelete {
 			delete(objects, r.URL.Path)
 			w.WriteHeader(204)

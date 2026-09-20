@@ -27,7 +27,9 @@ SMTP 465 使用直接 TLS，其他外部服务器要求 STARTTLS。只允许本�
 
 ## 照片存储（阿里云 OSS）
 
-`app.oss` 的 Bucket、Region、Endpoint、Prefix 和 AccessKey 均从 `config.json` 读取，不写入代码。当前 Bucket 为 `one-more-round`，Region 为 `cn-shenzhen`，对象前缀为 `image/`（不包含 `*`）；生成 `image/<照片ID>.jpg` 与 `image/<照片ID>-thumb.jpg`。
+`app.oss` 的 Bucket、Region、Endpoint、Prefix 和 AccessKey 均从 `config.json` 读取，不写入代码。当前 Bucket 为 `one-more-round`，Region 为 `cn-shenzhen`，对象前缀为 `image/`（不包含 `*`）；新上传只生成 `image/<照片ID>.jpg` 一张展示图。列表、详情、放大查看和导出使用同一图片；旧 `?size=thumb` 请求仍可用，主对象不存在时回退读取旧 `-thumb.jpg`。
+
+浏览器先将照片缩至最长边 1600px，再顺序上传。后端在完整解码前拒绝超尺寸文件，仅做 JPEG 规范化重编码（去除 EXIF/GPS），不再缩放或生成第二张图。整个进程的上传并发为 1，繁忙返回 503，可保留表单稍后重试。原始选图和上传文件都保留 2 MiB 上限。更新时需同时发布内嵌前端；仍开着旧页面的用户遇到尺寸提示后应刷新页面再选图。
 
 - 本地测试 Endpoint：`https://oss-cn-shenzhen.aliyuncs.com`。
 - 阿里云深圳服务器 Endpoint：`https://oss-cn-shenzhen-internal.aliyuncs.com`。
@@ -143,7 +145,9 @@ make integration  # 需要 mysqld/mysqladmin/python3；创建独立临时 MySQL 
 
 安装 Playwright 与 Chrome 后，使用 `OMR_BROWSER_TEST=1 make integration` 运行小组邀请的真实浏览器回归（新邮箱注册入组、刷新恢复、已有成员进入、加入第二个组、注销清理及邀请失效提示）。若 Playwright 不在默认模块路径，可用 `OMR_PLAYWRIGHT_MODULE=file:///绝对路径/playwright/index.mjs` 指向现有安装；`OMR_BROWSER_ARTIFACTS` 可指定已存在的截图目录。测试使用隔离数据库和仅在测试服务器中存在的内存收件箱，不向外部邮箱发信。
 
-使用 `OMR_PHOTO_BROWSER_TEST=1 make integration` 验证照片限制：每局最多 3 张、单张原始文件最多 2 MiB，覆盖批量选择、编辑替换、旧草稿、直接 API 拦截和 320/390px/桌面布局。沿用上述 Playwright 和截图配置，图片写入隔离的临时目录，不访问 OSS。
+使用 `OMR_PHOTO_BROWSER_TEST=1 make integration` 验证照片限制：每局最多 3 张、单张原始文件最多 2 MiB，覆盖前端 1600px 预压缩、顺序上传、繁忙重试、损坏图片、统一图片 URL、批量选择、编辑替换、旧草稿、直接 API 拦截和 320/390px/桌面布局。沿用上述 Playwright 和截图配置，图片写入隔离的临时目录，不访问 OSS。
+
+图片内存回归（不要加 `-race`）：`OMR_PHOTO_MEMORY_TEST=1 go test -run '^TestDisplayPhotoMemoryBudget$' -count=1 -v ./internal/infra/photos`。该用例连续处理三张 1600×1600、16 位、2 MiB 的 PNG，采样额外 Go 堆峰值并要求不超过 100 MiB；不是整个进程 RSS 或服务器总内存的保证。`go test -run '^$' -bench BenchmarkDisplayPhotoMemory -benchtime=1x -benchmem ./internal/infra/photos` 可比较 JPEG、8 位和 16 位 PNG 的处理分配量。
 
 `make build` 后可同时设置 `OMR_TEST_BINARY` 为新二进制的绝对路径，集成测试会将它复制到不含 `web/dist` 的临时目录，用隔离配置/数据库启动，检查首页、邀请/登录深链接、嵌入资源及 API/资源错误分流。
 
@@ -151,7 +155,7 @@ make integration  # 需要 mysqld/mysqladmin/python3；创建独立临时 MySQL 
 
 ## 运行边界
 
-- 当前为单实例、本地私有照片目录方案；备份 MySQL 和照片目录，配置及密钥单独保管。
+- 当前为单实例、私有 OSS 照片方案；备份 MySQL 和 OSS 对象，配置及密钥单独保管。
 - 组主可从小组页导出当前小组 JSON、CSV 与照片 ZIP；当前邀请试用规模下在内存生成，不作为超大数据集导出方案。
 - 删除的对局保留 7 天，期间仍保留照片关联；到期后后台永久清理并进入照片释放流程。
 - 未关联照片保留 7 天；启动及每小时清理。需要长时间保留的草稿应及时保存。

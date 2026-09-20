@@ -27,37 +27,35 @@ func (f *Files) Save(ctx context.Context, id string, r io.Reader) error {
 	if !identifier.MatchString(id) {
 		return errors.New("invalid photo ID")
 	}
-	images, err := encodePhoto(ctx, r)
+	data, err := encodePhoto(ctx, r)
 	if err != nil {
 		return err
 	}
 	if err = os.MkdirAll(f.Root, 0700); err != nil {
 		return err
 	}
-	for i, data := range images {
-		if err = ctx.Err(); err != nil {
-			return err
-		}
-		file, err := os.OpenFile(filepath.Join(f.Root, photoName(id, i == 1)), os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0600)
-		if err != nil {
-			return err
-		}
-		_, writeErr := file.Write(data)
-		if err = errors.Join(writeErr, file.Close()); err != nil {
-			return err
-		}
+	if err = ctx.Err(); err != nil {
+		return err
 	}
-	return nil
+	file, err := os.OpenFile(filepath.Join(f.Root, photoName(id, false)), os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0600)
+	if err != nil {
+		return err
+	}
+	_, writeErr := file.Write(data)
+	return errors.Join(writeErr, file.Close())
 }
 
-func (f *Files) Read(ctx context.Context, id string, thumb bool) (*ports.PhotoContent, error) {
+func (f *Files) Read(ctx context.Context, id string, _ bool) (*ports.PhotoContent, error) {
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
 	if !identifier.MatchString(id) {
 		return nil, os.ErrNotExist
 	}
-	file, err := os.Open(filepath.Join(f.Root, photoName(id, thumb)))
+	file, err := os.Open(filepath.Join(f.Root, photoName(id, false)))
+	if os.IsNotExist(err) {
+		file, err = os.Open(filepath.Join(f.Root, photoName(id, true)))
+	}
 	if err != nil {
 		return nil, err
 	}

@@ -13,6 +13,9 @@ type State string
 // MaxUploadBytes limits each original upload before image processing.
 const MaxUploadBytes = 2 * 1024 * 1024
 
+// MaxDimension bounds decoded images to at most 2.56 million pixels.
+const MaxDimension = 1600
+
 const (
 	StateReady     State = "ready"
 	StateUploading State = "uploading"

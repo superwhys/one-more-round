@@ -24,6 +24,10 @@ func TestReencodeAndBounds(t *testing.T) {
 	if e := f.Save(context.Background(), id, &buf); e != nil {
 		t.Fatal(e)
 	}
+	entries, err := os.ReadDir(f.Root)
+	if err != nil || len(entries) != 1 {
+		t.Fatalf("expected a single stored image: %v %v", entries, err)
+	}
 	for _, thumb := range []bool{false, true} {
 		content, e := f.Read(context.Background(), id, thumb)
 		if e != nil {
@@ -35,8 +39,8 @@ func TestReencodeAndBounds(t *testing.T) {
 		if e != nil || drainErr != nil || closeErr != nil || format != "jpeg" {
 			t.Fatal("not normalized JPEG")
 		}
-		if thumb && cfg.Width != 480 {
-			t.Fatal("not a thumbnail")
+		if cfg.Width != 900 {
+			t.Fatal("both URLs must return the display image")
 		}
 	}
 	if e := f.Save(context.Background(), "../escape", bytes.NewReader(nil)); e == nil {

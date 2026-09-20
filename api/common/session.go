@@ -16,9 +16,6 @@ import (
 // in the database and only its digest is stored server side.
 const SessionCookie = "omr_session"
 
-// sessionMaxAge matches the server-side session lifetime of thirty days.
-const sessionMaxAge = 30 * 24 * 3600
-
 const userKey = "authenticated_user"
 
 // SetSessionCookie writes the session cookie; a negative maxAge clears it.

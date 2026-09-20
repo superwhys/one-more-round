@@ -2,6 +2,7 @@ package router
 
 import (
 	"context"
+	"io"
 	"net/http"
 	"strings"
 
@@ -18,6 +19,14 @@ import (
 // maxPhotoRequest bounds the whole multipart request, leaving room for the
 // multipart envelope around the two mebibyte image limit.
 const maxPhotoRequest = photo.MaxUploadBytes + 64*1024
+
+// Admit one upload process-wide before multipart parsing. Busy requests do not
+// retain uploaded bodies or wait in an unbounded image-processing queue.
+var photoUploadSlot = make(chan struct{}, 1)
+
+type photoUploader interface {
+	Upload(context.Context, string, string, io.Reader) (string, error)
+}
 
 type photoRouterFn func(router gin.IRouter)
 
@@ -37,7 +46,7 @@ func PhotoRouter(photoApp *services.PhotoApp) photoRouterFn {
 
 // uploadPhotoHandler 上传照片
 // @Summary 上传照片
-// @Description 上传单张不超过 2 MiB 的 JPEG/PNG/WebP 图片，服务端重编码后保存
+// @Description 上传单张不超过 2 MiB、长边不超过 1600px 的 JPEG/PNG/WebP，重编码后仅保存一张展示图；繁忙返回 503
 // @Tags Photo
 // @Accept multipart/form-data
 // @Produce json
@@ -46,8 +55,16 @@ func PhotoRouter(photoApp *services.PhotoApp) photoRouterFn {
 // @Param photo formData file true "图片文件"
 // @Success 200 {object} dto.UploadPhotoResp
 // @Router /v1/groups/{group}/photos [post]
-func uploadPhotoHandler(photoApp *services.PhotoApp) gin.HandlerFunc {
+func uploadPhotoHandler(photoApp photoUploader) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
+		select {
+		case photoUploadSlot <- struct{}{}:
+			defer func() { <-photoUploadSlot }()
+		default:
+			ctx.Header("Retry-After", "2")
+			common.RespondError(ctx, errcode.ErrPhotoBusy)
+			return
+		}
 		ctx.Request.Body = http.MaxBytesReader(ctx.Writer, ctx.Request.Body, maxPhotoRequest)
 		if err := ctx.Request.ParseMultipartForm(1024 * 1024); err != nil {
 			common.RespondError(ctx, errcode.ErrPhotoTooLarge)
@@ -74,7 +91,7 @@ func uploadPhotoHandler(photoApp *services.PhotoApp) gin.HandlerFunc {
 
 // readPhotoHandler 读取照片
 // @Summary 读取照片
-// @Description 校验成员权限后流式返回图片，size=thumb 时返回缩略图
+// @Description 校验成员权限后流式返回统一展示图；兼容 size=thumb 参数，返回同一图片
 // @Tags Photo
 // @Produce image/jpeg
 // @Security SessionCookie

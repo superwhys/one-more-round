@@ -145,14 +145,16 @@ var (
 
 // 照片
 var (
-	ErrPhotoUpload   = ErrBadRequest.WithMessage("图片上传失败，请检查格式、大小和尺寸后重试")
-	ErrPhotoNotFound = ErrBadRequest.WithMessage("照片不存在或不属于当前小组")
-	ErrPhotoLinked   = ErrConflict.WithMessage("照片已关联其他对局")
-	ErrPhotoSave     = ErrSysInternal.WithMessage("保存照片失败")
-	ErrPhotoRead     = ErrSysInternal.WithMessage("读取照片失败")
-	ErrPhotoStorage  = New(CodeUnavailable, 503, "图片存储服务暂时不可用，请稍后重试")
-	ErrPhotoMissing  = ErrBadRequest.WithMessage("缺少图片")
-	ErrPhotoTooLarge = ErrBadRequest.WithMessage("请选择不超过 2 MB 的图片")
+	ErrPhotoUpload     = ErrBadRequest.WithMessage("图片上传失败，请检查格式、大小和尺寸后重试")
+	ErrPhotoNotFound   = ErrBadRequest.WithMessage("照片不存在或不属于当前小组")
+	ErrPhotoLinked     = ErrConflict.WithMessage("照片已关联其他对局")
+	ErrPhotoSave       = ErrSysInternal.WithMessage("保存照片失败")
+	ErrPhotoRead       = ErrSysInternal.WithMessage("读取照片失败")
+	ErrPhotoStorage    = New(CodeUnavailable, 503, "图片存储服务暂时不可用，请稍后重试")
+	ErrPhotoMissing    = ErrBadRequest.WithMessage("缺少图片")
+	ErrPhotoTooLarge   = ErrBadRequest.WithMessage("请选择不超过 2 MB 的图片")
+	ErrPhotoDimensions = ErrBadRequest.WithMessage("图片长边不能超过 1600 像素，请刷新页面后重新选择照片")
+	ErrPhotoBusy       = New(CodeUnavailable, 503, "正在处理其他照片，请稍后重试")
 )
 
 // 外部依赖

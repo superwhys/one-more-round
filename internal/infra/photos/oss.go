@@ -90,33 +90,36 @@ func (s *OSS) Save(ctx context.Context, id string, r io.Reader) error {
 	}
 	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
-	images, err := encodePhoto(ctx, r)
+	data, err := encodePhoto(ctx, r)
 	if err != nil {
 		return err
 	}
-	for i, data := range images {
-		_, err = s.client.PutObject(ctx, &oss.PutObjectRequest{
-			Bucket: new(s.bucket), Key: new(s.prefix + photoName(id, i == 1)),
-			Body: bytes.NewReader(data), ContentType: new("image/jpeg"),
-			CacheControl: new("private, no-store"), Acl: oss.ObjectACLPrivate,
-		})
-		if err != nil {
-			// The application tracks the ID before starting either upload, so
-			// partially saved objects remain eligible for durable cleanup.
-			return ossError(err)
-		}
+	_, err = s.client.PutObject(ctx, &oss.PutObjectRequest{
+		Bucket: new(s.bucket), Key: new(s.prefix + photoName(id, false)),
+		Body: bytes.NewReader(data), ContentType: new("image/jpeg"),
+		CacheControl: new("private, no-store"), Acl: oss.ObjectACLPrivate,
+	})
+	if err != nil {
+		// A lost response can leave an object behind; PhotoApp tracks cleanup.
+		return ossError(err)
 	}
 	return nil
 }
 
-func (s *OSS) Read(ctx context.Context, id string, thumb bool) (*ports.PhotoContent, error) {
+func (s *OSS) Read(ctx context.Context, id string, _ bool) (*ports.PhotoContent, error) {
 	if !identifier.MatchString(id) {
 		return nil, fs.ErrNotExist
 	}
 	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	result, err := s.client.GetObject(ctx, &oss.GetObjectRequest{
-		Bucket: new(s.bucket), Key: new(s.prefix + photoName(id, thumb)),
+		Bucket: new(s.bucket), Key: new(s.prefix + photoName(id, false)),
 	})
+	// Fall back only on a confirmed missing object, never on a network error.
+	if serviceErr, ok := errors.AsType[*oss.ServiceError](err); ok && serviceErr.Code == "NoSuchKey" {
+		result, err = s.client.GetObject(ctx, &oss.GetObjectRequest{
+			Bucket: new(s.bucket), Key: new(s.prefix + photoName(id, true)),
+		})
+	}
 	if err != nil {
 		cancel()
 		serviceErr, isServiceError := errors.AsType[*oss.ServiceError](err)

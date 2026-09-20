@@ -814,7 +814,7 @@ paths:
     post:
       consumes:
       - multipart/form-data
-      description: 上传单张不超过 2 MiB 的 JPEG/PNG/WebP 图片，服务端重编码后保存
+      description: 上传单张不超过 2 MiB、长边不超过 1600px 的 JPEG/PNG/WebP，重编码后仅保存一张展示图；繁忙返回 503
       parameters:
       - description: 小组 ID
         in: path
@@ -840,7 +840,7 @@ paths:
       - Photo
   /v1/groups/{group}/photos/{id}:
     get:
-      description: 校验成员权限后流式返回图片，size=thumb 时返回缩略图
+      description: 校验成员权限后流式返回统一展示图；兼容 size=thumb 参数，返回同一图片
       parameters:
       - description: 小组 ID
         in: path

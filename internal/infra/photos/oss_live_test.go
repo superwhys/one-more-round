@@ -17,7 +17,7 @@ import (
 	"github.com/superwhys/one-more-round/internal/pkg/secure"
 )
 
-// Explicit opt-in: writes only two randomly named test objects and removes them.
+// Explicit opt-in: writes one randomly named test object and removes it.
 // Credentials are read from an ignored config file and never included in output.
 func TestOSSLive(t *testing.T) {
 	path := os.Getenv("OMR_TEST_OSS_CONFIG")
@@ -66,9 +66,6 @@ func TestOSSLive(t *testing.T) {
 		_, drainErr := io.Copy(io.Discard, content.Body)
 		closeErr := content.Body.Close()
 		want := 900
-		if thumb {
-			want = 480
-		}
 		if err != nil || drainErr != nil || closeErr != nil || format != "jpeg" || cfg.Width != want {
 			t.Fatal("OSS image verification failed")
 		}
