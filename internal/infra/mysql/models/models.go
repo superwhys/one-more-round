@@ -93,6 +93,17 @@ type Round struct {
 
 func (Round) TableName() string { return "omr_rounds" }
 
+type RoundShare struct {
+	RoundID   string     `gorm:"column:round_id;type:varchar(64);primaryKey"`
+	GroupID   string     `gorm:"column:group_id;type:varchar(64);not null;index:group_id"`
+	TokenHash string     `gorm:"column:token_hash;type:char(64);not null;uniqueIndex:token_hash"`
+	CreatedBy string     `gorm:"column:created_by;type:varchar(64);not null"`
+	CreatedAt time.Time  `gorm:"column:created_at;type:datetime(6);not null"`
+	RevokedAt *time.Time `gorm:"column:revoked_at;type:datetime(6)"`
+}
+
+func (RoundShare) TableName() string { return "omr_round_shares" }
+
 type Idempotency struct {
 	GroupID    string `gorm:"column:group_id;type:varchar(64);primaryKey"`
 	UserID     string `gorm:"column:user_id;type:varchar(64);primaryKey"`
@@ -157,6 +168,7 @@ func AllModels() []any {
 		&Player{},
 		&Game{},
 		&Round{},
+		&RoundShare{},
 		&Challenge{},
 		&Rate{},
 		&Trial{},

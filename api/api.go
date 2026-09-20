@@ -30,12 +30,12 @@ const stage = "invite-trial"
 
 // API assembles the HTTP routes on top of the application services.
 type API struct {
-	version  string
-	config   *config.Runtime
-	authApp  *services.AuthApp
-	groupApp *services.GroupApp
-	roundApp *services.RoundApp
-	photoApp *services.PhotoApp
+	version         string
+	config          *config.Runtime
+	authApp         *services.AuthApp
+	groupApp        *services.GroupApp
+	roundApp        *services.RoundApp
+	photoApp        *services.PhotoApp
 	notificationApp *services.NotificationApp
 }
 
@@ -61,10 +61,14 @@ func (api *API) SetupRouter() http.Handler {
 			middleware.OriginMiddleware(api.config.Origin),
 		),
 		ginutils.WithHandler(http.MethodGet, "/v1/status", statusHandler(api.version)),
-		// The authentication entry points are the only routes without a session.
+		// Authentication and bearer-link reads are the routes without a session.
 		ginutils.WithGroupHandlers(
 			ginutils.WithPrefix("/v1/auth"),
 			ginutils.WithRouterHandler(router.AuthRouter(api.authApp, api.sessionOptions()), router.GroupInvitationRouter(api.groupApp)),
+		),
+		ginutils.WithGroupHandlers(
+			ginutils.WithPrefix("/v1"),
+			ginutils.WithRouterHandler(router.PublicRoundRouter(api.roundApp)),
 		),
 		// Everything else requires a current session and group membership.
 		ginutils.WithGroupHandlers(

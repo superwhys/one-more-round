@@ -30,6 +30,7 @@ func Use(db *gorm.DB, opts ...gen.DOOption) *Query {
 		Player:       newPlayer(db, opts...),
 		Rate:         newRate(db, opts...),
 		Round:        newRound(db, opts...),
+		RoundShare:   newRoundShare(db, opts...),
 		Session:      newSession(db, opts...),
 		Trial:        newTrial(db, opts...),
 		User:         newUser(db, opts...),
@@ -51,6 +52,7 @@ type Query struct {
 	Player       player
 	Rate         rate
 	Round        round
+	RoundShare   roundShare
 	Session      session
 	Trial        trial
 	User         user
@@ -75,6 +77,7 @@ func (q *Query) clone(db *gorm.DB) *Query {
 		Player:       q.Player.clone(db),
 		Rate:         q.Rate.clone(db),
 		Round:        q.Round.clone(db),
+		RoundShare:   q.RoundShare.clone(db),
 		Session:      q.Session.clone(db),
 		Trial:        q.Trial.clone(db),
 		User:         q.User.clone(db),
@@ -104,6 +107,7 @@ func (q *Query) ReplaceDB(db *gorm.DB) *Query {
 		Player:       q.Player.replaceDB(db),
 		Rate:         q.Rate.replaceDB(db),
 		Round:        q.Round.replaceDB(db),
+		RoundShare:   q.RoundShare.replaceDB(db),
 		Session:      q.Session.replaceDB(db),
 		Trial:        q.Trial.replaceDB(db),
 		User:         q.User.replaceDB(db),
@@ -123,6 +127,7 @@ type queryCtx struct {
 	Player       IPlayerDo
 	Rate         IRateDo
 	Round        IRoundDo
+	RoundShare   IRoundShareDo
 	Session      ISessionDo
 	Trial        ITrialDo
 	User         IUserDo
@@ -142,6 +147,7 @@ func (q *Query) WithContext(ctx context.Context) *queryCtx {
 		Player:       q.Player.WithContext(ctx),
 		Rate:         q.Rate.WithContext(ctx),
 		Round:        q.Round.WithContext(ctx),
+		RoundShare:   q.RoundShare.WithContext(ctx),
 		Session:      q.Session.WithContext(ctx),
 		Trial:        q.Trial.WithContext(ctx),
 		User:         q.User.WithContext(ctx),

@@ -138,6 +138,8 @@ var (
 	ErrPlayerNotInGroup = ErrBadRequest.WithMessage("玩家不属于当前小组")
 	ErrRoundStale       = ErrConflict.WithMessage("这条记录刚刚被修改，请刷新后再试")
 	ErrRoundDeleteStale = ErrConflict.WithMessage("记录已修改，请刷新后重试")
+	ErrRoundShare       = ErrSysInternal.WithMessage("生成分享链接失败")
+	ErrRoundShareRead   = ErrSysInternal.WithMessage("读取分享内容失败")
 	ErrFilterDate       = ErrBadRequest.WithMessage("筛选日期无效")
 	ErrFilterRange      = ErrBadRequest.WithMessage("开始日期不能晚于结束日期")
 	ErrPageRange        = ErrBadRequest.WithMessage("分页范围无效")

@@ -17,6 +17,14 @@ type IRoundRepository interface {
 	Save(ctx context.Context, groupID string, r *Round) error
 	// Delete permanently removes an expired round of the group.
 	Delete(ctx context.Context, groupID, id string) error
+	// SaveShare creates or rotates the single public link of a round.
+	SaveShare(ctx context.Context, share *Share) error
+	// GetShare returns the link state of a round.
+	GetShare(ctx context.Context, groupID, roundID string) (*Share, error)
+	// ResolveShare returns the active link identified by a token digest.
+	ResolveShare(ctx context.Context, tokenHash string) (*Share, error)
+	// RevokeShare disables the current public link of a round.
+	RevokeShare(ctx context.Context, groupID, roundID string, at time.Time) error
 }
 
 // IIdempotencyRepository stores the fingerprint of a round submission so a

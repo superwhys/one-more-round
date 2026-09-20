@@ -23,3 +23,12 @@ export interface Recap {
 }
 export interface Notification { id: string; group_id: string; kind: string; title: string; body: string; link: string; created: string; read_at: string | null }
 export interface NotificationPage { items: Notification[]; unread: number }
+export interface RoundShareStatus { active: boolean; created_at: string }
+export interface RoundShareToken { token: string; created_at: string }
+export interface PublicPlayer { name: string; score: string | null; winner: boolean }
+export interface PublicTeam { name: string; players: string[]; score: string | null; winner: boolean }
+export interface PublicRound {
+  group_name: string; game_name: string; date: string; mode: Mode; outcome: Outcome
+  players: PublicPlayer[]; teams: PublicTeam[]; team_score: string | null
+  memory: string; photos: string[]
+}

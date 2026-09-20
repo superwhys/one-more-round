@@ -974,6 +974,122 @@ const docTemplate = `{
                 }
             }
         },
+        "/v1/groups/{group}/rounds/{id}/share": {
+            "get": {
+                "security": [
+                    {
+                        "SessionCookie": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Round Share"
+                ],
+                "summary": "查询对局分享状态",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "小组 ID",
+                        "name": "group",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "对局 ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/ginutils.Ret-dto_RoundShareStatus"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "SessionCookie": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Round Share"
+                ],
+                "summary": "生成或轮换对局分享链接",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "小组 ID",
+                        "name": "group",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "对局 ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/ginutils.Ret-dto_RoundShareToken"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "SessionCookie": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Round Share"
+                ],
+                "summary": "撤销对局分享链接",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "小组 ID",
+                        "name": "group",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "对局 ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/ginutils.Ret-any"
+                        }
+                    }
+                }
+            }
+        },
         "/v1/join": {
             "post": {
                 "security": [
@@ -1090,6 +1206,69 @@ const docTemplate = `{
                         "description": "OK",
                         "schema": {
                             "$ref": "#/definitions/ginutils.Ret-any"
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/shared-rounds": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Round Share"
+                ],
+                "summary": "查看公开分享的对局",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "分享令牌",
+                        "name": "X-Round-Share",
+                        "in": "header",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/ginutils.Ret-dto_PublicRound"
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/shared-rounds/photos/{photo}": {
+            "get": {
+                "produces": [
+                    "image/jpeg"
+                ],
+                "tags": [
+                    "Round Share"
+                ],
+                "summary": "查看公开分享的对局照片",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "分享令牌",
+                        "name": "X-Round-Share",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "照片 ID",
+                        "name": "photo",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "file"
                         }
                     }
                 }
@@ -1434,6 +1613,84 @@ const docTemplate = `{
                 }
             }
         },
+        "dto.PublicPlayer": {
+            "type": "object",
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "score": {
+                    "type": "string"
+                },
+                "winner": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "dto.PublicRound": {
+            "type": "object",
+            "properties": {
+                "date": {
+                    "type": "string"
+                },
+                "game_name": {
+                    "type": "string"
+                },
+                "group_name": {
+                    "type": "string"
+                },
+                "memory": {
+                    "type": "string"
+                },
+                "mode": {
+                    "type": "string"
+                },
+                "outcome": {
+                    "type": "string"
+                },
+                "photos": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "players": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.PublicPlayer"
+                    }
+                },
+                "team_score": {
+                    "type": "string"
+                },
+                "teams": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.PublicTeam"
+                    }
+                }
+            }
+        },
+        "dto.PublicTeam": {
+            "type": "object",
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "players": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "score": {
+                    "type": "string"
+                },
+                "winner": {
+                    "type": "boolean"
+                }
+            }
+        },
         "dto.Recap": {
             "type": "object",
             "properties": {
@@ -1566,6 +1823,28 @@ const docTemplate = `{
                     "items": {
                         "type": "string"
                     }
+                }
+            }
+        },
+        "dto.RoundShareStatus": {
+            "type": "object",
+            "properties": {
+                "active": {
+                    "type": "boolean"
+                },
+                "created_at": {
+                    "type": "string"
+                }
+            }
+        },
+        "dto.RoundShareToken": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "string"
+                },
+                "token": {
+                    "type": "string"
                 }
             }
         },
@@ -1852,6 +2131,18 @@ const docTemplate = `{
                 "message": {}
             }
         },
+        "ginutils.Ret-dto_PublicRound": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "integer"
+                },
+                "data": {
+                    "$ref": "#/definitions/dto.PublicRound"
+                },
+                "message": {}
+            }
+        },
         "ginutils.Ret-dto_Recap": {
             "type": "object",
             "properties": {
@@ -1872,6 +2163,30 @@ const docTemplate = `{
                 },
                 "data": {
                     "$ref": "#/definitions/dto.Round"
+                },
+                "message": {}
+            }
+        },
+        "ginutils.Ret-dto_RoundShareStatus": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "integer"
+                },
+                "data": {
+                    "$ref": "#/definitions/dto.RoundShareStatus"
+                },
+                "message": {}
+            }
+        },
+        "ginutils.Ret-dto_RoundShareToken": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "integer"
+                },
+                "data": {
+                    "$ref": "#/definitions/dto.RoundShareToken"
                 },
                 "message": {}
             }

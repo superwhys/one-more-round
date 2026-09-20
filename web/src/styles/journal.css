@@ -248,6 +248,16 @@
 .j-recycle-row > div { display: grid; gap: 5px; min-width: 0; }
 .j-recycle-row span { color: #858c79; font-size: 12px; overflow-wrap: anywhere; }
 .j-data-tools { margin-top: 24px; }
+.j-share-revoke { margin-top: 12px; color: #8c5744; }
+.j-public-share { min-height: 100dvh; padding-bottom: 0; }
+.j-public-header { display: flex; align-items: center; gap: 12px; max-width: 880px; margin: 0 auto; padding: 24px 32px; border-bottom: 1px solid var(--d-line); font-size: 20px; font-weight: 650; letter-spacing: 1px; }
+.j-public-header img { width: 38px; height: 38px; }
+.j-public-header small { display: block; color: var(--d-muted); font-size: 10px; font-weight: 400; letter-spacing: 0; }
+.j-public-main { width: min(880px, 100%); min-height: calc(100dvh - 180px); margin: 0 auto; padding: 48px 32px; }
+.j-public-photos { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-top: 24px; }
+.j-public-photos img { display: block; width: 100%; max-height: 520px; border-radius: 10px; object-fit: cover; }
+.j-public-photos img:only-child { grid-column: 1 / -1; }
+.j-public-footer { max-width: 880px; margin: 0 auto; padding: 20px 32px 32px; color: #939888; font-size: 11px; text-align: center; }
 
 @media (hover: hover) and (pointer: fine) {
   .journal-root :is(.d-field, .d-filters, .j-score, .d-form-context, .j-account) :is(input, select, textarea):hover:not(:disabled):not(:focus-visible) { border-color: var(--j-control-hover); }
@@ -298,6 +308,13 @@
   .j-recap-period { grid-template-columns: repeat(2, minmax(0, 1fr)); width: 100%; }
   .journal-root .j-recap-period-field { width: 100%; }
   .j-recap-photos { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .j-public-share { padding-bottom: 0; }
+  .j-public-header { padding: 18px 20px; }
+  .j-public-main { padding: 30px 18px; }
+  .j-public-main .d-page-heading { display: block; }
+  .j-public-photos { grid-template-columns: minmax(0, 1fr); }
+  .j-public-photos img:only-child { grid-column: auto; }
+  .j-public-footer { padding: 16px 20px 28px; }
 }
 @media (max-width: 360px) {
   .journal-root .d-filters { grid-template-columns: minmax(0, 1fr); }

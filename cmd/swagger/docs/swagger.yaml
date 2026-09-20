@@ -205,6 +205,57 @@ definitions:
       name:
         type: string
     type: object
+  dto.PublicPlayer:
+    properties:
+      name:
+        type: string
+      score:
+        type: string
+      winner:
+        type: boolean
+    type: object
+  dto.PublicRound:
+    properties:
+      date:
+        type: string
+      game_name:
+        type: string
+      group_name:
+        type: string
+      memory:
+        type: string
+      mode:
+        type: string
+      outcome:
+        type: string
+      photos:
+        items:
+          type: string
+        type: array
+      players:
+        items:
+          $ref: '#/definitions/dto.PublicPlayer'
+        type: array
+      team_score:
+        type: string
+      teams:
+        items:
+          $ref: '#/definitions/dto.PublicTeam'
+        type: array
+    type: object
+  dto.PublicTeam:
+    properties:
+      name:
+        type: string
+      players:
+        items:
+          type: string
+        type: array
+      score:
+        type: string
+      winner:
+        type: boolean
+    type: object
   dto.Recap:
     properties:
       from:
@@ -293,6 +344,20 @@ definitions:
         items:
           type: string
         type: array
+    type: object
+  dto.RoundShareStatus:
+    properties:
+      active:
+        type: boolean
+      created_at:
+        type: string
+    type: object
+  dto.RoundShareToken:
+    properties:
+      created_at:
+        type: string
+      token:
+        type: string
     type: object
   dto.SendCodeReq:
     properties:
@@ -481,6 +546,14 @@ definitions:
         $ref: '#/definitions/dto.Player'
       message: {}
     type: object
+  ginutils.Ret-dto_PublicRound:
+    properties:
+      code:
+        type: integer
+      data:
+        $ref: '#/definitions/dto.PublicRound'
+      message: {}
+    type: object
   ginutils.Ret-dto_Recap:
     properties:
       code:
@@ -495,6 +568,22 @@ definitions:
         type: integer
       data:
         $ref: '#/definitions/dto.Round'
+      message: {}
+    type: object
+  ginutils.Ret-dto_RoundShareStatus:
+    properties:
+      code:
+        type: integer
+      data:
+        $ref: '#/definitions/dto.RoundShareStatus'
+      message: {}
+    type: object
+  ginutils.Ret-dto_RoundShareToken:
+    properties:
+      code:
+        type: integer
+      data:
+        $ref: '#/definitions/dto.RoundShareToken'
       message: {}
     type: object
   ginutils.Ret-dto_Snapshot:
@@ -1090,6 +1179,79 @@ paths:
       summary: 恢复已删除对局
       tags:
       - Round
+  /v1/groups/{group}/rounds/{id}/share:
+    delete:
+      parameters:
+      - description: 小组 ID
+        in: path
+        name: group
+        required: true
+        type: string
+      - description: 对局 ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/ginutils.Ret-any'
+      security:
+      - SessionCookie: []
+      summary: 撤销对局分享链接
+      tags:
+      - Round Share
+    get:
+      parameters:
+      - description: 小组 ID
+        in: path
+        name: group
+        required: true
+        type: string
+      - description: 对局 ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/ginutils.Ret-dto_RoundShareStatus'
+      security:
+      - SessionCookie: []
+      summary: 查询对局分享状态
+      tags:
+      - Round Share
+    post:
+      parameters:
+      - description: 小组 ID
+        in: path
+        name: group
+        required: true
+        type: string
+      - description: 对局 ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/ginutils.Ret-dto_RoundShareToken'
+      security:
+      - SessionCookie: []
+      summary: 生成或轮换对局分享链接
+      tags:
+      - Round Share
   /v1/groups/{group}/rounds/recap:
     get:
       parameters:
@@ -1208,6 +1370,47 @@ paths:
       summary: 标记通知已读
       tags:
       - Notification
+  /v1/shared-rounds:
+    get:
+      parameters:
+      - description: 分享令牌
+        in: header
+        name: X-Round-Share
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/ginutils.Ret-dto_PublicRound'
+      summary: 查看公开分享的对局
+      tags:
+      - Round Share
+  /v1/shared-rounds/photos/{photo}:
+    get:
+      parameters:
+      - description: 分享令牌
+        in: header
+        name: X-Round-Share
+        required: true
+        type: string
+      - description: 照片 ID
+        in: path
+        name: photo
+        required: true
+        type: string
+      produces:
+      - image/jpeg
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: file
+      summary: 查看公开分享的对局照片
+      tags:
+      - Round Share
   /v1/status:
     get:
       description: 返回服务名、构建版本与产品阶段

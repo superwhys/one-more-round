@@ -26,7 +26,113 @@ func RoundRouter(roundApp *services.RoundApp) roundRouterFn {
 		router.POST("/rounds", saveRoundHandler(roundApp))
 		router.PUT("/rounds/:id", saveRoundHandler(roundApp))
 		router.POST("/rounds/:id/restore", restoreRoundHandler(roundApp))
+		router.GET("/rounds/:id/share", roundShareStatusHandler(roundApp))
+		router.POST("/rounds/:id/share", createRoundShareHandler(roundApp))
+		router.DELETE("/rounds/:id/share", revokeRoundShareHandler(roundApp))
 		router.DELETE("/rounds/:id", deleteRoundHandler(roundApp))
+	}
+}
+
+// PublicRoundRouter registers bearer-link endpoints without session middleware.
+func PublicRoundRouter(roundApp *services.RoundApp) roundRouterFn {
+	return func(router gin.IRouter) {
+		router.GET("/shared-rounds", publicRoundHandler(roundApp))
+		router.GET("/shared-rounds/photos/:photo", publicRoundPhotoHandler(roundApp))
+	}
+}
+
+// roundShareStatusHandler 查询对局分享状态
+// @Summary 查询对局分享状态
+// @Tags Round Share
+// @Produce json
+// @Security SessionCookie
+// @Param group path string true "小组 ID"
+// @Param id path string true "对局 ID"
+// @Success 200 {object} ginutils.Ret[dto.RoundShareStatus]
+// @Router /v1/groups/{group}/rounds/{id}/share [get]
+func roundShareStatusHandler(roundApp *services.RoundApp) gin.HandlerFunc {
+	return func(ctx *gin.Context) {
+		status, err := roundApp.ShareStatus(ctx.Request.Context(), ctx.Param("group"), common.UserID(ctx), ctx.Param("id"))
+		if common.HandleRouterError(ctx, err, "get round share status failed", errcode.ErrRoundShareRead) {
+			return
+		}
+		ctx.JSON(http.StatusOK, dto.ResponseWithData(status))
+	}
+}
+
+// createRoundShareHandler 生成或轮换对局分享链接
+// @Summary 生成或轮换对局分享链接
+// @Tags Round Share
+// @Produce json
+// @Security SessionCookie
+// @Param group path string true "小组 ID"
+// @Param id path string true "对局 ID"
+// @Success 200 {object} ginutils.Ret[dto.RoundShareToken]
+// @Router /v1/groups/{group}/rounds/{id}/share [post]
+func createRoundShareHandler(roundApp *services.RoundApp) gin.HandlerFunc {
+	return func(ctx *gin.Context) {
+		share, err := roundApp.CreateShare(ctx.Request.Context(), ctx.Param("group"), common.UserID(ctx), ctx.Param("id"))
+		if common.HandleRouterError(ctx, err, "create round share failed", errcode.ErrRoundShare) {
+			return
+		}
+		ctx.JSON(http.StatusOK, dto.ResponseWithData(share))
+	}
+}
+
+// revokeRoundShareHandler 撤销对局分享链接
+// @Summary 撤销对局分享链接
+// @Tags Round Share
+// @Produce json
+// @Security SessionCookie
+// @Param group path string true "小组 ID"
+// @Param id path string true "对局 ID"
+// @Success 200 {object} ginutils.Ret[any]
+// @Router /v1/groups/{group}/rounds/{id}/share [delete]
+func revokeRoundShareHandler(roundApp *services.RoundApp) gin.HandlerFunc {
+	return func(ctx *gin.Context) {
+		if err := roundApp.RevokeShare(ctx.Request.Context(), ctx.Param("group"), common.UserID(ctx), ctx.Param("id")); common.HandleRouterError(ctx, err, "revoke round share failed", errcode.ErrRoundShare) {
+			return
+		}
+		ctx.JSON(http.StatusOK, dto.ResponseSuccess())
+	}
+}
+
+// publicRoundHandler 查看公开分享的对局
+// @Summary 查看公开分享的对局
+// @Tags Round Share
+// @Produce json
+// @Param X-Round-Share header string true "分享令牌"
+// @Success 200 {object} ginutils.Ret[dto.PublicRound]
+// @Router /v1/shared-rounds [get]
+func publicRoundHandler(roundApp *services.RoundApp) gin.HandlerFunc {
+	return func(ctx *gin.Context) {
+		round, err := roundApp.PublicRound(ctx.Request.Context(), ctx.GetHeader("X-Round-Share"))
+		if common.HandleRouterError(ctx, err, "read public round failed", errcode.ErrRoundShareRead) {
+			return
+		}
+		ctx.Header("Cache-Control", "private, no-store")
+		ctx.JSON(http.StatusOK, dto.ResponseWithData(round))
+	}
+}
+
+// publicRoundPhotoHandler 查看公开分享的对局照片
+// @Summary 查看公开分享的对局照片
+// @Tags Round Share
+// @Produce image/jpeg
+// @Param X-Round-Share header string true "分享令牌"
+// @Param photo path string true "照片 ID"
+// @Success 200 {file} file
+// @Router /v1/shared-rounds/photos/{photo} [get]
+func publicRoundPhotoHandler(roundApp *services.RoundApp) gin.HandlerFunc {
+	return func(ctx *gin.Context) {
+		content, err := roundApp.PublicPhoto(ctx.Request.Context(), ctx.GetHeader("X-Round-Share"), ctx.Param("photo"))
+		if common.HandleRouterError(ctx, err, "read public round photo failed", errcode.ErrPhotoRead) {
+			return
+		}
+		defer content.Body.Close()
+		ctx.Header("Cache-Control", "private, no-store")
+		ctx.Header("X-Content-Type-Options", "nosniff")
+		ctx.DataFromReader(http.StatusOK, content.Size, "image/jpeg", content.Body, nil)
 	}
 }
 

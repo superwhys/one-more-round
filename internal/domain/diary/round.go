@@ -32,6 +32,17 @@ type Round struct {
 	Version                                  int
 }
 
+// Share is the revocable public access grant for one round. Only the digest of
+// its bearer token is persisted.
+type Share struct {
+	RoundID, GroupID, TokenHash, CreatedBy string
+	CreatedAt                              time.Time
+	RevokedAt                              *time.Time
+}
+
+// Active reports whether the public link can still be used.
+func (s Share) Active() bool { return s.RevokedAt == nil }
+
 func ValidScore(s *string) bool { return s == nil || scorePattern.MatchString(*s) }
 func (r Round) Validate() error {
 	if _, err := time.Parse("2006-01-02", r.Date); err != nil {

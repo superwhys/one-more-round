@@ -6,6 +6,7 @@ import (
 
 	"github.com/superwhys/one-more-round/internal/converter"
 	"github.com/superwhys/one-more-round/internal/domain/diary"
+	"github.com/superwhys/one-more-round/internal/errcode"
 	"github.com/superwhys/one-more-round/internal/infra/mysql/models"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
@@ -78,9 +79,55 @@ func (r *roundRepository) Save(ctx context.Context, groupID string, round *diary
 
 // Delete removes the round of the group.
 func (r *roundRepository) Delete(ctx context.Context, groupID, id string) error {
-	q := queryOf(r.db).Round
+	queries := queryOf(r.db)
+	if _, err := queries.RoundShare.WithContext(ctx).Where(queries.RoundShare.GroupID.Eq(groupID), queries.RoundShare.RoundID.Eq(id)).Delete(); err != nil {
+		return mapErr(err)
+	}
+	q := queries.Round
 	_, err := q.WithContext(ctx).Where(q.GroupID.Eq(groupID), q.ID.Eq(id)).Delete()
 	return mapErr(err)
+}
+
+// SaveShare creates or rotates the single public link of a round.
+func (r *roundRepository) SaveShare(ctx context.Context, share *diary.Share) error {
+	q := queryOf(r.db).RoundShare
+	row := &models.RoundShare{RoundID: share.RoundID, GroupID: share.GroupID, TokenHash: share.TokenHash, CreatedBy: share.CreatedBy, CreatedAt: share.CreatedAt, RevokedAt: share.RevokedAt}
+	return mapErr(q.WithContext(ctx).Clauses(clause.OnConflict{DoUpdates: clause.AssignmentColumns([]string{
+		string(q.GroupID.ColumnName()), string(q.TokenHash.ColumnName()), string(q.CreatedBy.ColumnName()), string(q.CreatedAt.ColumnName()), string(q.RevokedAt.ColumnName()),
+	})}).Create(row))
+}
+
+// GetShare returns the link state of a round.
+func (r *roundRepository) GetShare(ctx context.Context, groupID, roundID string) (*diary.Share, error) {
+	q := queryOf(r.db).RoundShare
+	m, err := q.WithContext(ctx).Where(q.GroupID.Eq(groupID), q.RoundID.Eq(roundID)).Take()
+	if err != nil {
+		return nil, mapErr(err)
+	}
+	return &diary.Share{RoundID: m.RoundID, GroupID: m.GroupID, TokenHash: m.TokenHash, CreatedBy: m.CreatedBy, CreatedAt: m.CreatedAt, RevokedAt: m.RevokedAt}, nil
+}
+
+// ResolveShare returns the active link identified by a token digest.
+func (r *roundRepository) ResolveShare(ctx context.Context, tokenHash string) (*diary.Share, error) {
+	q := queryOf(r.db).RoundShare
+	m, err := q.WithContext(ctx).Where(q.TokenHash.Eq(tokenHash), q.RevokedAt.IsNull()).Take()
+	if err != nil {
+		return nil, mapErr(err)
+	}
+	return &diary.Share{RoundID: m.RoundID, GroupID: m.GroupID, TokenHash: m.TokenHash, CreatedBy: m.CreatedBy, CreatedAt: m.CreatedAt}, nil
+}
+
+// RevokeShare disables the current public link of a round.
+func (r *roundRepository) RevokeShare(ctx context.Context, groupID, roundID string, at time.Time) error {
+	q := queryOf(r.db).RoundShare
+	result, err := q.WithContext(ctx).Where(q.GroupID.Eq(groupID), q.RoundID.Eq(roundID), q.RevokedAt.IsNull()).Update(q.RevokedAt, at)
+	if err != nil {
+		return mapErr(err)
+	}
+	if result.RowsAffected == 0 {
+		return errcode.ErrNotFound
+	}
+	return nil
 }
 
 type idempotencyRepository struct {

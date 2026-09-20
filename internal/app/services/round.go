@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"io/fs"
 	"slices"
 	"time"
 
@@ -11,6 +12,7 @@ import (
 	"github.com/superwhys/one-more-round/internal/app/ports"
 	"github.com/superwhys/one-more-round/internal/converter"
 	"github.com/superwhys/one-more-round/internal/domain/diary"
+	"github.com/superwhys/one-more-round/internal/domain/group"
 	"github.com/superwhys/one-more-round/internal/errcode"
 	"github.com/superwhys/one-more-round/internal/pkg/secure"
 )
@@ -18,12 +20,153 @@ import (
 // RoundApp handles the recorded rounds of a group.
 type RoundApp struct {
 	repos     ports.Repositories
+	files     ports.PhotoFiles
 	converter *converter.Converter
 }
 
 // NewRoundApp builds the round application service.
 func NewRoundApp(ctx *AppContext) *RoundApp {
-	return &RoundApp{repos: ctx.Repos, converter: ctx.Converter}
+	return &RoundApp{repos: ctx.Repos, files: ctx.Photos, converter: ctx.Converter}
+}
+
+// ShareStatus returns whether the caller-managed round has an active link.
+func (a *RoundApp) ShareStatus(ctx context.Context, groupID, userID, roundID string) (dto.RoundShareStatus, error) {
+	var status dto.RoundShareStatus
+	err := a.repos.WithTransaction(ctx, func(repos ports.Repositories) error {
+		if _, err := requireShareManager(ctx, repos, groupID, userID, roundID); err != nil {
+			return err
+		}
+		share, err := repos.Round().GetShare(ctx, groupID, roundID)
+		if errors.Is(err, errcode.ErrNotFound) {
+			return nil
+		}
+		if err != nil {
+			return err
+		}
+		status.Active, status.CreatedAt = share.Active(), share.CreatedAt
+		return nil
+	})
+	return status, err
+}
+
+// CreateShare creates or rotates a round's public bearer link.
+func (a *RoundApp) CreateShare(ctx context.Context, groupID, userID, roundID string) (dto.RoundShareToken, error) {
+	token := secure.NewID()
+	created := time.Now().UTC()
+	err := a.repos.WithTransaction(ctx, func(repos ports.Repositories) error {
+		if _, err := requireShareManager(ctx, repos, groupID, userID, roundID); err != nil {
+			return err
+		}
+		return repos.Round().SaveShare(ctx, &diary.Share{RoundID: roundID, GroupID: groupID, TokenHash: secure.Hash(token), CreatedBy: userID, CreatedAt: created})
+	})
+	if err != nil {
+		return dto.RoundShareToken{}, err
+	}
+	return dto.RoundShareToken{Token: token, CreatedAt: created}, nil
+}
+
+// RevokeShare immediately disables a round's current public link.
+func (a *RoundApp) RevokeShare(ctx context.Context, groupID, userID, roundID string) error {
+	return a.repos.WithTransaction(ctx, func(repos ports.Repositories) error {
+		if _, err := requireShareManager(ctx, repos, groupID, userID, roundID); err != nil {
+			return err
+		}
+		return repos.Round().RevokeShare(ctx, groupID, roundID, time.Now().UTC())
+	})
+}
+
+// PublicRound resolves an active bearer token to a deliberately sanitized view.
+func (a *RoundApp) PublicRound(ctx context.Context, token string) (dto.PublicRound, error) {
+	if len(token) != 64 {
+		return dto.PublicRound{}, errcode.ErrNotFound
+	}
+	var result dto.PublicRound
+	err := a.repos.WithTransaction(ctx, func(repos ports.Repositories) error {
+		share, err := repos.Round().ResolveShare(ctx, secure.Hash(token))
+		if err != nil {
+			return errcode.ErrNotFound
+		}
+		round, err := findRound(ctx, repos, share.GroupID, share.RoundID)
+		if err != nil {
+			return errcode.ErrNotFound
+		}
+		snapshot, err := repos.Group().Snapshot(ctx, share.GroupID)
+		if err != nil {
+			return err
+		}
+		result = publicRoundDTO(round, snapshot)
+		return nil
+	})
+	return result, err
+}
+
+// PublicPhoto opens a photo only while the share is active and the photo still
+// belongs to the shared round.
+func (a *RoundApp) PublicPhoto(ctx context.Context, token, photoID string) (*ports.PhotoContent, error) {
+	shared, err := a.PublicRound(ctx, token)
+	if err != nil || !slices.Contains(shared.Photos, photoID) {
+		return nil, errcode.ErrNotFound
+	}
+	content, err := a.files.Read(ctx, photoID, false)
+	if errors.Is(err, fs.ErrNotExist) {
+		return nil, errcode.ErrNotFound
+	}
+	return content, err
+}
+
+func requireShareManager(ctx context.Context, repos ports.Repositories, groupID, userID, roundID string) (*diary.Round, error) {
+	access, err := groupService(repos).RequireMember(ctx, groupID, userID)
+	if err != nil {
+		return nil, err
+	}
+	round, err := findRound(ctx, repos, groupID, roundID)
+	if err != nil {
+		return nil, err
+	}
+	if round.Author != userID && !access.IsOwner(userID) {
+		return nil, errcode.ErrForbidden
+	}
+	return round, nil
+}
+
+func findRound(ctx context.Context, repos ports.Repositories, groupID, roundID string) (*diary.Round, error) {
+	rounds, err := repos.Round().ListByGroup(ctx, groupID)
+	if err != nil {
+		return nil, err
+	}
+	for _, round := range rounds {
+		if round.ID == roundID {
+			return round, nil
+		}
+	}
+	return nil, errcode.ErrNotFound
+}
+
+func publicRoundDTO(round *diary.Round, snapshot *group.Snapshot) dto.PublicRound {
+	playerNames := make(map[string]string, len(snapshot.Players))
+	for _, player := range snapshot.Players {
+		playerNames[player.ID] = player.Name
+	}
+	gameName := "桌游"
+	for _, game := range snapshot.Games {
+		if game.ID == round.GameID {
+			gameName = game.Name
+			break
+		}
+	}
+	players := make([]dto.PublicPlayer, 0, len(round.Players))
+	for _, id := range round.Players {
+		players = append(players, dto.PublicPlayer{Name: playerNames[id], Score: round.Scores[id], Winner: round.Won(id)})
+	}
+	teams := make([]dto.PublicTeam, 0, len(round.Teams))
+	for _, team := range round.Teams {
+		names := make([]string, 0, len(team.Players))
+		for _, id := range team.Players {
+			names = append(names, playerNames[id])
+		}
+		teams = append(teams, dto.PublicTeam{Name: team.Name, Players: names, Score: team.Score, Winner: team.Winner})
+	}
+	return dto.PublicRound{GroupName: snapshot.Group.Name, GameName: gameName, Date: round.Date, Mode: round.Mode, Outcome: round.Outcome, Players: players, Teams: teams, TeamScore: round.TeamScore, Memory: round.Memory, Photos: round.Photos}
 }
 
 // List returns the filtered timeline of the group with its statistics.
@@ -312,6 +455,15 @@ func (a *RoundApp) Delete(ctx context.Context, userID string, req *dto.DeleteRou
 				return errcode.ErrRoundDeleteStale
 			}
 			now := time.Now().UTC()
+			share, shareErr := repos.Round().GetShare(ctx, req.GroupID, req.RoundID)
+			if shareErr != nil && !errors.Is(shareErr, errcode.ErrNotFound) {
+				return shareErr
+			}
+			if shareErr == nil && share.Active() {
+				if e = repos.Round().RevokeShare(ctx, req.GroupID, req.RoundID, now); e != nil {
+					return e
+				}
+			}
 			r.DeletedAt = &now
 			r.Version++
 			r.UpdatedBy, r.UpdatedAt = userID, now

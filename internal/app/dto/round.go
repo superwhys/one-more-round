@@ -98,6 +98,48 @@ type RestoreRoundReq struct {
 	Version int    `json:"version"`
 }
 
+// RoundShareStatus describes whether a round currently has a usable public link.
+type RoundShareStatus struct {
+	Active    bool      `json:"active"`
+	CreatedAt time.Time `json:"created_at,omitzero"`
+}
+
+// RoundShareToken is returned only when a new public link is generated.
+type RoundShareToken struct {
+	Token     string    `json:"token"`
+	CreatedAt time.Time `json:"created_at"`
+}
+
+// PublicPlayer is the nickname and result of one shared-round participant.
+type PublicPlayer struct {
+	Name   string  `json:"name"`
+	Score  *string `json:"score"`
+	Winner bool    `json:"winner"`
+}
+
+// PublicTeam is a denormalized team that contains no internal player IDs.
+type PublicTeam struct {
+	Name    string   `json:"name"`
+	Players []string `json:"players"`
+	Score   *string  `json:"score"`
+	Winner  bool     `json:"winner"`
+}
+
+// PublicRound is the deliberately limited response available to a bearer of a
+// share link. It excludes account, author, location and audit data.
+type PublicRound struct {
+	GroupName string         `json:"group_name"`
+	GameName  string         `json:"game_name"`
+	Date      string         `json:"date"`
+	Mode      string         `json:"mode"`
+	Outcome   string         `json:"outcome"`
+	Players   []PublicPlayer `json:"players"`
+	Teams     []PublicTeam   `json:"teams"`
+	TeamScore *string        `json:"team_score"`
+	Memory    string         `json:"memory"`
+	Photos    []string       `json:"photos"`
+}
+
 // Stat is the record of one player in one game and mode.
 type Stat struct {
 	Game    string `json:"game"`

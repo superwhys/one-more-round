@@ -4,6 +4,7 @@ import { useSession } from '@/stores/session'
 export const router = createRouter({
   history: createWebHistory(),
   routes: [
+    { path: '/share', name: 'public-round', component: () => import('@/views/rounds/PublicRoundView.vue'), meta: { title: '分享的对局', anonymous: true } },
     { path: '/', component: () => import('@/views/JournalLayoutView.vue'), children: [
       { path: 'login', name: 'login', component: () => import('@/views/auth/LoginView.vue'), meta: { title: '登录', public: true } },
       { path: 'join', name: 'group-setup', component: () => import('@/views/groups/GroupSetupView.vue'), meta: { title: '创建或加入小组' } },
@@ -31,6 +32,7 @@ router.beforeEach(async to => {
   if (session.captureInvitation(to.path, to.hash)) {
     return { path: to.path, query: to.query, hash: '', replace: true }
   }
+  if (to.meta.anonymous) return
   await session.initialize()
   if (!session.user.value && !to.meta.public) return { name: 'login', replace: true }
   if (session.user.value && to.meta.public) return { name: session.joinToken.value || !session.selected.value ? 'group-setup' : 'review', replace: true }
