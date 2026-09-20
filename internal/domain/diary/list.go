@@ -11,7 +11,7 @@ import (
 // Filter narrows the rounds of a timeline. Empty fields mean "no restriction".
 type Filter struct {
 	From, To, Game, Player string
-	Query, Location        string
+	Query                  string
 	Mode, Outcome          string
 	HasPhotos              *bool
 	Offset, Limit          int
@@ -128,14 +128,14 @@ func matches(r *Round, f Filter) bool {
 	if f.Game != "" && r.GameID != f.Game || f.Player != "" && !contains(r.Players, f.Player) || f.From != "" && r.Date < f.From || f.To != "" && r.Date > f.To {
 		return false
 	}
-	if f.Mode != "" && r.Mode != f.Mode || f.Outcome != "" && r.Outcome != f.Outcome || f.Location != "" && r.Location != f.Location {
+	if f.Mode != "" && r.Mode != f.Mode || f.Outcome != "" && r.Outcome != f.Outcome {
 		return false
 	}
 	if f.HasPhotos != nil && (len(r.Photos) > 0) != *f.HasPhotos {
 		return false
 	}
 	query := strings.TrimSpace(strings.ToLower(f.Query))
-	return query == "" || strings.Contains(strings.ToLower(r.Memory), query) || strings.Contains(strings.ToLower(r.Location), query)
+	return query == "" || strings.Contains(strings.ToLower(r.Memory), query)
 }
 
 // Recap summarizes one month or year without depending on timeline pagination.

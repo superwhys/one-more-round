@@ -41,6 +41,7 @@ try {
   await page.getByRole('button', { name: '合作', exact: true }).click()
   await page.getByLabel('本局结果', { exact: false }).selectOption('unknown')
   await page.getByRole('button', { name: '＋ 添加回忆、照片和更多信息', exact: true }).click()
+  assert.equal(await page.getByLabel('地点', { exact: true }).count(), 0, 'round form must not include a location field')
   const picker = page.getByLabel('照片（最多 3 张，每张不超过 2 MB）', { exact: true })
   await picker.setInputFiles(file('too-large.png', tooLarge))
   await page.getByRole('alert').filter({ hasText: '不超过 2 MB' }).waitFor()
@@ -105,7 +106,7 @@ try {
   console.log('PASS: edit counts existing photos; remove and replace works; exact 2 MiB accepted')
 
   const api = `${fixture.origin}/api/v1/groups/${fixture.groupID}`
-  const enrichedResponse = await context.request.put(`${api}/rounds/${edited.data.id}`, { headers: headers(), data: { ...edited.data, memory: '第一次打通的桌边回忆', location: '老地方' } })
+  const enrichedResponse = await context.request.put(`${api}/rounds/${edited.data.id}`, { headers: headers(), data: { ...edited.data, memory: '第一次打通的桌边回忆' } })
   assert.equal(enrichedResponse.status(), 200)
   const enriched = await enrichedResponse.json()
   assert.equal(enriched.code, 0)
@@ -113,9 +114,9 @@ try {
   // Search, monthly recap and the share-card download use the real persisted round.
   await page.goto(`${fixture.origin}/`)
   await page.getByRole('button', { name: /筛选/ }).click()
-  await page.getByLabel('搜索回忆或地点', { exact: true }).fill('打通')
+  assert.equal(await page.getByLabel('地点', { exact: true }).count(), 0, 'round filters must not include a location selector')
+  await page.getByLabel('搜索回忆', { exact: true }).fill('打通')
   const filterSelect = label => page.locator('#round-filters label').filter({ hasText: label }).locator('select')
-  await filterSelect('地点').selectOption('老地方')
   await filterSelect('模式').selectOption('coop')
   await filterSelect('结果').selectOption('unknown')
   await filterSelect('照片').selectOption('true')

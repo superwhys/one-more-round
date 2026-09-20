@@ -23,7 +23,7 @@ type Round struct {
 	Scores                                   map[string]*string
 	Teams                                    []Team
 	TeamScore                                *string
-	Memory, Location                         string
+	Memory                                   string
 	Minutes                                  *int
 	Photos                                   []string
 	Author, UpdatedBy                        string

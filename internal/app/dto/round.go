@@ -25,7 +25,6 @@ type Round struct {
 	Teams     []Team             `json:"teams"`
 	TeamScore *string            `json:"team_score"`
 	Memory    string             `json:"memory"`
-	Location  string             `json:"location"`
 	Minutes   *int               `json:"minutes"`
 	Photos    []string           `json:"photos"`
 	Author    string             `json:"author"`
@@ -61,7 +60,6 @@ type ListRoundsReq struct {
 	Game      string `form:"game"`
 	Player    string `form:"player"`
 	Query     string `form:"q"`
-	Location  string `form:"location"`
 	Mode      string `form:"mode"`
 	Outcome   string `form:"outcome"`
 	HasPhotos *bool  `form:"has_photos"`
@@ -126,7 +124,7 @@ type PublicTeam struct {
 }
 
 // PublicRound is the deliberately limited response available to a bearer of a
-// share link. It excludes account, author, location and audit data.
+// share link. It excludes account, author and audit data.
 type PublicRound struct {
 	GroupName string         `json:"group_name"`
 	GameName  string         `json:"game_name"`

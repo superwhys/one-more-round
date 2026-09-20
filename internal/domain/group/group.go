@@ -49,15 +49,13 @@ type Claim struct {
 }
 
 // Snapshot is the read model of one group with its members, players, games and
-// claims. Locations is derived from the group's rounds and filled by the caller
-// that already read them.
+// claims.
 type Snapshot struct {
-	Locations []string
-	Group     *Group
-	Members   []*Member
-	Players   []*Player
-	Games     []*game.Game
-	Claims    []*Claim
+	Group   *Group
+	Members []*Member
+	Players []*Player
+	Games   []*game.Game
+	Claims  []*Claim
 }
 
 // IsOwner reports whether the account owns the group.

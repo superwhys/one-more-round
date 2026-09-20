@@ -10,6 +10,12 @@ import { photoURL } from '@/api/photo'
 const newID = () => crypto.randomUUID()
 const maxPhotos = 3
 const maxPhotoBytes = 2 * 1024 * 1024
+type RoundWithLegacyLocation = Round & { location?: unknown }
+function copyRound(round: Round): Round {
+  const copy = structuredClone(round) as RoundWithLegacyLocation
+  delete copy.location
+  return copy
+}
 const props = defineProps<{
   snapshot: Snapshot
   user: User
@@ -23,9 +29,7 @@ const props = defineProps<{
 }>()
 const emit = defineEmits<{ submit: [round: Round, key: string]; again: [] }>()
 const draftKey = `omr:draft:${props.user.id}:${props.snapshot.group.id}:${props.editing?.id ?? 'new'}`
-const form = ref<Round>(
-  structuredClone(props.editing ? (JSON.parse(JSON.stringify(props.editing)) as Round) : emptyRound()),
-)
+const form = ref<Round>(copyRound(props.editing ?? emptyRound()))
 form.value.game_id ||= props.initialGame ?? ''
 const key = ref<string>(crypto.randomUUID())
 const localError = ref('')
@@ -55,7 +59,7 @@ try {
   if (raw) {
     const d = JSON.parse(raw) as { form: Round; key: string }
     if (d.form && Array.isArray(d.form.players) && typeof d.key === 'string') {
-      form.value = d.form
+      form.value = copyRound(d.form)
       key.value = d.key
       restored.value = true
     }
@@ -146,9 +150,8 @@ async function add(kind: 'games' | 'players') {
   }
 }
 function normalized(): Round {
-  const r = JSON.parse(JSON.stringify(form.value)) as Round
+  const r = copyRound(form.value)
   r.memory = r.memory.trim()
-  r.location = r.location.trim()
   r.minutes = r.minutes === null || String(r.minutes) === '' ? null : Number(r.minutes)
   for (const p of Object.keys(r.scores)) r.scores[p] = r.scores[p]?.trim() || null
   r.team_score = r.team_score?.trim() || null
@@ -195,7 +198,7 @@ function again() {
 }
 function discardDraft() {
   localStorage.removeItem(draftKey)
-  form.value = props.editing ? (JSON.parse(JSON.stringify(props.editing)) as Round) : emptyRound()
+  form.value = copyRound(props.editing ?? emptyRound())
   form.value.game_id ||= props.initialGame ?? ''
   if (!props.editing && selfPlayer) form.value.players = [selfPlayer.id]
   gameSearch.value = props.snapshot.games.find(game => game.id === form.value.game_id)?.name ?? ''
@@ -433,11 +436,7 @@ function selectPhotos(event: Event) {
             ></label
           >
           <div class="j-inline">
-            <label class="d-field">时长（分钟）<input v-model="form.minutes" type="number" min="1" step="1" /></label
-            ><label class="d-field"
-              >地点<input v-model="form.location" list="recent-locations" /><datalist id="recent-locations">
-                <option v-for="place in snapshot.locations" :key="place" :value="place" /></datalist
-            ></label>
+            <label class="d-field">时长（分钟）<input v-model="form.minutes" type="number" min="1" step="1" /></label>
           </div>
           <label class="d-field"
             >照片（最多 {{ maxPhotos }} 张，每张不超过 2 MB）<input

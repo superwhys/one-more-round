@@ -61,12 +61,12 @@ func TestSearchRecapNotificationsAndExport(t *testing.T) {
 		t.Fatal(err)
 	}
 	minutes := 60
-	saved, err := s.rounds.Save(ctx, owner.ID, &dto.SaveRoundReq{GroupID: group.ID, IdempotencyKey: secure.NewID(), Round: dto.Round{GameID: game.ID, Date: "2026-09-20", Mode: "coop", Outcome: "win", Players: []string{player.ID}, Memory: "第一次打通", Location: "老地方", Minutes: &minutes}})
+	saved, err := s.rounds.Save(ctx, owner.ID, &dto.SaveRoundReq{GroupID: group.ID, IdempotencyKey: secure.NewID(), Round: dto.Round{GameID: game.ID, Date: "2026-09-20", Mode: "coop", Outcome: "win", Players: []string{player.ID}, Memory: "第一次打通", Minutes: &minutes}})
 	if err != nil {
 		t.Fatal(err)
 	}
 	hasPhotos := false
-	page, err := s.rounds.List(ctx, group.ID, owner.ID, &dto.ListRoundsReq{Query: "打通", Location: "老地方", Mode: "coop", Outcome: "win", HasPhotos: &hasPhotos, Limit: 30})
+	page, err := s.rounds.List(ctx, group.ID, owner.ID, &dto.ListRoundsReq{Query: "打通", Mode: "coop", Outcome: "win", HasPhotos: &hasPhotos, Limit: 30})
 	if err != nil || page.Total != 1 || page.Items[0].ID != saved.ID {
 		t.Fatalf("advanced search = %#v, %v", page, err)
 	}

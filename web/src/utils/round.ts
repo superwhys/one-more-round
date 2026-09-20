@@ -15,7 +15,6 @@ export function emptyRound(): Round {
     teams: [],
     team_score: null,
     memory: '',
-    location: '',
     minutes: null,
     photos: [],
     author: '',

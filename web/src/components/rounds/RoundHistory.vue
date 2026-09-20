@@ -25,7 +25,6 @@ const to = ref('')
 const game = ref('')
 const player = ref('')
 const q = ref('')
-const location = ref('')
 const mode = ref('')
 const outcome = ref('')
 const hasPhotos = ref('')
@@ -36,17 +35,7 @@ const dateGroups = computed(() =>
   })),
 )
 const hasFilter = computed(() =>
-  [
-    from.value,
-    to.value,
-    game.value,
-    player.value,
-    q.value,
-    location.value,
-    mode.value,
-    outcome.value,
-    hasPhotos.value,
-  ].some(Boolean),
+  [from.value, to.value, game.value, player.value, q.value, mode.value, outcome.value, hasPhotos.value].some(Boolean),
 )
 const playerName = (id: string) => props.snapshot.players.find(player => player.id === id)?.name ?? '玩家'
 const gameName = (id: string) => props.snapshot.games.find(game => game.id === id)?.name ?? '桌游'
@@ -57,7 +46,6 @@ function values(): RoundFilters {
     game: game.value,
     player: player.value,
     q: q.value,
-    location: location.value,
     mode: mode.value,
     outcome: outcome.value,
     has_photos: hasPhotos.value,
@@ -72,7 +60,6 @@ function clear() {
   game.value = ''
   player.value = ''
   q.value = ''
-  location.value = ''
   mode.value = ''
   outcome.value = ''
   hasPhotos.value = ''
@@ -102,9 +89,7 @@ function quick(range: 'month' | 'year') {
         </button>
       </div>
       <form v-if="filterOpen" id="round-filters" class="d-filters j-advanced-filters" @submit.prevent="apply">
-        <label class="j-filter-query"
-          >搜索回忆或地点<input v-model="q" type="search" placeholder="例如：第一次通关、老地方"
-        /></label>
+        <label class="j-filter-query">搜索回忆<input v-model="q" type="search" placeholder="例如：第一次通关" /></label>
         <label v-if="!fixedGame"
           >桌游<select v-model="game">
             <option value="">全部桌游</option>
@@ -115,12 +100,6 @@ function quick(range: 'month' | 'year') {
           >玩家<select v-model="player">
             <option value="">全部玩家</option>
             <option v-for="p in snapshot.players" :key="p.id" :value="p.id">{{ p.name }}</option>
-          </select></label
-        >
-        <label
-          >地点<select v-model="location">
-            <option value="">全部地点</option>
-            <option v-for="place in snapshot.locations" :key="place" :value="place">{{ place }}</option>
           </select></label
         >
         <label

@@ -14,7 +14,6 @@ export function useRoundHistory(scope: Partial<RoundFilters> = {}) {
     game: '',
     player: '',
     q: '',
-    location: '',
     mode: '',
     outcome: '',
     has_photos: '',

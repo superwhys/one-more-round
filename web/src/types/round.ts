@@ -4,7 +4,6 @@ export interface RoundFilters {
   game: string
   player: string
   q: string
-  location: string
   mode: string
   outcome: string
   has_photos: string

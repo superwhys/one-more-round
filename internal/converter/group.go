@@ -176,12 +176,11 @@ func (c *Converter) SnapshotDomainToDTO(s *group.Snapshot) dto.Snapshot {
 		return dto.Snapshot{}
 	}
 	return dto.Snapshot{
-		Locations: s.Locations,
-		Group:     c.GroupDomainToDTO(s.Group),
-		Members:   c.MemberDomainListToDTOList(s.Members),
-		Players:   c.PlayerDomainListToDTOList(s.Players),
-		Games:     c.GameDomainListToDTOList(s.Games),
-		Claims:    c.ClaimDomainListToDTOList(s.Claims),
+		Group:   c.GroupDomainToDTO(s.Group),
+		Members: c.MemberDomainListToDTOList(s.Members),
+		Players: c.PlayerDomainListToDTOList(s.Players),
+		Games:   c.GameDomainListToDTOList(s.Games),
+		Claims:  c.ClaimDomainListToDTOList(s.Claims),
 	}
 }
 

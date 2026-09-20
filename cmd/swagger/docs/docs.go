@@ -211,7 +211,7 @@ const docTemplate = `{
                         "SessionCookie": []
                     }
                 ],
-                "description": "返回小组成员、玩家、桌游、待确认关联与最近地点",
+                "description": "返回小组成员、玩家、桌游与待确认关联",
                 "produces": [
                     "application/json"
                 ],
@@ -650,14 +650,8 @@ const docTemplate = `{
                     },
                     {
                         "type": "string",
-                        "description": "搜索回忆或地点",
+                        "description": "搜索回忆",
                         "name": "q",
-                        "in": "query"
-                    },
-                    {
-                        "type": "string",
-                        "description": "地点",
-                        "name": "location",
                         "in": "query"
                     },
                     {
@@ -1767,9 +1761,6 @@ const docTemplate = `{
                 "id": {
                     "type": "string"
                 },
-                "location": {
-                    "type": "string"
-                },
                 "memory": {
                     "type": "string"
                 },
@@ -1882,12 +1873,6 @@ const docTemplate = `{
                 },
                 "group": {
                     "$ref": "#/definitions/dto.Group"
-                },
-                "locations": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
                 },
                 "members": {
                     "type": "array",

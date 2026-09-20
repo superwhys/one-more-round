@@ -306,8 +306,6 @@ definitions:
         type: string
       id:
         type: string
-      location:
-        type: string
       memory:
         type: string
       minutes:
@@ -382,10 +380,6 @@ definitions:
         type: array
       group:
         $ref: '#/definitions/dto.Group'
-      locations:
-        items:
-          type: string
-        type: array
       members:
         items:
           $ref: '#/definitions/dto.Member'
@@ -739,7 +733,7 @@ paths:
       - Group
   /v1/groups/{group}:
     get:
-      description: 返回小组成员、玩家、桌游、待确认关联与最近地点
+      description: 返回小组成员、玩家、桌游与待确认关联
       parameters:
       - description: 小组 ID
         in: path
@@ -1011,13 +1005,9 @@ paths:
         in: query
         name: player
         type: string
-      - description: 搜索回忆或地点
+      - description: 搜索回忆
         in: query
         name: q
-        type: string
-      - description: 地点
-        in: query
-        name: location
         type: string
       - description: individual/team/coop
         in: query

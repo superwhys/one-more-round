@@ -39,7 +39,7 @@ func TestRoundPublicShareLifecycleAndPrivacy(t *testing.T) {
 	}
 	photo := s.uploadPhoto(t, group.ID, owner.ID)
 	round, err := s.rounds.Save(ctx, owner.ID, &dto.SaveRoundReq{GroupID: group.ID, IdempotencyKey: secure.NewID(), Round: dto.Round{
-		GameID: game.ID, Date: "2026-09-20", Mode: "coop", Outcome: "win", Players: []string{friend.ID}, Memory: "最后一轮刚好凑齐", Location: "不应公开的地址", Photos: []string{photo},
+		GameID: game.ID, Date: "2026-09-20", Mode: "coop", Outcome: "win", Players: []string{friend.ID}, Memory: "最后一轮刚好凑齐", Photos: []string{photo},
 	}})
 	if err != nil {
 		t.Fatal(err)
@@ -67,7 +67,7 @@ func TestRoundPublicShareLifecycleAndPrivacy(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, private := range []string{owner.ID, owner.Email, friend.ID, "不应公开的地址", "author", "updated_by", "location"} {
+	for _, private := range []string{owner.ID, owner.Email, friend.ID, "author", "updated_by"} {
 		if strings.Contains(string(payload), private) {
 			t.Fatalf("public response leaked %q: %s", private, payload)
 		}

@@ -70,10 +70,10 @@ func TestTeamWin(t *testing.T) {
 func TestListAdvancedFilters(t *testing.T) {
 	hasPhotos := true
 	rounds := []*Round{
-		{ID: "one", GameID: "g", Date: "2026-09-01", Mode: "coop", Outcome: "win", Players: []string{"a"}, Memory: "第一次打通", Location: "老地方", Photos: []string{"p"}},
+		{ID: "one", GameID: "g", Date: "2026-09-01", Mode: "coop", Outcome: "win", Players: []string{"a"}, Memory: "第一次打通", Photos: []string{"p"}},
 		{ID: "two", GameID: "g", Date: "2026-09-02", Mode: "individual", Outcome: "draw", Players: []string{"a", "b"}, Memory: "势均力敌"},
 	}
-	page, err := List(rounds, Filter{Query: "打通", Location: "老地方", Mode: "coop", Outcome: "win", HasPhotos: &hasPhotos, Limit: 30})
+	page, err := List(rounds, Filter{Query: "打通", Mode: "coop", Outcome: "win", HasPhotos: &hasPhotos, Limit: 30})
 	if err != nil || page.Total != 1 || page.Items[0].ID != "one" {
 		t.Fatalf("advanced filter = %#v, %v", page, err)
 	}

@@ -38,12 +38,11 @@ type Invite struct {
 
 // Snapshot is the group with everything the member may see.
 type Snapshot struct {
-	Locations []string `json:"locations"`
-	Group     Group    `json:"group"`
-	Members   []Member `json:"members"`
-	Players   []Player `json:"players"`
-	Games     []Game   `json:"games"`
-	Claims    []Claim  `json:"claims"`
+	Group   Group    `json:"group"`
+	Members []Member `json:"members"`
+	Players []Player `json:"players"`
+	Games   []Game   `json:"games"`
+	Claims  []Claim  `json:"claims"`
 }
 
 // CreateGroupReq creates a group.

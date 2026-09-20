@@ -171,7 +171,7 @@ func publicRoundDTO(round *diary.Round, snapshot *group.Snapshot) dto.PublicRoun
 
 // List returns the filtered timeline of the group with its statistics.
 func (a *RoundApp) List(ctx context.Context, groupID, userID string, req *dto.ListRoundsReq) (dto.Page, error) {
-	filter := diary.Filter{From: req.From, To: req.To, Game: req.Game, Player: req.Player, Query: req.Query, Location: req.Location, Mode: req.Mode, Outcome: req.Outcome, HasPhotos: req.HasPhotos, Offset: req.Offset, Limit: req.Limit}
+	filter := diary.Filter{From: req.From, To: req.To, Game: req.Game, Player: req.Player, Query: req.Query, Mode: req.Mode, Outcome: req.Outcome, HasPhotos: req.HasPhotos, Offset: req.Offset, Limit: req.Limit}
 	if err := diary.ValidateFilter(filter); err != nil {
 		return dto.Page{}, err
 	}

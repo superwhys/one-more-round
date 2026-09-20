@@ -66,7 +66,7 @@ func (a *GroupApp) Create(ctx context.Context, userID string, req *dto.CreateGro
 }
 
 // Snapshot returns the group with the games and players ordered by recent
-// activity, the recent locations, and the claims the account may see.
+// activity and the claims the account may see.
 func (a *GroupApp) Snapshot(ctx context.Context, groupID, userID string) (dto.Snapshot, error) {
 	var snapshot *group.Snapshot
 	if err := a.repos.WithTransaction(ctx, func(repos ports.Repositories) error {
@@ -79,7 +79,6 @@ func (a *GroupApp) Snapshot(ctx context.Context, groupID, userID string) (dto.Sn
 			return e
 		}
 		recentGames, recentPlayers := map[string]int{}, map[string]int{}
-		current.Locations = []string{}
 		for _, r := range rounds {
 			if _, ok := recentGames[r.GameID]; !ok {
 				recentGames[r.GameID] = len(recentGames) + 1
@@ -88,9 +87,6 @@ func (a *GroupApp) Snapshot(ctx context.Context, groupID, userID string) (dto.Sn
 				if _, ok := recentPlayers[id]; !ok {
 					recentPlayers[id] = len(recentPlayers) + 1
 				}
-			}
-			if r.Location != "" && !slices.Contains(current.Locations, r.Location) && len(current.Locations) < 10 {
-				current.Locations = append(current.Locations, r.Location)
 			}
 		}
 		rank := func(seen map[string]int, id string) int {
@@ -300,7 +296,7 @@ func (a *GroupApp) Export(ctx context.Context, groupID, userID string) ([]byte, 
 		return nil, e
 	}
 	writer := csv.NewWriter(csvFile)
-	_ = writer.Write([]string{"id", "date", "game", "mode", "outcome", "players", "location", "minutes", "memory", "deleted_at"})
+	_ = writer.Write([]string{"id", "date", "game", "mode", "outcome", "players", "minutes", "memory", "deleted_at"})
 	gameNames, playerNames := map[string]string{}, map[string]string{}
 	for _, item := range snapshot.Games {
 		gameNames[item.ID] = item.Name
@@ -323,7 +319,7 @@ func (a *GroupApp) Export(ctx context.Context, groupID, userID string) ([]byte, 
 		if round.DeletedAt != nil {
 			deletedAt = round.DeletedAt.Format(time.RFC3339)
 		}
-		_ = writer.Write([]string{round.ID, round.Date, gameNames[round.GameID], round.Mode, round.Outcome, strings.Join(players, "、"), round.Location, minutes, round.Memory, deletedAt})
+		_ = writer.Write([]string{round.ID, round.Date, gameNames[round.GameID], round.Mode, round.Outcome, strings.Join(players, "、"), minutes, round.Memory, deletedAt})
 		for _, id := range round.Photos {
 			photoIDs[id] = true
 		}

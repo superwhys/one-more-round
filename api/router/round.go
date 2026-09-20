@@ -147,8 +147,7 @@ func publicRoundPhotoHandler(roundApp *services.RoundApp) gin.HandlerFunc {
 // @Param to query string false "结束日期"
 // @Param game query string false "桌游 ID"
 // @Param player query string false "玩家 ID"
-// @Param q query string false "搜索回忆或地点"
-// @Param location query string false "地点"
+// @Param q query string false "搜索回忆"
 // @Param mode query string false "individual/team/coop"
 // @Param outcome query string false "win/loss/draw/unknown"
 // @Param has_photos query bool false "是否有照片"
@@ -176,7 +175,7 @@ func listRoundsHandler(roundApp *services.RoundApp) gin.HandlerFunc {
 		req := &dto.ListRoundsReq{
 			From: ctx.Query("from"), To: ctx.Query("to"),
 			Game: ctx.Query("game"), Player: ctx.Query("player"),
-			Query: ctx.Query("q"), Location: ctx.Query("location"), Mode: ctx.Query("mode"), Outcome: ctx.Query("outcome"), HasPhotos: hasPhotos,
+			Query: ctx.Query("q"), Mode: ctx.Query("mode"), Outcome: ctx.Query("outcome"), HasPhotos: hasPhotos,
 			Offset: offset, Limit: limit,
 		}
 		page, err := roundApp.List(ctx.Request.Context(), ctx.Param("group"), common.UserID(ctx), req)

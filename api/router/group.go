@@ -145,7 +145,7 @@ func joinGroupHandler(groupApp *services.GroupApp) gin.HandlerFunc {
 
 // groupSnapshotHandler 获取小组详情
 // @Summary 获取小组详情
-// @Description 返回小组成员、玩家、桌游、待确认关联与最近地点
+// @Description 返回小组成员、玩家、桌游与待确认关联
 // @Tags Group
 // @Produce json
 // @Security SessionCookie

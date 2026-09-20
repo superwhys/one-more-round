@@ -16,7 +16,7 @@
 
 - GET/POST `/groups`：列出所属小组 / 以 `name`、`player_name` 创建小组，并在同一事务创建、关联组主的玩家档案。
 - POST `/join`：已登录账号凭 `token` 加入小组；重复加入幂等。未登录账号使用 `/auth/login` 的 `group_token` 完成注册/登录并加入。
-- GET `/groups/:group`：小组、成员、玩家、游戏、可见的关联申请和近期地点。游戏与玩家按近期参与顺序优先。
+- GET `/groups/:group`：小组、成员、玩家、游戏和可见的关联申请。游戏与玩家按近期参与顺序优先。
 - POST `/groups/:group/players`、`/games`：以 `name` 添加玩家或手动桌游。
 - POST `/groups/:group/manage`：`action`、`target`、`value`。`claim` 申请关联 `target` 指定的已有档案；`claim-new` 以 `value` 为昵称创建新档案并同时申请关联。其余操作包括 `rename`、`alias`、`remove`、`transfer`、`approve`、`reject`、`revoke`；关联均由组主确认，服务端拒绝重复申请和重复绑定。
 - GET/POST `/groups/:group/invites`：组主查看/创建邀请；7 天有效、可多人使用、可撤销，链接密钥只在创建响应中返回。链接仍为 `/join#令牌`，使用 fragment 避免进入 HTTP 访问日志。无效、过期和撤销返回不同中文提示，HTTP 400；数据库故障保留系统错误语义。
@@ -25,7 +25,7 @@
 
 ## 对局
 
-- GET `/groups/:group/rounds`：`from`、`to`（包含边界的 YYYY-MM-DD）、`game`、`player`、`q`（回忆或地点）、`location`、`mode`、`outcome`、`has_photos`；`offset` 默认 0，`limit` 默认 30、最多 100。返回当前页 `items`，全筛选范围的 `total/games/players/stats/activity`。列表和统计共用一次筛选。
+- GET `/groups/:group/rounds`：`from`、`to`（包含边界的 YYYY-MM-DD）、`game`、`player`、`q`（回忆）、`mode`、`outcome`、`has_photos`；`offset` 默认 0，`limit` 默认 30、最多 100。返回当前页 `items`，全筛选范围的 `total/games/players/stats/activity`。列表和统计共用一次筛选。
 - GET `/groups/:group/rounds/recap?period=YYYY-MM|YYYY`：返回整月或整年的局数、游戏数、玩家数、记录时长、最常游戏/玩家与最多 12 张照片，不受列表分页影响。
 - GET `/groups/:group/rounds/recycle-bin`、POST `/groups/:group/rounds/:id/restore`：查看和恢复 7 天内删除的对局；恢复请求携带当前 `version`。
 - GET/POST `/groups/:group/rounds[/:id]`：详情 / 创建。
@@ -33,7 +33,7 @@
 - 创建必须带 `Idempotency-Key`（16—128 字符）；按账号和小组隔离。同键相同内容返回已有记录；同键不同内容返回 409；已删除的提交不会重新创建。
 - 编辑携带读取时的 `version`；在事务中校验，成功递增。最近修改人和时间由服务端填写。
 
-对局字段：`game_id/date/mode/outcome/players/winners/scores/teams/team_score/memory/location/minutes/photos/version`；返回另含 `id/author/updated_by/updated_at`。`updated_at` 是带时区的 RFC3339 时间戳；对局日期仅为日期字符串。
+对局字段：`game_id/date/mode/outcome/players/winners/scores/teams/team_score/memory/minutes/photos/version`；返回另含 `id/author/updated_by/updated_at`。`updated_at` 是带时区的 RFC3339 时间戳；对局日期仅为日期字符串。
 
 | 模式 | 结果与分数 |
 | --- | --- |

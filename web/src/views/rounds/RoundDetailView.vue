@@ -131,9 +131,7 @@ async function revokeShare() {
           <img :src="photoURL(groupId, id)" alt="放大查看对局照片" />
         </button>
       </div>
-      <p v-if="current.location || current.minutes">
-        {{ current.location }} {{ current.minutes ? `· ${current.minutes} 分钟` : '' }}
-      </p>
+      <p v-if="current.minutes">{{ current.minutes }} 分钟</p>
       <p class="d-note">
         记录人：{{ memberName(current.author) }}<br />最近修改：{{ memberName(current.updated_by) }} ·
         {{ new Date(current.updated_at).toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' }) }}（北京时间）

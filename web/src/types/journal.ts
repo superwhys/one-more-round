@@ -23,7 +23,6 @@ export interface Member {
   email: string
 }
 export interface Snapshot {
-  locations: string[]
   group: Group
   members: Member[]
   players: Player[]
@@ -51,7 +50,6 @@ export interface Round {
   teams: Team[]
   team_score: string | null
   memory: string
-  location: string
   minutes: number | null
   photos: string[]
   author: string
