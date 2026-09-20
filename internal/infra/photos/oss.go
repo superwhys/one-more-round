@@ -96,9 +96,9 @@ func (s *OSS) Save(ctx context.Context, id string, r io.Reader) error {
 	}
 	for i, data := range images {
 		_, err = s.client.PutObject(ctx, &oss.PutObjectRequest{
-			Bucket: oss.Ptr(s.bucket), Key: oss.Ptr(s.prefix + photoName(id, i == 1)),
-			Body: bytes.NewReader(data), ContentType: oss.Ptr("image/jpeg"),
-			CacheControl: oss.Ptr("private, no-store"), Acl: oss.ObjectACLPrivate,
+			Bucket: new(s.bucket), Key: new(s.prefix + photoName(id, i == 1)),
+			Body: bytes.NewReader(data), ContentType: new("image/jpeg"),
+			CacheControl: new("private, no-store"), Acl: oss.ObjectACLPrivate,
 		})
 		if err != nil {
 			// The application tracks the ID before starting either upload, so
@@ -115,12 +115,12 @@ func (s *OSS) Read(ctx context.Context, id string, thumb bool) (*ports.PhotoCont
 	}
 	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	result, err := s.client.GetObject(ctx, &oss.GetObjectRequest{
-		Bucket: oss.Ptr(s.bucket), Key: oss.Ptr(s.prefix + photoName(id, thumb)),
+		Bucket: new(s.bucket), Key: new(s.prefix + photoName(id, thumb)),
 	})
 	if err != nil {
 		cancel()
-		var serviceErr *oss.ServiceError
-		if errors.As(err, &serviceErr) && serviceErr.Code == "NoSuchKey" {
+		serviceErr, isServiceError := errors.AsType[*oss.ServiceError](err)
+		if isServiceError && serviceErr.Code == "NoSuchKey" {
 			return nil, fs.ErrNotExist
 		}
 		return nil, ossError(err)
@@ -160,7 +160,7 @@ func (s *OSS) Remove(ctx context.Context, id string) error {
 	var result error
 	for _, thumb := range []bool{false, true} {
 		_, err := s.client.DeleteObject(ctx, &oss.DeleteObjectRequest{
-			Bucket: oss.Ptr(s.bucket), Key: oss.Ptr(s.prefix + photoName(id, thumb)),
+			Bucket: new(s.bucket), Key: new(s.prefix + photoName(id, thumb)),
 		})
 		if err != nil {
 			result = errors.Join(result, ossError(err))
@@ -174,8 +174,9 @@ func ossError(err error) error {
 	if errors.Is(err, context.Canceled) {
 		return context.Canceled
 	}
-	var serviceErr *oss.ServiceError
-	if errors.As(err, &serviceErr) {
+
+	serviceErr, isServiceError := errors.AsType[*oss.ServiceError](err)
+	if isServiceError {
 		return fmt.Errorf("%w (OSS code %s, request %s)", errcode.ErrPhotoStorage, serviceErr.Code, serviceErr.RequestID)
 	}
 	return errcode.ErrPhotoStorage

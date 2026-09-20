@@ -63,5 +63,3 @@
 响应统一为 `{code, data, message}`：成功业务码为 `0`；失败返回稳定业务码（`1004xx`/`1005xx`），同时用 HTTP 状态表达协议语义（401 未登录、403 无权限、404 不存在、405 方法不支持、409 冲突、429 限流、502 邮件失败、503 外部依赖不可用）。业务码与 HTTP 状态是两套语义，前端以业务码判断成败、以 HTTP 状态处理传输层失败。
 
 接口文档由 `swag init` 从 `api/` 的注解生成到 `cmd/swagger/docs`（随源码入库），开发环境挂在 `/swagger/`，`app.is_prod=true` 时返回 404。执行 `make swagger` 重新生成。
-
-`/metrics` 提供 `omr_operations_total{operation,result}` 和 `omr_operation_duration_seconds`，覆盖保存、图片上传、外部搜索。标签没有账号、回忆、照片内容或资源 ID。生产反向代理应限制监控路径的访问范围。

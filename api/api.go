@@ -58,7 +58,6 @@ func (api *API) SetupRouter() http.Handler {
 			middleware.RecoveryMiddleware(),
 			middleware.NoCacheMiddleware(),
 			middleware.OriginMiddleware(api.config.Origin),
-			observeOperations(),
 		),
 		ginutils.WithHandler(http.MethodGet, "/v1/status", statusHandler(api.version)),
 		// The authentication entry points are the only routes without a session.
