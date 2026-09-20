@@ -12,6 +12,7 @@ import (
 	"github.com/superwhys/one-more-round/internal/domain/game"
 	"github.com/superwhys/one-more-round/internal/domain/group"
 	"github.com/superwhys/one-more-round/internal/domain/identity"
+	"github.com/superwhys/one-more-round/internal/domain/notification"
 	"github.com/superwhys/one-more-round/internal/domain/photo"
 	"github.com/superwhys/one-more-round/internal/errcode"
 	"github.com/superwhys/one-more-round/internal/infra/mysql/query"
@@ -104,6 +105,11 @@ func (f *RepositoryFactory) Idempotency() diary.IIdempotencyRepository {
 // Photo returns the photo metadata repository.
 func (f *RepositoryFactory) Photo() photo.IPhotoRepository {
 	return &photoRepository{db: f.db, converter: f.converter}
+}
+
+// Notification returns the private account notification repository.
+func (f *RepositoryFactory) Notification() notification.IRepository {
+	return &notificationRepository{db: f.db, converter: f.converter}
 }
 
 // mapErr translates driver and ORM errors into the application error contract.

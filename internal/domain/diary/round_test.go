@@ -66,3 +66,30 @@ func TestTeamWin(t *testing.T) {
 		t.Fatal("team results not inherited")
 	}
 }
+
+func TestListAdvancedFilters(t *testing.T) {
+	hasPhotos := true
+	rounds := []*Round{
+		{ID: "one", GameID: "g", Date: "2026-09-01", Mode: "coop", Outcome: "win", Players: []string{"a"}, Memory: "第一次打通", Location: "老地方", Photos: []string{"p"}},
+		{ID: "two", GameID: "g", Date: "2026-09-02", Mode: "individual", Outcome: "draw", Players: []string{"a", "b"}, Memory: "势均力敌"},
+	}
+	page, err := List(rounds, Filter{Query: "打通", Location: "老地方", Mode: "coop", Outcome: "win", HasPhotos: &hasPhotos, Limit: 30})
+	if err != nil || page.Total != 1 || page.Items[0].ID != "one" {
+		t.Fatalf("advanced filter = %#v, %v", page, err)
+	}
+	if _, err = List(rounds, Filter{Mode: "mystery", Limit: 30}); err == nil {
+		t.Fatal("invalid mode accepted")
+	}
+}
+
+func TestBuildRecap(t *testing.T) {
+	minutes := 45
+	r := BuildRecap([]*Round{
+		{GameID: "g1", Date: "2026-09-01", Players: []string{"a", "b"}, Minutes: &minutes, Photos: []string{"p1"}},
+		{GameID: "g1", Date: "2026-09-20", Players: []string{"a"}, Photos: []string{"p2"}},
+		{GameID: "g2", Date: "2026-10-01", Players: []string{"b"}},
+	}, "2026-09-01", "2026-09-30")
+	if r.Rounds != 2 || r.Games != 1 || r.Players != 2 || r.Minutes != 45 || r.TopGame != "g1" || r.TopPlayer != "a" || len(r.Photos) != 2 {
+		t.Fatalf("unexpected recap: %#v", r)
+	}
+}

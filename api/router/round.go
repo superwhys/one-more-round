@@ -20,9 +20,12 @@ func (fn roundRouterFn) Init(router gin.IRouter) { fn(router) }
 func RoundRouter(roundApp *services.RoundApp) roundRouterFn {
 	return func(router gin.IRouter) {
 		router.GET("/rounds", listRoundsHandler(roundApp))
+		router.GET("/rounds/recap", recapHandler(roundApp))
+		router.GET("/rounds/recycle-bin", recycleBinHandler(roundApp))
 		router.GET("/rounds/:id", getRoundHandler(roundApp))
 		router.POST("/rounds", saveRoundHandler(roundApp))
 		router.PUT("/rounds/:id", saveRoundHandler(roundApp))
+		router.POST("/rounds/:id/restore", restoreRoundHandler(roundApp))
 		router.DELETE("/rounds/:id", deleteRoundHandler(roundApp))
 	}
 }
@@ -38,6 +41,11 @@ func RoundRouter(roundApp *services.RoundApp) roundRouterFn {
 // @Param to query string false "结束日期"
 // @Param game query string false "桌游 ID"
 // @Param player query string false "玩家 ID"
+// @Param q query string false "搜索回忆或地点"
+// @Param location query string false "地点"
+// @Param mode query string false "individual/team/coop"
+// @Param outcome query string false "win/loss/draw/unknown"
+// @Param has_photos query bool false "是否有照片"
 // @Param offset query int false "偏移量"
 // @Param limit query int false "每页条数，最大 100"
 // @Success 200 {object} ginutils.Ret[dto.Page]
@@ -50,9 +58,19 @@ func listRoundsHandler(roundApp *services.RoundApp) gin.HandlerFunc {
 			common.RespondError(ctx, errcode.ErrPageRange)
 			return
 		}
+		var hasPhotos *bool
+		if raw := ctx.Query("has_photos"); raw != "" {
+			value, err := strconv.ParseBool(raw)
+			if err != nil {
+				common.RespondError(ctx, errcode.ErrBadRequest)
+				return
+			}
+			hasPhotos = &value
+		}
 		req := &dto.ListRoundsReq{
 			From: ctx.Query("from"), To: ctx.Query("to"),
 			Game: ctx.Query("game"), Player: ctx.Query("player"),
+			Query: ctx.Query("q"), Location: ctx.Query("location"), Mode: ctx.Query("mode"), Outcome: ctx.Query("outcome"), HasPhotos: hasPhotos,
 			Offset: offset, Limit: limit,
 		}
 		page, err := roundApp.List(ctx.Request.Context(), ctx.Param("group"), common.UserID(ctx), req)
@@ -61,6 +79,64 @@ func listRoundsHandler(roundApp *services.RoundApp) gin.HandlerFunc {
 		}
 		ctx.JSON(http.StatusOK, dto.ResponseWithData(page))
 	}
+}
+
+// recapHandler 获取月度或年度回顾
+// @Summary 获取月度或年度回顾
+// @Tags Round
+// @Produce json
+// @Security SessionCookie
+// @Param group path string true "小组 ID"
+// @Param period query string true "YYYY-MM 或 YYYY"
+// @Success 200 {object} ginutils.Ret[dto.Recap]
+// @Router /v1/groups/{group}/rounds/recap [get]
+func recapHandler(roundApp *services.RoundApp) gin.HandlerFunc {
+	return func(ctx *gin.Context) {
+		result, err := roundApp.Recap(ctx.Request.Context(), ctx.Param("group"), common.UserID(ctx), ctx.Query("period"))
+		if common.HandleRouterError(ctx, err, "recap failed", errcode.ErrRoundList) {
+			return
+		}
+		ctx.JSON(http.StatusOK, dto.ResponseWithData(result))
+	}
+}
+
+// recycleBinHandler 获取七天内可恢复的对局
+// @Summary 获取回收站
+// @Tags Round
+// @Produce json
+// @Security SessionCookie
+// @Param group path string true "小组 ID"
+// @Success 200 {object} ginutils.Ret[[]dto.Round]
+// @Router /v1/groups/{group}/rounds/recycle-bin [get]
+func recycleBinHandler(roundApp *services.RoundApp) gin.HandlerFunc {
+	return func(ctx *gin.Context) {
+		items, err := roundApp.RecycleBin(ctx.Request.Context(), ctx.Param("group"), common.UserID(ctx))
+		if common.HandleRouterError(ctx, err, "recycle bin failed", errcode.ErrRoundList) {
+			return
+		}
+		ctx.JSON(http.StatusOK, dto.ResponseWithData(items))
+	}
+}
+
+// restoreRoundHandler 恢复已删除对局
+// @Summary 恢复已删除对局
+// @Tags Round
+// @Accept json
+// @Produce json
+// @Security SessionCookie
+// @Param group path string true "小组 ID"
+// @Param id path string true "对局 ID"
+// @Param request body dto.RestoreRoundReq true "恢复请求"
+// @Success 200 {object} ginutils.Ret[dto.Round]
+// @Router /v1/groups/{group}/rounds/{id}/restore [post]
+func restoreRoundHandler(roundApp *services.RoundApp) gin.HandlerFunc {
+	return ginutils.RequestHandler(func(ctx *gin.Context, req *dto.RestoreRoundReq) {
+		restored, err := roundApp.Restore(ctx.Request.Context(), common.UserID(ctx), req)
+		if common.HandleRouterError(ctx, err, "restore round failed", errcode.ErrRoundSave) {
+			return
+		}
+		ctx.JSON(http.StatusOK, dto.ResponseWithData(restored))
+	})
 }
 
 // getRoundHandler 获取对局详情
@@ -108,7 +184,7 @@ func saveRoundHandler(roundApp *services.RoundApp) gin.HandlerFunc {
 
 // deleteRoundHandler 删除对局
 // @Summary 删除对局
-// @Description 按版本号删除对局，版本不一致时提示刷新
+// @Description 按版本号移入七天回收站，版本不一致时提示刷新
 // @Tags Round
 // @Accept json
 // @Produce json

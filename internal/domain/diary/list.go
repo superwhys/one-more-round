@@ -2,6 +2,7 @@ package diary
 
 import (
 	"sort"
+	"strings"
 	"time"
 
 	"github.com/superwhys/one-more-round/internal/errcode"
@@ -10,6 +11,9 @@ import (
 // Filter narrows the rounds of a timeline. Empty fields mean "no restriction".
 type Filter struct {
 	From, To, Game, Player string
+	Query, Location        string
+	Mode, Outcome          string
+	HasPhotos              *bool
 	Offset, Limit          int
 }
 
@@ -55,6 +59,12 @@ func ValidateFilter(f Filter) error {
 	if f.Limit < 1 || f.Limit > 100 || f.Offset < 0 {
 		return errcode.ErrPageRange
 	}
+	if f.Mode != "" && f.Mode != "individual" && f.Mode != "team" && f.Mode != "coop" {
+		return errcode.ErrBadRequest
+	}
+	if f.Outcome != "" && f.Outcome != "win" && f.Outcome != "loss" && f.Outcome != "draw" && f.Outcome != "unknown" {
+		return errcode.ErrBadRequest
+	}
 	return nil
 }
 
@@ -70,7 +80,7 @@ func List(rounds []*Round, f Filter) (*Page, error) {
 	players := map[string]bool{}
 	stats := map[string]*Stat{}
 	for _, r := range rounds {
-		if f.Game != "" && r.GameID != f.Game || f.Player != "" && !contains(r.Players, f.Player) || f.From != "" && r.Date < f.From || f.To != "" && r.Date > f.To {
+		if !matches(r, f) {
 			continue
 		}
 		selected = append(selected, r)
@@ -112,6 +122,66 @@ func List(rounds []*Round, f Filter) (*Page, error) {
 		page.Items = selected[f.Offset:end]
 	}
 	return page, nil
+}
+
+func matches(r *Round, f Filter) bool {
+	if f.Game != "" && r.GameID != f.Game || f.Player != "" && !contains(r.Players, f.Player) || f.From != "" && r.Date < f.From || f.To != "" && r.Date > f.To {
+		return false
+	}
+	if f.Mode != "" && r.Mode != f.Mode || f.Outcome != "" && r.Outcome != f.Outcome || f.Location != "" && r.Location != f.Location {
+		return false
+	}
+	if f.HasPhotos != nil && (len(r.Photos) > 0) != *f.HasPhotos {
+		return false
+	}
+	query := strings.TrimSpace(strings.ToLower(f.Query))
+	return query == "" || strings.Contains(strings.ToLower(r.Memory), query) || strings.Contains(strings.ToLower(r.Location), query)
+}
+
+// Recap summarizes one month or year without depending on timeline pagination.
+type Recap struct {
+	From, To                string
+	Rounds, Games, Players  int
+	Minutes                 int
+	TopGame, TopPlayer      string
+	TopGameRounds, TopPlays int
+	Photos                  []string
+}
+
+// BuildRecap returns the lightweight highlights of the inclusive date range.
+func BuildRecap(rounds []*Round, from, to string) *Recap {
+	result := &Recap{From: from, To: to, Photos: []string{}}
+	games, players := map[string]int{}, map[string]int{}
+	for _, r := range rounds {
+		if r.Date < from || r.Date > to {
+			continue
+		}
+		result.Rounds++
+		games[r.GameID]++
+		for _, player := range r.Players {
+			players[player]++
+		}
+		if r.Minutes != nil {
+			result.Minutes += *r.Minutes
+		}
+		for _, photo := range r.Photos {
+			if len(result.Photos) < 12 {
+				result.Photos = append(result.Photos, photo)
+			}
+		}
+	}
+	result.Games, result.Players = len(games), len(players)
+	for id, count := range games {
+		if count > result.TopGameRounds || count == result.TopGameRounds && id < result.TopGame {
+			result.TopGame, result.TopGameRounds = id, count
+		}
+	}
+	for id, count := range players {
+		if count > result.TopPlays || count == result.TopPlays && id < result.TopPlayer {
+			result.TopPlayer, result.TopPlays = id, count
+		}
+	}
+	return result
 }
 
 // contains reports whether the slice holds the value.

@@ -224,6 +224,30 @@
 .journal-root .d-mobile-nav .router-link-exact-active { color: var(--d-accent); }
 .journal-root .d-modal .d-modal-actions { margin-top: 24px; }
 .journal-root .d-modal > p + .d-button { margin-top: 20px; }
+.j-advanced-filters { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.j-filter-query { grid-column: 1 / -1; }
+.j-filter-quick { display: flex; align-items: center; gap: 14px; }
+.j-notification-trigger { position: relative; display: inline-grid; place-items: center; width: 44px; height: 44px; flex: none; border-radius: 50%; color: #657052; }
+.j-notification-badge { position: absolute; top: 1px; right: -2px; min-width: 20px; height: 20px; padding: 0 5px; border: 2px solid var(--d-bg); border-radius: 10px; background: #b45f42; color: white; font-size: 10px; line-height: 16px; text-align: center; }
+.j-notification-row { display: grid; grid-template-columns: 10px minmax(0, 1fr); gap: 14px; width: 100%; padding: 18px 4px; border: 0; border-bottom: 1px solid var(--d-line); background: transparent; color: #59624f; text-align: left; }
+.j-notification-row > span:last-child { display: grid; gap: 5px; }
+.j-notification-row small, .j-notification-row time { color: #858c79; font-size: 12px; line-height: 1.6; }
+.j-notification-dot { width: 8px; height: 8px; margin-top: 6px; border-radius: 50%; background: transparent; }
+.j-notification-row.unread .j-notification-dot { background: var(--d-accent); }
+.j-notification-row.unread strong { color: #9b5136; }
+.j-recap-controls { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 22px; }
+.j-recap-period { display: grid; grid-template-columns: 112px 112px; align-items: end; gap: 10px; }
+.journal-root .j-recap-period-field { width: 112px; margin: 0; }
+.j-recap-highlight { margin-top: 24px; }
+.j-recap-lines { display: grid; gap: 0; margin: 14px 0 22px; }
+.j-recap-lines p { display: flex; justify-content: space-between; gap: 18px; padding: 14px 0; border-bottom: 1px solid var(--d-line); }
+.j-recap-lines span { color: #858c79; }
+.j-recap-photos { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin-top: 18px; }
+.j-recap-photos img { width: 100%; aspect-ratio: 4 / 3; border-radius: 9px; object-fit: cover; }
+.j-recycle-row { display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 18px 0; border-bottom: 1px solid var(--d-line); }
+.j-recycle-row > div { display: grid; gap: 5px; min-width: 0; }
+.j-recycle-row span { color: #858c79; font-size: 12px; overflow-wrap: anywhere; }
+.j-data-tools { margin-top: 24px; }
 
 @media (hover: hover) and (pointer: fine) {
   .journal-root :is(.d-field, .d-filters, .j-score, .d-form-context, .j-account) :is(input, select, textarea):hover:not(:disabled):not(:focus-visible) { border-color: var(--j-control-hover); }
@@ -256,6 +280,8 @@
   .journal-root :is(.d-field, .d-filters, .j-score, .d-form-context) :is(input, select, textarea), .journal-root .d-search input { font-size: 16px; }
   .journal-root .d-field input[type=file] { font-size: 12px; }
   .journal-root .d-filters { gap: 14px; padding: 14px; }
+  .journal-root .j-advanced-filters { grid-template-columns: minmax(0, 1fr); }
+  .j-filter-query { grid-column: auto; }
   .j-filter-actions { justify-content: space-between; }
   .j-score { gap: 10px; }
   .j-score > strong { flex-basis: 100%; }
@@ -268,6 +294,10 @@
   .journal-root .d-form-context { align-items: flex-start; flex-direction: column; gap: 10px; }
   .journal-root .d-form-context > label { width: 100%; justify-content: space-between; }
   .journal-root .d-form-context input { width: min(190px, 70%); }
+  .j-recap-controls, .j-recap-lines p, .j-recycle-row { align-items: stretch; flex-direction: column; }
+  .j-recap-period { grid-template-columns: repeat(2, minmax(0, 1fr)); width: 100%; }
+  .journal-root .j-recap-period-field { width: 100%; }
+  .j-recap-photos { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 @media (max-width: 360px) {
   .journal-root .d-filters { grid-template-columns: minmax(0, 1fr); }

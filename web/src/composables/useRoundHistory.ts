@@ -8,7 +8,7 @@ import type { RoundFilters } from '@/types/round'
 export function useRoundHistory(scope: Partial<RoundFilters> = {}) {
   const { groupId, handleAccessError } = useGroupContext()
   const page = ref<Page>({ items: [], total: 0, games: 0, players: 0, stats: [], activity: {} })
-  const filters = ref<RoundFilters>({ from: '', to: '', game: '', player: '', ...scope })
+  const filters = ref<RoundFilters>({ from: '', to: '', game: '', player: '', q: '', location: '', mode: '', outcome: '', has_photos: '', ...scope })
   const loading = ref(true)
   const error = ref('')
   let generation = 0

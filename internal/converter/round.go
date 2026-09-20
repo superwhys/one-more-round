@@ -54,7 +54,7 @@ func (c *Converter) RoundModelToDomain(m *models.Round) (*diary.Round, error) {
 	for _, t := range document.Teams {
 		teams = append(teams, diary.Team{ID: t.ID, Name: t.Name, Players: t.Players, Score: t.Score, Winner: t.Winner})
 	}
-	return &diary.Round{ID: document.ID, GroupID: m.GroupID, GameID: document.GameID, Date: document.Date, Mode: document.Mode, Outcome: document.Outcome, Players: document.Players, Winners: document.Winners, Scores: document.Scores, Teams: teams, TeamScore: document.TeamScore, Memory: document.Memory, Location: document.Location, Minutes: document.Minutes, Photos: document.Photos, Author: document.Author, UpdatedBy: document.UpdatedBy, UpdatedAt: document.UpdatedAt, Version: document.Version}, nil
+	return &diary.Round{ID: document.ID, GroupID: m.GroupID, GameID: document.GameID, Date: document.Date, Mode: document.Mode, Outcome: document.Outcome, Players: document.Players, Winners: document.Winners, Scores: document.Scores, Teams: teams, TeamScore: document.TeamScore, Memory: document.Memory, Location: document.Location, Minutes: document.Minutes, Photos: document.Photos, Author: document.Author, UpdatedBy: document.UpdatedBy, UpdatedAt: document.UpdatedAt, DeletedAt: m.DeletedAt, Version: document.Version}, nil
 }
 
 // RoundDomainToModel encodes the round aggregate into its stored row.
@@ -70,7 +70,7 @@ func (c *Converter) RoundDomainToModel(r *diary.Round) (*models.Round, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &models.Round{ID: r.ID, GroupID: r.GroupID, GameID: r.GameID, Played: r.Date, Version: r.Version, Body: body}, nil
+	return &models.Round{ID: r.ID, GroupID: r.GroupID, GameID: r.GameID, Played: r.Date, Version: r.Version, Body: body, DeletedAt: r.DeletedAt}, nil
 }
 
 // RoundDTOToDomain converts a submitted round body into the domain aggregate
@@ -83,7 +83,7 @@ func (c *Converter) RoundDTOToDomain(r *dto.Round, groupID string) *diary.Round 
 	for _, t := range r.Teams {
 		teams = append(teams, diary.Team{ID: t.ID, Name: t.Name, Players: t.Players, Score: t.Score, Winner: t.Winner})
 	}
-	return &diary.Round{ID: r.ID, GroupID: groupID, GameID: r.GameID, Date: r.Date, Mode: r.Mode, Outcome: r.Outcome, Players: r.Players, Winners: r.Winners, Scores: r.Scores, Teams: teams, TeamScore: r.TeamScore, Memory: r.Memory, Location: r.Location, Minutes: r.Minutes, Photos: r.Photos, Author: r.Author, UpdatedBy: r.UpdatedBy, UpdatedAt: r.UpdatedAt, Version: r.Version}
+	return &diary.Round{ID: r.ID, GroupID: groupID, GameID: r.GameID, Date: r.Date, Mode: r.Mode, Outcome: r.Outcome, Players: r.Players, Winners: r.Winners, Scores: r.Scores, Teams: teams, TeamScore: r.TeamScore, Memory: r.Memory, Location: r.Location, Minutes: r.Minutes, Photos: r.Photos, Author: r.Author, UpdatedBy: r.UpdatedBy, UpdatedAt: r.UpdatedAt, DeletedAt: r.DeletedAt, Version: r.Version}
 }
 
 // RoundDomainToDTO converts the round aggregate into the API DTO.
@@ -95,7 +95,12 @@ func (c *Converter) RoundDomainToDTO(r *diary.Round) dto.Round {
 	for _, t := range r.Teams {
 		teams = append(teams, dto.Team{ID: t.ID, Name: t.Name, Players: t.Players, Score: t.Score, Winner: t.Winner})
 	}
-	return dto.Round{ID: r.ID, GameID: r.GameID, Date: r.Date, Mode: r.Mode, Outcome: r.Outcome, Players: r.Players, Winners: r.Winners, Scores: r.Scores, Teams: teams, TeamScore: r.TeamScore, Memory: r.Memory, Location: r.Location, Minutes: r.Minutes, Photos: r.Photos, Author: r.Author, UpdatedBy: r.UpdatedBy, UpdatedAt: r.UpdatedAt, Version: r.Version}
+	return dto.Round{ID: r.ID, GameID: r.GameID, Date: r.Date, Mode: r.Mode, Outcome: r.Outcome, Players: r.Players, Winners: r.Winners, Scores: r.Scores, Teams: teams, TeamScore: r.TeamScore, Memory: r.Memory, Location: r.Location, Minutes: r.Minutes, Photos: r.Photos, Author: r.Author, UpdatedBy: r.UpdatedBy, UpdatedAt: r.UpdatedAt, DeletedAt: r.DeletedAt, Version: r.Version}
+}
+
+// RecapDomainToDTO converts period highlights into the API contract.
+func (c *Converter) RecapDomainToDTO(period string, r *diary.Recap) dto.Recap {
+	return dto.Recap{Period: period, From: r.From, To: r.To, Rounds: r.Rounds, Games: r.Games, Players: r.Players, Minutes: r.Minutes, TopGame: r.TopGame, TopGameRounds: r.TopGameRounds, TopPlayer: r.TopPlayer, TopPlays: r.TopPlays, Photos: r.Photos}
 }
 
 // RoundDomainListToDTOList converts round aggregates into API DTOs.

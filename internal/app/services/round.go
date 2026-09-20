@@ -28,7 +28,7 @@ func NewRoundApp(ctx *AppContext) *RoundApp {
 
 // List returns the filtered timeline of the group with its statistics.
 func (a *RoundApp) List(ctx context.Context, groupID, userID string, req *dto.ListRoundsReq) (dto.Page, error) {
-	filter := diary.Filter{From: req.From, To: req.To, Game: req.Game, Player: req.Player, Offset: req.Offset, Limit: req.Limit}
+	filter := diary.Filter{From: req.From, To: req.To, Game: req.Game, Player: req.Player, Query: req.Query, Location: req.Location, Mode: req.Mode, Outcome: req.Outcome, HasPhotos: req.HasPhotos, Offset: req.Offset, Limit: req.Limit}
 	if err := diary.ValidateFilter(filter); err != nil {
 		return dto.Page{}, err
 	}
@@ -48,6 +48,99 @@ func (a *RoundApp) List(ctx context.Context, groupID, userID string, req *dto.Li
 		return dto.Page{}, err
 	}
 	return a.converter.PageDomainToDTO(page), nil
+}
+
+// Recap returns full-period highlights independent of timeline pagination.
+func (a *RoundApp) Recap(ctx context.Context, groupID, userID, period string) (dto.Recap, error) {
+	from, to, err := recapRange(period)
+	if err != nil {
+		return dto.Recap{}, err
+	}
+	var rounds []*diary.Round
+	err = a.repos.WithTransaction(ctx, func(repos ports.Repositories) error {
+		if _, e := groupService(repos).RequireMember(ctx, groupID, userID); e != nil {
+			return e
+		}
+		var listErr error
+		rounds, listErr = repos.Round().ListByGroup(ctx, groupID)
+		return listErr
+	})
+	if err != nil {
+		return dto.Recap{}, err
+	}
+	return a.converter.RecapDomainToDTO(period, diary.BuildRecap(rounds, from, to)), nil
+}
+
+func recapRange(period string) (string, string, error) {
+	if len(period) == 4 {
+		start, err := time.Parse("2006", period)
+		if err != nil {
+			return "", "", errcode.ErrBadRequest.WithMessage("回顾年份无效")
+		}
+		return start.Format("2006-01-02"), start.AddDate(1, 0, -1).Format("2006-01-02"), nil
+	}
+	start, err := time.Parse("2006-01", period)
+	if err != nil {
+		return "", "", errcode.ErrBadRequest.WithMessage("回顾月份无效")
+	}
+	return start.Format("2006-01-02"), start.AddDate(0, 1, -1).Format("2006-01-02"), nil
+}
+
+// RecycleBin lists rounds deleted during the seven-day recovery window.
+func (a *RoundApp) RecycleBin(ctx context.Context, groupID, userID string) ([]dto.Round, error) {
+	var rounds []*diary.Round
+	err := a.repos.WithTransaction(ctx, func(repos ports.Repositories) error {
+		if _, e := groupService(repos).RequireMember(ctx, groupID, userID); e != nil {
+			return e
+		}
+		var e error
+		rounds, e = repos.Round().ListDeletedByGroup(ctx, groupID, time.Now().UTC().Add(-RoundRecycleRetention))
+		return e
+	})
+	if err != nil {
+		return nil, err
+	}
+	return a.converter.RoundDomainListToDTOList(rounds), nil
+}
+
+// Restore returns one recoverable round to the timeline.
+func (a *RoundApp) Restore(ctx context.Context, userID string, req *dto.RestoreRoundReq) (dto.Round, error) {
+	var restored *diary.Round
+	err := a.repos.WithTransaction(ctx, func(repos ports.Repositories) error {
+		access, e := groupService(repos).RequireMember(ctx, req.GroupID, userID)
+		if e != nil {
+			return e
+		}
+		rounds, e := repos.Round().ListDeletedByGroup(ctx, req.GroupID, time.Now().UTC().Add(-RoundRecycleRetention))
+		if e != nil {
+			return e
+		}
+		for _, round := range rounds {
+			if round.ID != req.RoundID {
+				continue
+			}
+			if round.Author != userID && !access.IsOwner(userID) {
+				return errcode.ErrForbidden
+			}
+			if round.Version != req.Version {
+				return errcode.ErrRoundStale
+			}
+			now := time.Now().UTC()
+			round.DeletedAt = nil
+			round.Version++
+			round.UpdatedBy, round.UpdatedAt = userID, now
+			if e = repos.Round().Save(ctx, req.GroupID, round); e != nil {
+				return e
+			}
+			restored = round
+			return nil
+		}
+		return errcode.ErrNotFound
+	})
+	if err != nil {
+		return dto.Round{}, err
+	}
+	return a.converter.RoundDomainToDTO(restored), nil
 }
 
 // Get returns one round of the group.
@@ -82,7 +175,7 @@ func (a *RoundApp) Save(ctx context.Context, userID string, req *dto.SaveRoundRe
 	input := req.Round
 	normalizeRound(&input)
 	input.ID = req.RoundID
-	input.Author, input.UpdatedBy, input.UpdatedAt = "", "", time.Time{}
+	input.Author, input.UpdatedBy, input.UpdatedAt, input.DeletedAt = "", "", time.Time{}, nil
 	if err := a.converter.RoundDTOToDomain(&input, groupID).Validate(); err != nil {
 		return dto.Round{}, errcode.ErrBadRequest.WithMessage(err.Error())
 	}
@@ -197,8 +290,7 @@ func (a *RoundApp) Save(ctx context.Context, userID string, req *dto.SaveRoundRe
 	return a.converter.RoundDomainToDTO(saved), nil
 }
 
-// Delete removes a round at the version the client last saw and releases its
-// photos.
+// Delete moves a round into the seven-day recycle bin.
 func (a *RoundApp) Delete(ctx context.Context, userID string, req *dto.DeleteRoundReq) error {
 	return a.repos.WithTransaction(ctx, func(repos ports.Repositories) error {
 		access, e := groupService(repos).RequireMember(ctx, req.GroupID, userID)
@@ -220,17 +312,10 @@ func (a *RoundApp) Delete(ctx context.Context, userID string, req *dto.DeleteRou
 				return errcode.ErrRoundDeleteStale
 			}
 			now := time.Now().UTC()
-			for _, id := range r.Photos {
-				p, e := repos.Photo().Get(ctx, req.GroupID, id)
-				if e != nil {
-					return e
-				}
-				p.Detach(now)
-				if e = repos.Photo().Save(ctx, req.GroupID, p); e != nil {
-					return e
-				}
-			}
-			return repos.Round().Delete(ctx, req.GroupID, req.RoundID)
+			r.DeletedAt = &now
+			r.Version++
+			r.UpdatedBy, r.UpdatedAt = userID, now
+			return repos.Round().Save(ctx, req.GroupID, r)
 		}
 		return errcode.ErrNotFound
 	})

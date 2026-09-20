@@ -14,7 +14,7 @@ import (
 // TestStatusResponseEnvelope checks that a success response carries business code
 // zero and the running build version.
 func TestStatusResponseEnvelope(t *testing.T) {
-	handler := NewAPI("test-version", &config.Runtime{Origin: "http://localhost:8080"}, nil, nil, nil, nil).SetupRouter()
+	handler := NewAPI("test-version", &config.Runtime{Origin: "http://localhost:8080"}, nil, nil, nil, nil, nil).SetupRouter()
 	rec := httptest.NewRecorder()
 	handler.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/v1/status", nil))
 	if rec.Code != http.StatusOK {
@@ -38,7 +38,7 @@ func TestStatusResponseEnvelope(t *testing.T) {
 // TestFailureKeepsBusinessCodeAndStatus checks that a rejected request reports
 // the business code while the HTTP status carries the protocol semantics.
 func TestFailureKeepsBusinessCodeAndStatus(t *testing.T) {
-	handler := NewAPI("test", &config.Runtime{Origin: "http://localhost:8080"}, nil, nil, nil, nil).SetupRouter()
+	handler := NewAPI("test", &config.Runtime{Origin: "http://localhost:8080"}, nil, nil, nil, nil, nil).SetupRouter()
 	rec := httptest.NewRecorder()
 	handler.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/v1/unknown", nil))
 	if rec.Code != http.StatusNotFound {
@@ -58,7 +58,7 @@ func TestFailureKeepsBusinessCodeAndStatus(t *testing.T) {
 // TestSwaggerRouter checks that the generated documentation is served while
 // production builds hide it.
 func TestSwaggerRouter(t *testing.T) {
-	api := NewAPI("test", &config.Runtime{}, nil, nil, nil, nil)
+	api := NewAPI("test", &config.Runtime{}, nil, nil, nil, nil, nil)
 	docs := api.SwaggerRouter(false)
 	for _, path := range []string{"/", "/doc.json"} {
 		rec := httptest.NewRecorder()

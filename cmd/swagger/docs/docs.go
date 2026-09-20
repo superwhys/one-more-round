@@ -272,6 +272,40 @@ const docTemplate = `{
                 }
             }
         },
+        "/v1/groups/{group}/export": {
+            "get": {
+                "security": [
+                    {
+                        "SessionCookie": []
+                    }
+                ],
+                "description": "仅组主可下载包含 JSON、CSV 与已关联照片的 ZIP",
+                "produces": [
+                    "application/zip"
+                ],
+                "tags": [
+                    "Group"
+                ],
+                "summary": "导出小组备份",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "小组 ID",
+                        "name": "group",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "file"
+                        }
+                    }
+                }
+            }
+        },
         "/v1/groups/{group}/games": {
             "post": {
                 "security": [
@@ -615,6 +649,36 @@ const docTemplate = `{
                         "in": "query"
                     },
                     {
+                        "type": "string",
+                        "description": "搜索回忆或地点",
+                        "name": "q",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "地点",
+                        "name": "location",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "individual/team/coop",
+                        "name": "mode",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "win/loss/draw/unknown",
+                        "name": "outcome",
+                        "in": "query"
+                    },
+                    {
+                        "type": "boolean",
+                        "description": "是否有照片",
+                        "name": "has_photos",
+                        "in": "query"
+                    },
+                    {
                         "type": "integer",
                         "description": "偏移量",
                         "name": "offset",
@@ -693,6 +757,79 @@ const docTemplate = `{
                 }
             }
         },
+        "/v1/groups/{group}/rounds/recap": {
+            "get": {
+                "security": [
+                    {
+                        "SessionCookie": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Round"
+                ],
+                "summary": "获取月度或年度回顾",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "小组 ID",
+                        "name": "group",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "YYYY-MM 或 YYYY",
+                        "name": "period",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/ginutils.Ret-dto_Recap"
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/groups/{group}/rounds/recycle-bin": {
+            "get": {
+                "security": [
+                    {
+                        "SessionCookie": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Round"
+                ],
+                "summary": "获取回收站",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "小组 ID",
+                        "name": "group",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/ginutils.Ret-array_dto_Round"
+                        }
+                    }
+                }
+            }
+        },
         "/v1/groups/{group}/rounds/{id}": {
             "get": {
                 "security": [
@@ -739,7 +876,7 @@ const docTemplate = `{
                         "SessionCookie": []
                     }
                 ],
-                "description": "按版本号删除对局，版本不一致时提示刷新",
+                "description": "按版本号移入七天回收站，版本不一致时提示刷新",
                 "consumes": [
                     "application/json"
                 ],
@@ -780,6 +917,58 @@ const docTemplate = `{
                         "description": "OK",
                         "schema": {
                             "$ref": "#/definitions/ginutils.Ret-any"
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/groups/{group}/rounds/{id}/restore": {
+            "post": {
+                "security": [
+                    {
+                        "SessionCookie": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Round"
+                ],
+                "summary": "恢复已删除对局",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "小组 ID",
+                        "name": "group",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "对局 ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "恢复请求",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.RestoreRoundReq"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/ginutils.Ret-dto_Round"
                         }
                     }
                 }
@@ -844,6 +1033,63 @@ const docTemplate = `{
                         "description": "OK",
                         "schema": {
                             "$ref": "#/definitions/ginutils.Ret-dto_User"
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/notifications": {
+            "get": {
+                "security": [
+                    {
+                        "SessionCookie": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Notification"
+                ],
+                "summary": "获取站内通知",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/ginutils.Ret-dto_NotificationPage"
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/notifications/{id}/read": {
+            "post": {
+                "security": [
+                    {
+                        "SessionCookie": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Notification"
+                ],
+                "summary": "标记通知已读",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "通知 ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/ginutils.Ret-any"
                         }
                     }
                 }
@@ -1099,6 +1345,49 @@ const docTemplate = `{
                 }
             }
         },
+        "dto.Notification": {
+            "type": "object",
+            "properties": {
+                "body": {
+                    "type": "string"
+                },
+                "created": {
+                    "type": "string"
+                },
+                "group_id": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "kind": {
+                    "type": "string"
+                },
+                "link": {
+                    "type": "string"
+                },
+                "read_at": {
+                    "type": "string"
+                },
+                "title": {
+                    "type": "string"
+                }
+            }
+        },
+        "dto.NotificationPage": {
+            "type": "object",
+            "properties": {
+                "items": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.Notification"
+                    }
+                },
+                "unread": {
+                    "type": "integer"
+                }
+            }
+        },
         "dto.Page": {
             "type": "object",
             "properties": {
@@ -1145,6 +1434,64 @@ const docTemplate = `{
                 }
             }
         },
+        "dto.Recap": {
+            "type": "object",
+            "properties": {
+                "from": {
+                    "type": "string"
+                },
+                "games": {
+                    "type": "integer"
+                },
+                "minutes": {
+                    "type": "integer"
+                },
+                "period": {
+                    "type": "string"
+                },
+                "photos": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "players": {
+                    "type": "integer"
+                },
+                "rounds": {
+                    "type": "integer"
+                },
+                "to": {
+                    "type": "string"
+                },
+                "top_game": {
+                    "type": "string"
+                },
+                "top_game_rounds": {
+                    "type": "integer"
+                },
+                "top_player": {
+                    "type": "string"
+                },
+                "top_plays": {
+                    "type": "integer"
+                }
+            }
+        },
+        "dto.RestoreRoundReq": {
+            "type": "object",
+            "properties": {
+                "groupID": {
+                    "type": "string"
+                },
+                "roundID": {
+                    "type": "string"
+                },
+                "version": {
+                    "type": "integer"
+                }
+            }
+        },
         "dto.Round": {
             "type": "object",
             "properties": {
@@ -1152,6 +1499,9 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "date": {
+                    "type": "string"
+                },
+                "deleted_at": {
                     "type": "string"
                 },
                 "game_id": {
@@ -1391,6 +1741,21 @@ const docTemplate = `{
                 "message": {}
             }
         },
+        "ginutils.Ret-array_dto_Round": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "integer"
+                },
+                "data": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.Round"
+                    }
+                },
+                "message": {}
+            }
+        },
         "ginutils.Ret-dto_Game": {
             "type": "object",
             "properties": {
@@ -1451,6 +1816,18 @@ const docTemplate = `{
                 "message": {}
             }
         },
+        "ginutils.Ret-dto_NotificationPage": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "integer"
+                },
+                "data": {
+                    "$ref": "#/definitions/dto.NotificationPage"
+                },
+                "message": {}
+            }
+        },
         "ginutils.Ret-dto_Page": {
             "type": "object",
             "properties": {
@@ -1471,6 +1848,18 @@ const docTemplate = `{
                 },
                 "data": {
                     "$ref": "#/definitions/dto.Player"
+                },
+                "message": {}
+            }
+        },
+        "ginutils.Ret-dto_Recap": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "integer"
+                },
+                "data": {
+                    "$ref": "#/definitions/dto.Recap"
                 },
                 "message": {}
             }

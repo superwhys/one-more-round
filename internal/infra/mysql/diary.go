@@ -2,6 +2,7 @@ package mysql
 
 import (
 	"context"
+	"time"
 
 	"github.com/superwhys/one-more-round/internal/converter"
 	"github.com/superwhys/one-more-round/internal/domain/diary"
@@ -18,7 +19,7 @@ type roundRepository struct {
 // ListByGroup returns the group's rounds, newest first.
 func (r *roundRepository) ListByGroup(ctx context.Context, groupID string) ([]*diary.Round, error) {
 	q := queryOf(r.db).Round
-	rows, err := q.WithContext(ctx).Select(q.Body).Where(q.GroupID.Eq(groupID)).Order(q.Played.Desc(), q.ID.Desc()).Find()
+	rows, err := q.WithContext(ctx).Where(q.GroupID.Eq(groupID), q.DeletedAt.IsNull()).Order(q.Played.Desc(), q.ID.Desc()).Find()
 	if err != nil {
 		return nil, mapErr(err)
 	}
@@ -27,6 +28,35 @@ func (r *roundRepository) ListByGroup(ctx context.Context, groupID string) ([]*d
 		round, err := r.converter.RoundModelToDomain(m)
 		if err != nil {
 			return nil, err
+		}
+		items = append(items, round)
+	}
+	return items, nil
+}
+
+// ListDeletedByGroup returns rounds still inside the recovery window.
+func (r *roundRepository) ListDeletedByGroup(ctx context.Context, groupID string, after time.Time) ([]*diary.Round, error) {
+	q := queryOf(r.db).Round
+	rows, err := q.WithContext(ctx).Clauses(clause.Locking{Strength: "UPDATE"}).Where(q.GroupID.Eq(groupID), q.DeletedAt.Gte(after)).Order(q.DeletedAt.Desc()).Find()
+	return r.decode(rows, err)
+}
+
+// ListDeletedBefore returns a bounded cleanup batch across groups.
+func (r *roundRepository) ListDeletedBefore(ctx context.Context, before time.Time, limit int) ([]*diary.Round, error) {
+	q := queryOf(r.db).Round
+	rows, err := q.WithContext(ctx).Clauses(clause.Locking{Strength: "UPDATE"}).Where(q.DeletedAt.Lt(before)).Order(q.DeletedAt).Limit(limit).Find()
+	return r.decode(rows, err)
+}
+
+func (r *roundRepository) decode(rows []*models.Round, err error) ([]*diary.Round, error) {
+	if err != nil {
+		return nil, mapErr(err)
+	}
+	items := make([]*diary.Round, 0, len(rows))
+	for _, m := range rows {
+		round, e := r.converter.RoundModelToDomain(m)
+		if e != nil {
+			return nil, e
 		}
 		items = append(items, round)
 	}
@@ -42,7 +72,7 @@ func (r *roundRepository) Save(ctx context.Context, groupID string, round *diary
 	row.GroupID = groupID
 	q := queryOf(r.db).Round
 	return mapErr(q.WithContext(ctx).Clauses(clause.OnConflict{DoUpdates: clause.AssignmentColumns([]string{
-		string(q.GameID.ColumnName()), string(q.Played.ColumnName()), string(q.Version.ColumnName()), string(q.Body.ColumnName()),
+		string(q.GameID.ColumnName()), string(q.Played.ColumnName()), string(q.Version.ColumnName()), string(q.Body.ColumnName()), string(q.DeletedAt.ColumnName()),
 	})}).Create(row))
 }
 

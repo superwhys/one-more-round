@@ -71,6 +71,63 @@ try {
   console.log('PASS: edit counts existing photos; remove and replace works; exact 2 MiB accepted')
 
   const api = `${fixture.origin}/api/v1/groups/${fixture.groupID}`
+  const enrichedResponse = await context.request.put(`${api}/rounds/${edited.data.id}`, { headers: headers(), data: { ...edited.data, memory: '第一次打通的桌边回忆', location: '老地方' } })
+  assert.equal(enrichedResponse.status(), 200)
+  const enriched = await enrichedResponse.json()
+  assert.equal(enriched.code, 0)
+
+  // Search, monthly recap and the share-card download use the real persisted round.
+  await page.goto(`${fixture.origin}/`)
+  await page.getByRole('button', { name: /筛选/ }).click()
+  await page.getByLabel('搜索回忆或地点', { exact: true }).fill('打通')
+  const filterSelect = label => page.locator('#round-filters label').filter({ hasText: label }).locator('select')
+  await filterSelect('地点').selectOption('老地方')
+  await filterSelect('模式').selectOption('coop')
+  await filterSelect('结果').selectOption('unknown')
+  await filterSelect('照片').selectOption('true')
+  await page.getByRole('button', { name: '应用筛选', exact: true }).click()
+  await page.getByRole('heading', { name: fixture.gameName, exact: true }).waitFor()
+  await page.getByRole('link', { name: /月度 \/ 年度回顾/ }).click()
+  await page.getByRole('heading', { name: '这一段相聚。' }).waitFor()
+  assert.equal(await page.locator('input[type="month"], input[type="number"]').count(), 0, 'recap must not use browser-native month or number controls')
+  const yearControl = page.getByLabel('年份', { exact: false })
+  const monthControl = page.getByLabel('月份', { exact: false })
+  assert.equal(await yearControl.getAttribute('type'), 'text')
+  assert.equal(await monthControl.evaluate(element => getComputedStyle(element).borderRadius), '9px')
+  await page.getByText('1局').first().waitFor()
+  const cardDownload = page.waitForEvent('download')
+  await page.getByRole('button', { name: '下载分享卡片', exact: true }).click()
+  assert.match((await cardDownload).suggestedFilename(), /又一局-.*\.png/)
+  for (const width of [320, 1280]) {
+    await page.setViewportSize({ width, height: 900 })
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true, `recap overflow at ${width}px`)
+  }
+  const annualResponse = page.waitForResponse(response => new URL(response.url()).pathname.endsWith('/rounds/recap') && new URL(response.url()).searchParams.get('period') === new Date().getFullYear().toString())
+  await page.getByRole('button', { name: '年度回顾', exact: true }).click()
+  await annualResponse
+  assert.equal(await page.getByLabel('月份', { exact: false }).count(), 0, 'annual recap only shows the year control')
+  console.log('PASS: advanced search, monthly recap and local PNG share card work')
+
+  // The owner can export a backup and restore a deleted round from the seven-day recycle bin.
+  await page.goto(`${fixture.origin}/group`)
+  const backupDownload = page.waitForEvent('download')
+  await page.getByRole('button', { name: '导出小组备份', exact: true }).click()
+  assert.match((await backupDownload).suggestedFilename(), /又一局-.*\.zip/)
+  await page.goto(`${fixture.origin}/rounds/${edited.data.id}`)
+  await page.getByRole('button', { name: '删除这局', exact: true }).click()
+  await page.locator('.d-modal').getByRole('button', { name: '删除这局', exact: true }).click()
+  await page.waitForURL(fixture.origin + '/')
+  await page.goto(`${fixture.origin}/recycle-bin`)
+  await page.getByText(fixture.gameName, { exact: true }).waitFor()
+  await page.getByRole('button', { name: '恢复', exact: true }).click()
+  await page.getByText('对局已经恢复到时间线').waitFor()
+  await page.goto(`${fixture.origin}/`)
+  await page.getByRole('heading', { name: fixture.gameName, exact: true }).waitFor()
+  await page.getByRole('link', { name: '通知', exact: true }).click()
+  await page.getByRole('heading', { name: '通知。' }).waitFor()
+  await page.getByRole('heading', { name: '暂时没有新消息。' }).waitFor()
+  console.log('PASS: ZIP export, recycle restore and notification center render correctly')
+
   const rejectedUpload = await context.request.post(`${api}/photos`, { headers: headers(), multipart: { photo: file('oversized.png', tooLarge) } })
   assert.equal(rejectedUpload.status(), 400)
   assert.match((await rejectedUpload.json()).message, /不超过 2 MB/)
@@ -86,7 +143,7 @@ try {
   // Old drafts stay intact until the user explicitly removes excess photos.
   await page.evaluate(({ userID, groupID, round, photos }) => {
     localStorage.setItem(`omr:draft:${userID}:${groupID}:new`, JSON.stringify({ form: { ...round, photos }, key: crypto.randomUUID() }))
-  }, { ...fixture, round: edited.data, photos: fourPhotos })
+  }, { ...fixture, round: enriched.data, photos: fourPhotos })
   await page.goto(`${fixture.origin}/rounds/new`)
   await page.getByText('已恢复本账号在这个小组的草稿。', { exact: false }).waitFor()
   const previousSaves = saves

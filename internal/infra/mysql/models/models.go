@@ -82,12 +82,13 @@ type Game struct {
 func (Game) TableName() string { return "omr_games" }
 
 type Round struct {
-	ID      string `gorm:"column:id;type:varchar(64);primaryKey;index:group_id,priority:3"`
-	GroupID string `gorm:"column:group_id;type:varchar(64);not null;index:group_id,priority:1"`
-	GameID  string `gorm:"column:game_id;type:varchar(64);not null;index:game_id"`
-	Played  string `gorm:"column:played;type:date;not null;index:group_id,priority:2"`
-	Version int    `gorm:"column:version;type:int;not null"`
-	Body    []byte `gorm:"column:body;type:json;not null"`
+	ID        string     `gorm:"column:id;type:varchar(64);primaryKey;index:group_id,priority:3"`
+	GroupID   string     `gorm:"column:group_id;type:varchar(64);not null;index:group_id,priority:1"`
+	GameID    string     `gorm:"column:game_id;type:varchar(64);not null;index:game_id"`
+	Played    string     `gorm:"column:played;type:date;not null;index:group_id,priority:2"`
+	Version   int        `gorm:"column:version;type:int;not null"`
+	Body      []byte     `gorm:"column:body;type:json;not null"`
+	DeletedAt *time.Time `gorm:"column:deleted_at;type:datetime(6);index:deleted_at"`
 }
 
 func (Round) TableName() string { return "omr_rounds" }
@@ -131,6 +132,21 @@ type Photo struct {
 
 func (Photo) TableName() string { return "omr_photos" }
 
+type Notification struct {
+	ID        string     `gorm:"column:id;type:varchar(64);primaryKey"`
+	UserID    string     `gorm:"column:user_id;type:varchar(64);not null;index:user_created,priority:1;uniqueIndex:user_dedupe,priority:1"`
+	GroupID   string     `gorm:"column:group_id;type:varchar(64);not null;index:group_id"`
+	Kind      string     `gorm:"column:kind;type:varchar(32);not null"`
+	Title     string     `gorm:"column:title;type:varchar(255);not null"`
+	Body      string     `gorm:"column:body;type:varchar(500);not null"`
+	Link      string     `gorm:"column:link;type:varchar(255);not null"`
+	DedupeKey string     `gorm:"column:dedupe_key;type:varchar(191);not null;uniqueIndex:user_dedupe,priority:2"`
+	Created   time.Time  `gorm:"column:created;type:datetime(6);not null;index:user_created,priority:2"`
+	ReadAt    *time.Time `gorm:"column:read_at;type:datetime(6)"`
+}
+
+func (Notification) TableName() string { return "omr_notifications" }
+
 // AllModels lists every table in the order AutoMigrate should create them.
 func AllModels() []any {
 	return []any{
@@ -148,5 +164,6 @@ func AllModels() []any {
 		&Invite{},
 		&Claim{},
 		&Photo{},
+		&Notification{},
 	}
 }

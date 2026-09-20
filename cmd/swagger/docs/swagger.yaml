@@ -147,6 +147,34 @@ definitions:
       user_id:
         type: string
     type: object
+  dto.Notification:
+    properties:
+      body:
+        type: string
+      created:
+        type: string
+      group_id:
+        type: string
+      id:
+        type: string
+      kind:
+        type: string
+      link:
+        type: string
+      read_at:
+        type: string
+      title:
+        type: string
+    type: object
+  dto.NotificationPage:
+    properties:
+      items:
+        items:
+          $ref: '#/definitions/dto.Notification'
+        type: array
+      unread:
+        type: integer
+    type: object
   dto.Page:
     properties:
       activity:
@@ -177,11 +205,51 @@ definitions:
       name:
         type: string
     type: object
+  dto.Recap:
+    properties:
+      from:
+        type: string
+      games:
+        type: integer
+      minutes:
+        type: integer
+      period:
+        type: string
+      photos:
+        items:
+          type: string
+        type: array
+      players:
+        type: integer
+      rounds:
+        type: integer
+      to:
+        type: string
+      top_game:
+        type: string
+      top_game_rounds:
+        type: integer
+      top_player:
+        type: string
+      top_plays:
+        type: integer
+    type: object
+  dto.RestoreRoundReq:
+    properties:
+      groupID:
+        type: string
+      roundID:
+        type: string
+      version:
+        type: integer
+    type: object
   dto.Round:
     properties:
       author:
         type: string
       date:
+        type: string
+      deleted_at:
         type: string
       game_id:
         type: string
@@ -339,6 +407,16 @@ definitions:
         type: array
       message: {}
     type: object
+  ginutils.Ret-array_dto_Round:
+    properties:
+      code:
+        type: integer
+      data:
+        items:
+          $ref: '#/definitions/dto.Round'
+        type: array
+      message: {}
+    type: object
   ginutils.Ret-dto_Game:
     properties:
       code:
@@ -379,6 +457,14 @@ definitions:
         $ref: '#/definitions/dto.LoginResp'
       message: {}
     type: object
+  ginutils.Ret-dto_NotificationPage:
+    properties:
+      code:
+        type: integer
+      data:
+        $ref: '#/definitions/dto.NotificationPage'
+      message: {}
+    type: object
   ginutils.Ret-dto_Page:
     properties:
       code:
@@ -393,6 +479,14 @@ definitions:
         type: integer
       data:
         $ref: '#/definitions/dto.Player'
+      message: {}
+    type: object
+  ginutils.Ret-dto_Recap:
+    properties:
+      code:
+        type: integer
+      data:
+        $ref: '#/definitions/dto.Recap'
       message: {}
     type: object
   ginutils.Ret-dto_Round:
@@ -596,6 +690,27 @@ paths:
       summary: 搜索外部桌游
       tags:
       - Game
+  /v1/groups/{group}/export:
+    get:
+      description: 仅组主可下载包含 JSON、CSV 与已关联照片的 ZIP
+      parameters:
+      - description: 小组 ID
+        in: path
+        name: group
+        required: true
+        type: string
+      produces:
+      - application/zip
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: file
+      security:
+      - SessionCookie: []
+      summary: 导出小组备份
+      tags:
+      - Group
   /v1/groups/{group}/games:
     post:
       consumes:
@@ -807,6 +922,26 @@ paths:
         in: query
         name: player
         type: string
+      - description: 搜索回忆或地点
+        in: query
+        name: q
+        type: string
+      - description: 地点
+        in: query
+        name: location
+        type: string
+      - description: individual/team/coop
+        in: query
+        name: mode
+        type: string
+      - description: win/loss/draw/unknown
+        in: query
+        name: outcome
+        type: string
+      - description: 是否有照片
+        in: query
+        name: has_photos
+        type: boolean
       - description: 偏移量
         in: query
         name: offset
@@ -867,7 +1002,7 @@ paths:
     delete:
       consumes:
       - application/json
-      description: 按版本号删除对局，版本不一致时提示刷新
+      description: 按版本号移入七天回收站，版本不一致时提示刷新
       parameters:
       - description: 小组 ID
         in: path
@@ -922,6 +1057,84 @@ paths:
       summary: 获取对局详情
       tags:
       - Round
+  /v1/groups/{group}/rounds/{id}/restore:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: 小组 ID
+        in: path
+        name: group
+        required: true
+        type: string
+      - description: 对局 ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: 恢复请求
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.RestoreRoundReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/ginutils.Ret-dto_Round'
+      security:
+      - SessionCookie: []
+      summary: 恢复已删除对局
+      tags:
+      - Round
+  /v1/groups/{group}/rounds/recap:
+    get:
+      parameters:
+      - description: 小组 ID
+        in: path
+        name: group
+        required: true
+        type: string
+      - description: YYYY-MM 或 YYYY
+        in: query
+        name: period
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/ginutils.Ret-dto_Recap'
+      security:
+      - SessionCookie: []
+      summary: 获取月度或年度回顾
+      tags:
+      - Round
+  /v1/groups/{group}/rounds/recycle-bin:
+    get:
+      parameters:
+      - description: 小组 ID
+        in: path
+        name: group
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/ginutils.Ret-array_dto_Round'
+      security:
+      - SessionCookie: []
+      summary: 获取回收站
+      tags:
+      - Round
   /v1/join:
     post:
       consumes:
@@ -961,6 +1174,40 @@ paths:
       summary: 获取当前账号
       tags:
       - Auth
+  /v1/notifications:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/ginutils.Ret-dto_NotificationPage'
+      security:
+      - SessionCookie: []
+      summary: 获取站内通知
+      tags:
+      - Notification
+  /v1/notifications/{id}/read:
+    post:
+      parameters:
+      - description: 通知 ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/ginutils.Ret-any'
+      security:
+      - SessionCookie: []
+      summary: 标记通知已读
+      tags:
+      - Notification
   /v1/status:
     get:
       description: 返回服务名、构建版本与产品阶段

@@ -36,11 +36,12 @@ type API struct {
 	groupApp *services.GroupApp
 	roundApp *services.RoundApp
 	photoApp *services.PhotoApp
+	notificationApp *services.NotificationApp
 }
 
 // NewAPI wires the application services into the HTTP layer.
-func NewAPI(version string, conf *config.Runtime, authApp *services.AuthApp, groupApp *services.GroupApp, roundApp *services.RoundApp, photoApp *services.PhotoApp) *API {
-	return &API{version: version, config: conf, authApp: authApp, groupApp: groupApp, roundApp: roundApp, photoApp: photoApp}
+func NewAPI(version string, conf *config.Runtime, authApp *services.AuthApp, groupApp *services.GroupApp, roundApp *services.RoundApp, photoApp *services.PhotoApp, notificationApp *services.NotificationApp) *API {
+	return &API{version: version, config: conf, authApp: authApp, groupApp: groupApp, roundApp: roundApp, photoApp: photoApp, notificationApp: notificationApp}
 }
 
 // SetupRouter godoc
@@ -72,7 +73,7 @@ func (api *API) SetupRouter() http.Handler {
 				middleware.TokenVerifyMiddleware(api.authApp),
 				middleware.ContextInjectMiddleware(),
 			),
-			ginutils.WithRouterHandler(router.MeRouter(), router.GroupRouter(api.groupApp)),
+			ginutils.WithRouterHandler(router.MeRouter(), router.GroupRouter(api.groupApp), router.NotificationRouter(api.notificationApp)),
 			ginutils.WithGroupHandlers(
 				ginutils.WithPrefix("/groups/:group"),
 				ginutils.WithRouterHandler(

@@ -2,15 +2,20 @@ package diary
 
 import (
 	"context"
+	"time"
 )
 
 // IRoundRepository reads and writes the rounds of a group.
 type IRoundRepository interface {
 	// ListByGroup returns the group's rounds, newest first.
 	ListByGroup(ctx context.Context, groupID string) ([]*Round, error)
+	// ListDeletedByGroup returns recoverable rounds, newest deletion first.
+	ListDeletedByGroup(ctx context.Context, groupID string, after time.Time) ([]*Round, error)
+	// ListDeletedBefore returns rounds ready for permanent cleanup.
+	ListDeletedBefore(ctx context.Context, before time.Time, limit int) ([]*Round, error)
 	// Save inserts the round or overwrites its stored document.
 	Save(ctx context.Context, groupID string, r *Round) error
-	// Delete removes the round of the group.
+	// Delete permanently removes an expired round of the group.
 	Delete(ctx context.Context, groupID, id string) error
 }
 

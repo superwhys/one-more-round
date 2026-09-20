@@ -19,6 +19,9 @@ const paths: Record<string, string> = {
   more: 'M5 12h.01M12 12h.01M19 12h.01',
   lock: 'M6 10h12v11H6V10Zm3 0V6a3 3 0 0 1 6 0v4M12 14v3',
   logout: 'M9 4H4v16h5M10 12h11m-4-4 4 4-4 4',
+  bell: 'M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4',
+  archive: 'M4 7h16v14H4V7Zm-1-4h18v4H3V3Zm6 8h6',
+  download: 'M12 3v12m-5-5 5 5 5-5M5 21h14',
 }
 </script>
 <template><svg :width="size" :height="size" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path :d="paths[name] ?? paths.game" /></svg></template>

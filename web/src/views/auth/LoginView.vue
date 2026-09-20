@@ -5,6 +5,7 @@ import { sendLoginCode, login as loginRequest } from '@/api/auth'
 import { useInvitePreview } from '@/composables/useInvitePreview'
 import { useSession } from '@/stores/session'
 import { message } from '@/utils/error'
+import favicon from '@/assets/favicon.svg'
 const router = useRouter()
 const session = useSession()
 const { invitation, joinToken } = session
@@ -59,7 +60,7 @@ function login() {
 
 <template>
 <section class="j-auth d-surface">
-      <img src="/favicon.svg" width="48" height="48" alt="" /><p class="d-eyebrow">ONE MORE ROUND</p><h1>这桌，就等你了<span class="d-title-dot">。</span></h1>
+      <img :src="favicon" width="48" height="48" alt="" /><p class="d-eyebrow">ONE MORE ROUND</p><h1>这桌，就等你了<span class="d-title-dot">。</span></h1>
       <template v-if="joinToken">
         <p v-if="loading" role="status">正在确认小组邀请…</p>
         <div v-else-if="preview" class="j-notice"><strong>你收到了一份小组邀请</strong><p>加入「{{ preview.name }}」，一起记下每一局。</p><p class="d-note">验证邮箱即可加入；首次使用会自动创建账号，无需另外填写邀请码。</p></div>

@@ -1,10 +1,12 @@
 package mysql_test
 
 import (
+	"archive/zip"
 	"bytes"
 	"context"
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"image"
 	"image/color"
 	"image/png"
@@ -28,6 +30,92 @@ import (
 	"github.com/superwhys/one-more-round/internal/infra/photos"
 	"github.com/superwhys/one-more-round/internal/pkg/secure"
 )
+
+func TestSearchRecapNotificationsAndExport(t *testing.T) {
+	s := setup(t)
+	ctx := context.Background()
+	owner, _ := s.signup(t, "feature-owner@example.com")
+	member, _ := s.signup(t, "feature-member@example.com")
+	group, err := s.groups.Create(ctx, owner.ID, &dto.CreateGroupReq{Name: "功能小组", PlayerName: "组主"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, token, err := s.groups.Invite(ctx, group.ID, owner.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err = s.groups.Join(ctx, member.ID, &dto.JoinReq{Token: token}); err != nil {
+		t.Fatal(err)
+	}
+	ownerNotices, err := s.notifications.List(ctx, owner.ID)
+	if err != nil || ownerNotices.Unread != 1 || ownerNotices.Items[0].Kind != "member_joined" {
+		t.Fatalf("owner notifications = %#v, %v", ownerNotices, err)
+	}
+
+	player, err := s.groups.AddPlayer(ctx, group.ID, owner.ID, &dto.AddPlayerReq{Name: "朋友"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	game, err := s.groups.AddGame(ctx, group.ID, owner.ID, &dto.AddGameReq{Name: "记忆测试"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	minutes := 60
+	saved, err := s.rounds.Save(ctx, owner.ID, &dto.SaveRoundReq{GroupID: group.ID, IdempotencyKey: secure.NewID(), Round: dto.Round{GameID: game.ID, Date: "2026-09-20", Mode: "coop", Outcome: "win", Players: []string{player.ID}, Memory: "第一次打通", Location: "老地方", Minutes: &minutes}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	hasPhotos := false
+	page, err := s.rounds.List(ctx, group.ID, owner.ID, &dto.ListRoundsReq{Query: "打通", Location: "老地方", Mode: "coop", Outcome: "win", HasPhotos: &hasPhotos, Limit: 30})
+	if err != nil || page.Total != 1 || page.Items[0].ID != saved.ID {
+		t.Fatalf("advanced search = %#v, %v", page, err)
+	}
+	recap, err := s.rounds.Recap(ctx, group.ID, owner.ID, "2026-09")
+	if err != nil || recap.Rounds != 1 || recap.Minutes != 60 || recap.TopGame != game.ID {
+		t.Fatalf("recap = %#v, %v", recap, err)
+	}
+
+	backup, err := s.groups.Export(ctx, group.ID, owner.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	archive, err := zip.NewReader(bytes.NewReader(backup), int64(len(backup)))
+	if err != nil {
+		t.Fatal(err)
+	}
+	entries := map[string]bool{}
+	for _, file := range archive.File {
+		entries[file.Name] = true
+	}
+	if !entries["one-more-round.json"] || !entries["rounds.csv"] {
+		t.Fatalf("export entries = %#v", entries)
+	}
+	if _, err = s.groups.Export(ctx, group.ID, member.ID); !errors.Is(err, errcode.ErrForbidden) {
+		t.Fatalf("member export error = %v", err)
+	}
+
+	if err = s.groups.Manage(ctx, group.ID, member.ID, &dto.ManageReq{Action: "claim", Target: player.ID}); err != nil {
+		t.Fatal(err)
+	}
+	ownerNotices, err = s.notifications.List(ctx, owner.ID)
+	if err != nil || ownerNotices.Unread < 2 {
+		t.Fatalf("claim notification = %#v, %v", ownerNotices, err)
+	}
+	if err = s.groups.Manage(ctx, group.ID, owner.ID, &dto.ManageReq{Action: "approve", Target: member.ID}); err != nil {
+		t.Fatal(err)
+	}
+	memberNotices, err := s.notifications.List(ctx, member.ID)
+	if err != nil || memberNotices.Unread != 1 || memberNotices.Items[0].Kind != "claim_approved" {
+		t.Fatalf("member notifications = %#v, %v", memberNotices, err)
+	}
+	if err = s.notifications.Read(ctx, member.ID, memberNotices.Items[0].ID); err != nil {
+		t.Fatal(err)
+	}
+	memberNotices, _ = s.notifications.List(ctx, member.ID)
+	if memberNotices.Unread != 0 {
+		t.Fatalf("notification not read: %#v", memberNotices)
+	}
+}
 
 // testOrigin is the origin the HTTP tests send and the cookie rules expect.
 const testOrigin = "http://localhost:8080"
@@ -55,14 +143,15 @@ func (m *inbox) code(email string) string {
 
 // stack is the wired application the integration tests exercise.
 type stack struct {
-	client    *storepkg.Client
-	repos     *storepkg.RepositoryFactory
-	auth      *services.AuthApp
-	groups    *services.GroupApp
-	rounds    *services.RoundApp
-	photos    *services.PhotoApp
-	photoRoot string
-	inbox     *inbox
+	client        *storepkg.Client
+	repos         *storepkg.RepositoryFactory
+	auth          *services.AuthApp
+	groups        *services.GroupApp
+	rounds        *services.RoundApp
+	photos        *services.PhotoApp
+	notifications *services.NotificationApp
+	photoRoot     string
+	inbox         *inbox
 }
 
 // skipUnlessMySQL returns the address of the disposable test instance, or skips
@@ -105,14 +194,15 @@ func setup(t *testing.T) *stack {
 	photoRoot := t.TempDir()
 	appCtx := &services.AppContext{Repos: repos, Mailer: mailer, Photos: &photos.Files{Root: photoRoot}, Converter: converter.New()}
 	return &stack{
-		client:    client,
-		repos:     repos,
-		auth:      services.NewAuthApp(appCtx),
-		groups:    services.NewGroupApp(appCtx),
-		rounds:    services.NewRoundApp(appCtx),
-		photos:    services.NewPhotoApp(appCtx),
-		photoRoot: photoRoot,
-		inbox:     mailer,
+		client:        client,
+		repos:         repos,
+		auth:          services.NewAuthApp(appCtx),
+		groups:        services.NewGroupApp(appCtx),
+		rounds:        services.NewRoundApp(appCtx),
+		photos:        services.NewPhotoApp(appCtx),
+		notifications: services.NewNotificationApp(appCtx),
+		photoRoot:     photoRoot,
+		inbox:         mailer,
 	}
 }
 
@@ -494,8 +584,28 @@ func TestPhotoPermissionsRollbackAndCleanup(t *testing.T) {
 	if e = services.CleanPhotos(ctx, s.repos, files, cutoff); e != nil {
 		t.Fatal(e)
 	}
+	if called {
+		t.Fatal("cleaned photo while round was recoverable")
+	}
+	bin, e := s.rounds.RecycleBin(ctx, g.ID, u.ID)
+	if e != nil || len(bin) != 1 {
+		t.Fatalf("recycle bin = %#v, %v", bin, e)
+	}
+	restored, e := s.rounds.Restore(ctx, u.ID, &dto.RestoreRoundReq{GroupID: g.ID, RoundID: saved.ID, Version: bin[0].Version})
+	if e != nil {
+		t.Fatal(e)
+	}
+	if e = s.rounds.Delete(ctx, u.ID, &dto.DeleteRoundReq{GroupID: g.ID, RoundID: restored.ID, Version: restored.Version}); e != nil {
+		t.Fatal(e)
+	}
+	if e = services.CleanDeletedRounds(ctx, s.repos, cutoff); e != nil {
+		t.Fatal(e)
+	}
+	if e = services.CleanPhotos(ctx, s.repos, files, cutoff); e != nil {
+		t.Fatal(e)
+	}
 	if !called {
-		t.Fatal("did not clean unassociated photo")
+		t.Fatal("did not clean photo after recycle retention")
 	}
 }
 
@@ -519,7 +629,7 @@ func (f countingFiles) Remove(ctx context.Context, id string) error {
 func TestHTTPAuthenticationAndCSRF(t *testing.T) {
 	s := setup(t)
 	u, session := s.signup(t, "api@example.com")
-	handler := api.NewAPI("test", &config.Runtime{Origin: testOrigin}, s.auth, s.groups, s.rounds, s.photos).SetupRouter()
+	handler := api.NewAPI("test", &config.Runtime{Origin: testOrigin}, s.auth, s.groups, s.rounds, s.photos, s.notifications).SetupRouter()
 	call := func(method, path, origin, cookie string, payload any) *httptest.ResponseRecorder {
 		t.Helper()
 		data, _ := json.Marshal(payload)

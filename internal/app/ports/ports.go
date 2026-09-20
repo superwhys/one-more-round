@@ -10,6 +10,7 @@ import (
 	"github.com/superwhys/one-more-round/internal/domain/game"
 	"github.com/superwhys/one-more-round/internal/domain/group"
 	"github.com/superwhys/one-more-round/internal/domain/identity"
+	"github.com/superwhys/one-more-round/internal/domain/notification"
 	"github.com/superwhys/one-more-round/internal/domain/photo"
 )
 
@@ -35,6 +36,7 @@ type Repositories interface {
 	Idempotency() diary.IIdempotencyRepository
 
 	Photo() photo.IPhotoRepository
+	Notification() notification.IRepository
 
 	// WithTransaction runs fn with repositories bound to a single transaction.
 	WithTransaction(ctx context.Context, fn func(Repositories) error) error

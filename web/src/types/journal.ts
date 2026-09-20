@@ -12,7 +12,14 @@ export interface Round {
   scores: Record<string, string | null>; teams: Team[]; team_score: string | null
   memory: string; location: string; minutes: number | null; photos: string[]
   author: string; updated_by: string; updated_at: string; version: number
+  deleted_at: string | null
 }
 export interface Stat { game: string; player: string; mode: Mode; played: number; wins: number; samples: number }
 export interface Page { activity: Record<string, { count: number; last_date: string }>; items: Round[]; total: number; games: number; players: number; stats: Stat[] }
 export interface Invite { id: string; expires: string; revoked: boolean }
+export interface Recap {
+  period: string; from: string; to: string; rounds: number; games: number; players: number; minutes: number
+  top_game: string; top_game_rounds: number; top_player: string; top_plays: number; photos: string[]
+}
+export interface Notification { id: string; group_id: string; kind: string; title: string; body: string; link: string; created: string; read_at: string | null }
+export interface NotificationPage { items: Notification[]; unread: number }

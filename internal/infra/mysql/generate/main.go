@@ -14,7 +14,7 @@ func main() {
 		models.User{}, models.Challenge{}, models.Rate{}, models.Trial{},
 		models.Session{}, models.Group{}, models.Member{}, models.Player{},
 		models.Game{}, models.Round{}, models.Idempotency{}, models.Invite{},
-		models.Claim{}, models.Photo{},
+		models.Claim{}, models.Photo{}, models.Notification{},
 	)
 	g.Execute()
 }

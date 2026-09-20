@@ -1,8 +1,10 @@
 package router
 
 import (
+	"fmt"
 	"net/http"
 	"net/url"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/miebyte/goutils/ginutils"
@@ -59,6 +61,27 @@ func GroupDetailRouter(groupApp *services.GroupApp, origin string) groupRouterFn
 		router.GET("/invites", listInvitesHandler(groupApp))
 		router.POST("/invites", createInviteHandler(groupApp, origin))
 		router.POST("/manage", manageGroupHandler(groupApp))
+		router.GET("/export", exportGroupHandler(groupApp))
+	}
+}
+
+// exportGroupHandler 导出小组备份
+// @Summary 导出小组备份
+// @Description 仅组主可下载包含 JSON、CSV 与已关联照片的 ZIP
+// @Tags Group
+// @Produce application/zip
+// @Security SessionCookie
+// @Param group path string true "小组 ID"
+// @Success 200 {file} binary
+// @Router /v1/groups/{group}/export [get]
+func exportGroupHandler(groupApp *services.GroupApp) gin.HandlerFunc {
+	return func(ctx *gin.Context) {
+		data, err := groupApp.Export(ctx.Request.Context(), ctx.Param("group"), common.UserID(ctx))
+		if common.HandleRouterError(ctx, err, "export group failed", errcode.ErrSysInternal) {
+			return
+		}
+		ctx.Header("Content-Disposition", fmt.Sprintf(`attachment; filename="one-more-round-%s.zip"`, time.Now().Format("20060102")))
+		ctx.Data(http.StatusOK, "application/zip", data)
 	}
 }
 

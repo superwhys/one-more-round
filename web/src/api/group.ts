@@ -1,4 +1,4 @@
-import { request, send } from './request'
+import { download, request, send } from './request'
 import type { Group, Snapshot, Invite, Player } from '@/types/journal'
 import type { GroupAction } from '@/types/group'
 export const listGroups = () => request<Group[]>('/groups')
@@ -9,3 +9,4 @@ export const addPlayer = (id: string, name: string) => send<Player>(`/groups/${i
 export const manageGroup = (id: string, action: GroupAction, target = '', value = '') => send<void>(`/groups/${id}/manage`, { action, target, value })
 export const listInvites = (id: string) => request<Invite[]>(`/groups/${id}/invites`)
 export const createInvite = (id: string) => send<{ url: string }>(`/groups/${id}/invites`, {})
+export const exportGroup = (id: string) => download(`/groups/${id}/export`)

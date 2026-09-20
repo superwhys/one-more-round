@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+	"errors"
 	"time"
 
 	"github.com/superwhys/one-more-round/internal/app/dto"
@@ -66,10 +67,16 @@ func (a *AuthApp) Login(ctx context.Context, req *dto.LoginReq) (*dto.LoginResp,
 		groupID  string
 	)
 	err = a.repos.WithTransaction(ctx, func(repos ports.Repositories) error {
+		var invitedOwner string
+		var invitedGroupID string
+		var alreadyMember bool
 		if req.GroupToken != "" {
-			if _, e := groupService(repos).InvitedGroup(ctx, req.GroupToken, time.Now().UTC()); e != nil {
+			invited, e := groupService(repos).InvitedGroup(ctx, req.GroupToken, time.Now().UTC())
+			if e != nil {
 				return e
 			}
+			invitedOwner = invited.Owner
+			invitedGroupID = invited.ID
 		}
 		var e error
 		user, token, rejected, e = identityService(repos).Login(ctx, email, req.Code, req.GroupToken != "", time.Now().UTC())
@@ -77,7 +84,15 @@ func (a *AuthApp) Login(ctx context.Context, req *dto.LoginReq) (*dto.LoginResp,
 			return e
 		}
 		if req.GroupToken != "" {
+			_, memberErr := groupService(repos).RequireMember(ctx, invitedGroupID, user.ID)
+			alreadyMember = memberErr == nil
+			if memberErr != nil && !errors.Is(memberErr, errcode.ErrForbidden) {
+				return memberErr
+			}
 			groupID, e = groupService(repos).Join(ctx, user.ID, req.GroupToken, time.Now().UTC())
+			if e == nil && !alreadyMember && invitedOwner != user.ID {
+				e = createNotification(ctx, repos, invitedOwner, groupID, "member_joined", "有朋友加入了小组", "一位新成员通过邀请加入了你的小组。", "/group", "member-joined:"+groupID+":"+user.ID, time.Now().UTC())
+			}
 		}
 		return e
 	})

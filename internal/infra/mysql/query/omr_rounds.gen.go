@@ -34,6 +34,7 @@ func newRound(db *gorm.DB, opts ...gen.DOOption) round {
 	_round.Played = field.NewString(tableName, "played")
 	_round.Version = field.NewInt(tableName, "version")
 	_round.Body = field.NewBytes(tableName, "body")
+	_round.DeletedAt = field.NewTime(tableName, "deleted_at")
 
 	_round.fillFieldMap()
 
@@ -43,13 +44,14 @@ func newRound(db *gorm.DB, opts ...gen.DOOption) round {
 type round struct {
 	roundDo roundDo
 
-	ALL     field.Asterisk
-	ID      field.String
-	GroupID field.String
-	GameID  field.String
-	Played  field.String
-	Version field.Int
-	Body    field.Bytes
+	ALL       field.Asterisk
+	ID        field.String
+	GroupID   field.String
+	GameID    field.String
+	Played    field.String
+	Version   field.Int
+	Body      field.Bytes
+	DeletedAt field.Time
 
 	fieldMap map[string]field.Expr
 }
@@ -72,6 +74,7 @@ func (r *round) updateTableName(table string) *round {
 	r.Played = field.NewString(table, "played")
 	r.Version = field.NewInt(table, "version")
 	r.Body = field.NewBytes(table, "body")
+	r.DeletedAt = field.NewTime(table, "deleted_at")
 
 	r.fillFieldMap()
 
@@ -96,13 +99,14 @@ func (r *round) GetFieldByName(fieldName string) (field.OrderExpr, bool) {
 }
 
 func (r *round) fillFieldMap() {
-	r.fieldMap = make(map[string]field.Expr, 6)
+	r.fieldMap = make(map[string]field.Expr, 7)
 	r.fieldMap["id"] = r.ID
 	r.fieldMap["group_id"] = r.GroupID
 	r.fieldMap["game_id"] = r.GameID
 	r.fieldMap["played"] = r.Played
 	r.fieldMap["version"] = r.Version
 	r.fieldMap["body"] = r.Body
+	r.fieldMap["deleted_at"] = r.DeletedAt
 }
 
 func (r round) clone(db *gorm.DB) round {

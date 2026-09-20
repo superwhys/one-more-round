@@ -65,8 +65,9 @@ func main() {
 	groupApp := services.NewGroupApp(appCtx)
 	roundApp := services.NewRoundApp(appCtx)
 	photoApp := services.NewPhotoApp(appCtx)
+	notificationApp := services.NewNotificationApp(appCtx)
 
-	backend := api.NewAPI(buildinfo.Version, &runtime, authApp, groupApp, roundApp, photoApp)
+	backend := api.NewAPI(buildinfo.Version, &runtime, authApp, groupApp, roundApp, photoApp, notificationApp)
 	frontend, err := web.NewHandler()
 	logging.PanicError(err)
 
@@ -80,6 +81,12 @@ func main() {
 			ticker := time.NewTicker(time.Hour)
 			defer ticker.Stop()
 			for {
+				if err := services.CleanDeletedRounds(ctx, repos, time.Now().UTC().Add(-services.RoundRecycleRetention)); err != nil {
+					if ctx.Err() != nil {
+						return ctx.Err()
+					}
+					logging.Error("Deleted round cleanup failed")
+				}
 				if err := services.CleanPhotos(ctx, repos, photoFiles, services.PhotoCutoff(time.Now().UTC())); err != nil {
 					if ctx.Err() != nil {
 						return ctx.Err()

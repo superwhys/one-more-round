@@ -20,13 +20,16 @@
 - POST `/groups/:group/players`、`/games`：以 `name` 添加玩家或手动桌游。
 - POST `/groups/:group/manage`：`action`、`target`、`value`。`claim` 申请关联 `target` 指定的已有档案；`claim-new` 以 `value` 为昵称创建新档案并同时申请关联。其余操作包括 `rename`、`alias`、`remove`、`transfer`、`approve`、`reject`、`revoke`；关联均由组主确认，服务端拒绝重复申请和重复绑定。
 - GET/POST `/groups/:group/invites`：组主查看/创建邀请；7 天有效、可多人使用、可撤销，链接密钥只在创建响应中返回。链接仍为 `/join#令牌`，使用 fragment 避免进入 HTTP 访问日志。无效、过期和撤销返回不同中文提示，HTTP 400；数据库故障保留系统错误语义。
+- GET `/groups/:group/export`：仅组主可下载 ZIP 备份，包含 `one-more-round.json`、`rounds.csv` 和已关联照片原图；导出包含仍在 7 天恢复期内的记录。
 - 玩家名称、小组名称、游戏名称最多 255 个 Unicode 字符，与数据库字段一致。同组玩家名唯一；账号与玩家关联由数据库 `UNIQUE(group_id,account)` 约束及事务校验保证。
 
 ## 对局
 
-- GET `/groups/:group/rounds`：`from`、`to`（包含边界的 YYYY-MM-DD）、`game`、`player`；`offset` 默认 0，`limit` 默认 30、最多 100。返回当前页 `items`，全筛选范围的 `total/games/players/stats/activity`。列表和统计共用一次筛选。
+- GET `/groups/:group/rounds`：`from`、`to`（包含边界的 YYYY-MM-DD）、`game`、`player`、`q`（回忆或地点）、`location`、`mode`、`outcome`、`has_photos`；`offset` 默认 0，`limit` 默认 30、最多 100。返回当前页 `items`，全筛选范围的 `total/games/players/stats/activity`。列表和统计共用一次筛选。
+- GET `/groups/:group/rounds/recap?period=YYYY-MM|YYYY`：返回整月或整年的局数、游戏数、玩家数、记录时长、最常游戏/玩家与最多 12 张照片，不受列表分页影响。
+- GET `/groups/:group/rounds/recycle-bin`、POST `/groups/:group/rounds/:id/restore`：查看和恢复 7 天内删除的对局；恢复请求携带当前 `version`。
 - GET/POST `/groups/:group/rounds[/:id]`：详情 / 创建。
-- PUT/DELETE `/groups/:group/rounds/:id`：编辑 / 删除。删除体为 `{"version":1}`。
+- PUT/DELETE `/groups/:group/rounds/:id`：编辑 / 移入回收站。删除体为 `{"version":1}`；删除后立即从列表和统计移除，7 天后后台永久清理。
 - 创建必须带 `Idempotency-Key`（16—128 字符）；按账号和小组隔离。同键相同内容返回已有记录；同键不同内容返回 409；已删除的提交不会重新创建。
 - 编辑携带读取时的 `version`；在事务中校验，成功递增。最近修改人和时间由服务端填写。
 
@@ -55,6 +58,11 @@
 - 上传前记录 `uploading` 状态，大小图均上传成功且重新验证成员身份后标记为 `ready`。失败上传补偿删除，取消请求也有独立且有界的清理期限；进程异常退出留下的上传记录由过期清理回收。
 - 清理在小组事务锁内将照片标记为 `deleting`，该状态不能再读取或关联；事务外删除 OSS 对象，全部删除成功才移除元数据。失败状态保留到后续清理重试，避免网络故障遗留无法追踪的对象。照片从对局解除关联后重新计算 7 天保留期。
 - 备份应同时覆盖 MySQL 元数据和 OSS 对象。不要给整个 `image/` 前缀设置 7 天过期规则，已关联的历史照片需长期保留；已有本地照片需在切换前单独迁移。
+
+## 通知
+
+- GET `/notifications`：返回当前账号最多 100 条新近站内通知及未读数，覆盖新成员加入、玩家关联申请/处理和 24 小时内到期的小组邀请。
+- POST `/notifications/:id/read`：只能把当前账号自己的通知标为已读。
 
 ## 运维
 

@@ -1,28 +1,39 @@
 package services
 
 import (
+	"archive/zip"
+	"bytes"
 	"context"
+	"encoding/csv"
+	"encoding/json"
+	"errors"
+	"io"
 	"slices"
 	"sort"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/superwhys/one-more-round/internal/app/dto"
 	"github.com/superwhys/one-more-round/internal/app/ports"
 	"github.com/superwhys/one-more-round/internal/converter"
+	"github.com/superwhys/one-more-round/internal/domain/diary"
 	"github.com/superwhys/one-more-round/internal/domain/game"
 	"github.com/superwhys/one-more-round/internal/domain/group"
 	"github.com/superwhys/one-more-round/internal/errcode"
+	"github.com/superwhys/one-more-round/internal/pkg/secure"
 )
 
 // GroupApp handles groups, their players, games, invitations and membership.
 type GroupApp struct {
 	repos     ports.Repositories
+	photos    ports.PhotoFiles
 	converter *converter.Converter
 }
 
 // NewGroupApp builds the group application service.
 func NewGroupApp(ctx *AppContext) *GroupApp {
-	return &GroupApp{repos: ctx.Repos, converter: ctx.Converter}
+	return &GroupApp{repos: ctx.Repos, photos: ctx.Photos, converter: ctx.Converter}
 }
 
 // List returns the groups the account belongs to.
@@ -156,7 +167,23 @@ func (a *GroupApp) Manage(ctx context.Context, groupID, userID string, req *dto.
 			_, e := gameService(repos).Rename(ctx, groupID, req.Target, req.Value)
 			return e
 		}
-		return groupService(repos).Manage(ctx, groupID, userID, req.Action, req.Target, req.Value)
+		current, err := groupService(repos).RequireMember(ctx, groupID, userID)
+		if err != nil {
+			return err
+		}
+		if err = groupService(repos).Manage(ctx, groupID, userID, req.Action, req.Target, req.Value); err != nil {
+			return err
+		}
+		now := time.Now().UTC()
+		switch req.Action {
+		case "claim", "claim-new":
+			return createNotification(ctx, repos, current.Group.Owner, groupID, "claim_requested", "新的玩家关联申请", "有成员申请关联玩家档案，请前往小组页面处理。", "/group", "claim-requested:"+groupID+":"+userID+":"+secure.NewID(), now)
+		case "approve":
+			return createNotification(ctx, repos, req.Target, groupID, "claim_approved", "玩家关联已通过", "组主已确认你的玩家档案关联。", "/group", "claim-approved:"+groupID+":"+req.Target+":"+secure.NewID(), now)
+		case "reject":
+			return createNotification(ctx, repos, req.Target, groupID, "claim_rejected", "玩家关联未通过", "组主未通过本次玩家档案关联，你可以重新申请。", "/group", "claim-rejected:"+groupID+":"+req.Target+":"+secure.NewID(), now)
+		}
+		return nil
 	})
 }
 
@@ -205,11 +232,129 @@ func (a *GroupApp) PreviewInvite(ctx context.Context, token string) (dto.InviteP
 func (a *GroupApp) Join(ctx context.Context, userID string, req *dto.JoinReq) (string, error) {
 	var groupID string
 	if err := a.repos.WithTransaction(ctx, func(repos ports.Repositories) error {
-		var e error
-		groupID, e = groupService(repos).Join(ctx, userID, req.Token, time.Now().UTC())
-		return e
+		now := time.Now().UTC()
+		service := groupService(repos)
+		invited, e := service.InvitedGroup(ctx, req.Token, now)
+		if e != nil {
+			return e
+		}
+		_, memberErr := service.RequireMember(ctx, invited.ID, userID)
+		alreadyMember := memberErr == nil
+		if memberErr != nil && !errors.Is(memberErr, errcode.ErrForbidden) {
+			return memberErr
+		}
+		groupID, e = service.Join(ctx, userID, req.Token, now)
+		if e != nil || alreadyMember || invited.Owner == userID {
+			return e
+		}
+		return createNotification(ctx, repos, invited.Owner, invited.ID, "member_joined", "有朋友加入了小组", "一位新成员通过邀请加入了你的小组。", "/group", "member-joined:"+invited.ID+":"+userID, now)
 	}); err != nil {
 		return "", err
 	}
 	return groupID, nil
+}
+
+// Export builds an owner-only ZIP backup with JSON, CSV and original photos.
+func (a *GroupApp) Export(ctx context.Context, groupID, userID string) ([]byte, error) {
+	var snapshot *group.Snapshot
+	var rounds, deleted []*diary.Round
+	err := a.repos.WithTransaction(ctx, func(repos ports.Repositories) error {
+		current, e := groupService(repos).RequireMember(ctx, groupID, userID)
+		if e != nil {
+			return e
+		}
+		if !current.IsOwner(userID) {
+			return errcode.ErrForbidden
+		}
+		snapshot = current
+		if rounds, e = repos.Round().ListByGroup(ctx, groupID); e != nil {
+			return e
+		}
+		deleted, e = repos.Round().ListDeletedByGroup(ctx, groupID, time.Now().UTC().Add(-RoundRecycleRetention))
+		return e
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	manifest := struct {
+		ExportedAt time.Time    `json:"exported_at"`
+		Snapshot   dto.Snapshot `json:"snapshot"`
+		Rounds     []dto.Round  `json:"rounds"`
+		RecycleBin []dto.Round  `json:"recycle_bin"`
+	}{time.Now().UTC(), a.converter.SnapshotDomainToDTO(snapshot), a.converter.RoundDomainListToDTOList(rounds), a.converter.RoundDomainListToDTOList(deleted)}
+
+	var buffer bytes.Buffer
+	archive := zip.NewWriter(&buffer)
+	jsonFile, e := archive.Create("one-more-round.json")
+	if e == nil {
+		e = json.NewEncoder(jsonFile).Encode(manifest)
+	}
+	if e != nil {
+		_ = archive.Close()
+		return nil, e
+	}
+	csvFile, e := archive.Create("rounds.csv")
+	if e != nil {
+		_ = archive.Close()
+		return nil, e
+	}
+	writer := csv.NewWriter(csvFile)
+	_ = writer.Write([]string{"id", "date", "game", "mode", "outcome", "players", "location", "minutes", "memory", "deleted_at"})
+	gameNames, playerNames := map[string]string{}, map[string]string{}
+	for _, item := range snapshot.Games {
+		gameNames[item.ID] = item.Name
+	}
+	for _, item := range snapshot.Players {
+		playerNames[item.ID] = item.Name
+	}
+	all := append(append([]*diary.Round{}, rounds...), deleted...)
+	photoIDs := map[string]bool{}
+	for _, round := range all {
+		players := make([]string, 0, len(round.Players))
+		for _, id := range round.Players {
+			players = append(players, playerNames[id])
+		}
+		minutes := ""
+		if round.Minutes != nil {
+			minutes = strconv.Itoa(*round.Minutes)
+		}
+		deletedAt := ""
+		if round.DeletedAt != nil {
+			deletedAt = round.DeletedAt.Format(time.RFC3339)
+		}
+		_ = writer.Write([]string{round.ID, round.Date, gameNames[round.GameID], round.Mode, round.Outcome, strings.Join(players, "、"), round.Location, minutes, round.Memory, deletedAt})
+		for _, id := range round.Photos {
+			photoIDs[id] = true
+		}
+	}
+	writer.Flush()
+	if e = writer.Error(); e != nil {
+		_ = archive.Close()
+		return nil, e
+	}
+	for id := range photoIDs {
+		content, readErr := a.photos.Read(ctx, id, false)
+		if readErr != nil {
+			_ = archive.Close()
+			return nil, readErr
+		}
+		entry, createErr := archive.Create("photos/" + id + ".jpg")
+		if createErr == nil {
+			_, createErr = io.Copy(entry, content.Body)
+		}
+		closeErr := content.Body.Close()
+		if createErr != nil {
+			_ = archive.Close()
+			return nil, createErr
+		}
+		if closeErr != nil {
+			_ = archive.Close()
+			return nil, closeErr
+		}
+	}
+	if err = archive.Close(); err != nil {
+		return nil, err
+	}
+	return buffer.Bytes(), nil
 }

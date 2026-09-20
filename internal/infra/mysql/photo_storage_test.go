@@ -275,8 +275,15 @@ func TestPhotoDetachPersistsRetentionAndAbandonedUploadCleanup(t *testing.T) {
 		t.Fatal(err)
 	}
 	p, err = s.repos.Photo().Get(ctx, g.ID, id)
-	if err != nil || p.Created.Before(time.Now().Add(-time.Minute)) {
-		t.Fatalf("detached retention not persisted: %v", err)
+	if err != nil || !p.Attached() {
+		t.Fatalf("recoverable round photo detached early: %#v, %v", p, err)
+	}
+	if err = services.CleanDeletedRounds(ctx, s.repos, time.Now().Add(time.Hour)); err != nil {
+		t.Fatal(err)
+	}
+	p, err = s.repos.Photo().Get(ctx, g.ID, id)
+	if err != nil || p.Attached() || p.Created.Before(time.Now().Add(-time.Minute)) {
+		t.Fatalf("expired round photo retention not persisted: %#v, %v", p, err)
 	}
 	// A crash after the first object was written leaves an uploading row. Its
 	// ID must remain discoverable and become reclaimable after retention.

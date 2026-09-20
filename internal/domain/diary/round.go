@@ -28,6 +28,7 @@ type Round struct {
 	Photos                                   []string
 	Author, UpdatedBy                        string
 	UpdatedAt                                time.Time
+	DeletedAt                                *time.Time
 	Version                                  int
 }
 
