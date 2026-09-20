@@ -15,8 +15,31 @@ const inviteOpen = ref(false)
 </script>
 
 <template>
-<template v-if="snapshot"><header class="d-page-heading"><div><p class="d-eyebrow">{{ 'GOOD TIMES, TOGETHER' }}</p><h1>{{ '一起玩过的日子' }}<span class="d-title-dot">。</span></h1><p>输赢是一时，相聚值得记很久。</p></div><RouterLink to="/recaps" class="d-button secondary"><Icon name="calendar" />月度 / 年度回顾</RouterLink></header><RequestStatus :loading="loading" :error="error" @retry="load()" /><RoundOverview :page="page" />
-<RoundHistory :snapshot="snapshot" :page="page" :loading="loading" :error="error" :owner="owner" @filter="apply" @more="load(true)" @invite="inviteOpen = true" />
-<GroupInviteDialog v-if="inviteOpen" :group-id="groupId" @close="inviteOpen = false" @access-error="handleAccessError" />
-</template>
+  <template v-if="snapshot"
+    ><header class="d-page-heading">
+      <div>
+        <p class="d-eyebrow">{{ 'GOOD TIMES, TOGETHER' }}</p>
+        <h1>{{ '一起玩过的日子' }}<span class="d-title-dot">。</span></h1>
+        <p>输赢是一时，相聚值得记很久。</p>
+      </div>
+      <RouterLink to="/recaps" class="d-button secondary"><Icon name="calendar" />月度 / 年度回顾</RouterLink>
+    </header>
+    <RequestStatus :loading="loading" :error="error" @retry="load()" /><RoundOverview :page="page" />
+    <RoundHistory
+      :snapshot="snapshot"
+      :page="page"
+      :loading="loading"
+      :error="error"
+      :owner="owner"
+      @filter="apply"
+      @more="load(true)"
+      @invite="inviteOpen = true"
+    />
+    <GroupInviteDialog
+      v-if="inviteOpen"
+      :group-id="groupId"
+      @close="inviteOpen = false"
+      @access-error="handleAccessError"
+    />
+  </template>
 </template>

@@ -6,6 +6,7 @@
 /config.json
 *.tsbuildinfo
 .DS_Store
+.pnpm-store/
 /data/
 /trial-invitation.txt
 /content

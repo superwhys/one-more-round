@@ -13,7 +13,9 @@ const initial = computed(() => Array.from(props.name.trim())[0]?.toUpperCase() ?
 <template>
   <span class="d-player-chip" :class="{ stacked }">
     <span class="d-avatar" aria-hidden="true">{{ initial }}</span>
-    <span class="d-player-label">{{ name }}{{ me ? '（我）' : '' }}<small v-if="subtitle">{{ subtitle }}</small></span>
+    <span class="d-player-label"
+      >{{ name }}{{ me ? '（我）' : '' }}<small v-if="subtitle">{{ subtitle }}</small></span
+    >
     <slot />
   </span>
 </template>

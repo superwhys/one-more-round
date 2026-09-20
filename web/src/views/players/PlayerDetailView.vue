@@ -19,8 +19,37 @@ const inviteOpen = ref(false)
 </script>
 
 <template>
-<template v-if="snapshot"><RequestStatus :loading="loading" :error="error" @retry="load()" /><template v-if="current"><header class="d-page-heading"><div><p class="d-eyebrow">STORIES AT OUR TABLE</p><h1>{{ current.name }}<span class="d-title-dot">。</span></h1><p>输赢是一时，相聚值得记很久。</p></div></header><RoundOverview :page="page" /><RoundStatistics :snapshot="snapshot" :items="page.stats" :player-id="id" />
-<RoundHistory :snapshot="snapshot" :page="page" :loading="loading" :error="error" :owner="owner" fixed-player @filter="apply" @more="load(true)" @invite="inviteOpen = true" />
-<GroupInviteDialog v-if="inviteOpen" :group-id="groupId" @close="inviteOpen = false" @access-error="handleAccessError" />
-</template><div v-else class="d-empty"><h2>这页回忆不存在。</h2><RouterLink to="/">回到回顾</RouterLink></div></template>
+  <template v-if="snapshot"
+    ><RequestStatus :loading="loading" :error="error" @retry="load()" /><template v-if="current"
+      ><header class="d-page-heading">
+        <div>
+          <p class="d-eyebrow">STORIES AT OUR TABLE</p>
+          <h1>{{ current.name }}<span class="d-title-dot">。</span></h1>
+          <p>输赢是一时，相聚值得记很久。</p>
+        </div>
+      </header>
+      <RoundOverview :page="page" /><RoundStatistics :snapshot="snapshot" :items="page.stats" :player-id="id" />
+      <RoundHistory
+        :snapshot="snapshot"
+        :page="page"
+        :loading="loading"
+        :error="error"
+        :owner="owner"
+        fixed-player
+        @filter="apply"
+        @more="load(true)"
+        @invite="inviteOpen = true"
+      />
+      <GroupInviteDialog
+        v-if="inviteOpen"
+        :group-id="groupId"
+        @close="inviteOpen = false"
+        @access-error="handleAccessError"
+      />
+    </template>
+    <div v-else class="d-empty">
+      <h2>这页回忆不存在。</h2>
+      <RouterLink to="/">回到回顾</RouterLink>
+    </div></template
+  >
 </template>

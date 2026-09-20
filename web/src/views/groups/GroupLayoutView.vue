@@ -10,19 +10,34 @@ const route = useRoute()
 const router = useRouter()
 const { selected } = useSession()
 const { snapshot, refresh, handleAccessError } = provideGroupContext(selected.value)
-const loading = ref(true); const error = ref('')
+const loading = ref(true)
+const error = ref('')
 async function load() {
-  if (!selected.value) { await router.replace('/join'); return }
-  loading.value = true; error.value = ''
-  try { await refresh() } catch (cause) { error.value = message(cause); await handleAccessError(cause) }
-  finally { loading.value = false }
+  if (!selected.value) {
+    await router.replace('/join')
+    return
+  }
+  loading.value = true
+  error.value = ''
+  try {
+    await refresh()
+  } catch (cause) {
+    error.value = message(cause)
+    await handleAccessError(cause)
+  } finally {
+    loading.value = false
+  }
 }
 onMounted(load)
 </script>
 
 <template>
-<JournalLayout :group-name="snapshot?.group.name ?? ''" :section="String(route.meta.section ?? 'review')" :editor="!!route.meta.editor">
-  <RequestStatus :loading="loading" :error="error" @retry="load" />
-  <RouterView v-if="snapshot" v-slot="{ Component }"><component :is="Component" :key="route.fullPath" /></RouterView>
-</JournalLayout>
+  <JournalLayout
+    :group-name="snapshot?.group.name ?? ''"
+    :section="String(route.meta.section ?? 'review')"
+    :editor="!!route.meta.editor"
+  >
+    <RequestStatus :loading="loading" :error="error" @retry="load" />
+    <RouterView v-if="snapshot" v-slot="{ Component }"><component :is="Component" :key="route.fullPath" /></RouterView>
+  </JournalLayout>
 </template>
