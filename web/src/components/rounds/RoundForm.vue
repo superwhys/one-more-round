@@ -12,7 +12,7 @@ const maxPhotos = 3
 const maxPhotoBytes = 2 * 1024 * 1024
 type RoundWithLegacyLocation = Round & { location?: unknown }
 function copyRound(round: Round): Round {
-  const copy = structuredClone(round) as RoundWithLegacyLocation
+  const copy = JSON.parse(JSON.stringify(round)) as RoundWithLegacyLocation
   delete copy.location
   return copy
 }
