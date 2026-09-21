@@ -1,19 +1,159 @@
 # 又一局 · One More Round
 
-记下每一局的输赢与相聚。熟人小组的私密对局日记，Vue 3 + TypeScript + Go + MySQL，前端嵌入单个 Go 二进制。
+> 记下每一局的输赢与相聚。
 
-当前已接入真实持久化与业务接口：邮箱验证码和试用邀请、小组创建/加入/切换、成员管理与玩家关联、手动游戏、三种模式记局、草稿、照片授权访问、高级筛选与统计、月度/年度回顾和分享卡片、站内通知、7 天回收站，以及组主 ZIP 备份导出。正式入口为 `/`。
+又一局是**面向熟人桌游小组的共同对局日记**。聚会结束后，用手机快速记下游戏、玩家和结果，可附感想与照片；之后小组成员一起回顾共同经历，查看轻量统计。
 
-**尚未完成的外部条件：**BGG 搜索导入及关联/合并未接入，当前返回明确未授权提示，可手动添加。真实邮件服务商和部署环境尚未配置；已使用本地 SMTP 收件箱完成联调。60 秒记录目标与 2—3 个真实小组的两周试用尚未进行。
+**首版核心目标：让「记一局」足够简单，让记录值得再次打开。**
 
-需求见 [PRD](docs/PRD.md)，字段与权限见 [接口契约](docs/API.md)，实施记录见 [实施与验收](docs/IMPLEMENTATION.md)。
+- 手机浏览器优先，兼顾电脑；界面为中文，默认北京时间。
+- 以固定小组为边界，组内内容私有，不对外公开。
+- 通用记录，不实现任何单款桌游的专属结算规则。
+- 当前为 V0.1 邀请试用版：首次注册需要试用邀请或小组邀请，不开放公开注册。
 
-## 启动
+## 产品定位
 
-需要 Go 1.27.1、Node.js >=22.12、pnpm 11.22.0、MySQL（本地验证版本 9.0.1）及 SMTP。MySQL 数据库和专用账号需提前准备；不要使用生产数据库做联调。
+| 维度 | 首版选择 |
+| --- | --- |
+| 使用人群 | 经常一起玩桌游的熟人小圈子 |
+| 记录时机 | 对局结束后快速录入 |
+| 游戏规则 | 通用记录，不开发单款桌游计分规则 |
+| 组织方式 | 固定小组，记录在组内共享 |
+| 玩家身份 | 记录人需要账号，其他玩家可以只有昵称 |
+| 内容重心 | 对局回忆、文字与照片，辅以轻量统计 |
+| 设备 | 手机浏览器优先，兼顾电脑 |
+| 游戏资料 | 支持外部资料库检索，允许手动补充 |
+| 发布范围 | 邀请制免费试用 |
 
-1. 将 `config.example.json` 复制为 `config.json`（已被 Git 和 Docker 构建上下文忽略），填写 `app.mysql`、`app.smtp`、`app.origin` 和 `app.oss`。真实 AccessKey 只放在私有配置文件中，示例中的凭证保持为空。
-2. `app.origin` 必须是浏览器实际访问的源，例如 `http://127.0.0.1:8080`，不能带末尾斜杠。公网部署要求 HTTPS，Cookie 自动启用 Secure。
+## 核心流程
+
+**首次使用**
+
+```text
+接受试用邀请 → 邮箱验证码登录 → 创建小组
+或：打开小组邀请 → 验证邮箱注册/登录并加入小组 → 建立自己的玩家档案 → 记录第一局
+```
+
+创建小组时填写小组名称和自己的玩家昵称，创建者成为组主，并自动创建、关联自己在该小组的玩家档案。录入整桌玩家时可直接输入昵称，不要求其他玩家注册；朋友后续加入小组时，可以新建玩家档案，或申请关联已有档案以保留之前的战绩，两种方式均由组主确认。
+
+**日常记局**
+
+```text
+点「记一局」 → 选游戏 → 选玩家 → 填结果 → 可选补充回忆与照片 → 保存
+```
+
+为减少输入，表单默认当前小组和今天的日期，游戏与玩家优先展示最近玩过的；感想、照片、时长都可跳过。保存后提供「查看记录」和「再记一局」——后者沿用游戏与玩家，只清空结果、分数与回忆，适合连续玩同一款游戏。
+
+## 页面结构
+
+```text
+试用邀请 → 邮箱登录 → 创建/加入小组 → 回顾
+                                      ├─ 对局详情 → 编辑对局
+                                      ├─ 记一局 → 保存成功
+                                      ├─ 桌游 → 桌游详情 → 历史对局
+                                      └─ 小组 → 玩家详情 / 邀请 / 管理
+```
+
+手机底部固定「回顾 / 桌游 / 小组」，并保留始终容易找到的「＋ 记一局」主按钮；电脑使用左侧导航，信息结构一致，只是增加列表与详情的展示空间。回顾首页以按日期倒序的时间线为主，不使用排行榜作为主视觉。
+
+## 功能亮点
+
+- **邮箱验证码登录**：试用邀请用于首批注册并自行创建小组；小组邀请允许验证邮箱后自动注册并加入指定小组，7 天内可多人使用、可撤销。
+- **小组与成员管理**：创建、加入、切换小组，管理成员与昵称玩家，支持组主转让；成员退出或被移除后立即失去访问权限，历史参与记录保留。
+- **玩家档案与账号关联**：账号负责登录与权限，玩家档案负责历史参与；关联申请由组主确认，每个账号在同一小组最多关联一个档案。
+- **手动游戏资料**：添加本组游戏、设置中文别名、按游戏查看历史对局与战绩；缺封面时使用统一占位图。
+- **三种模式记局**：个人竞技、组队竞技、合作，支持共同获胜、平局、未记结果与分数记录。
+- **草稿保护**：表单按账号和小组隔离自动保留草稿，保存失败不丢输入，退出账号时清除。
+- **照片**：独立上传、逐个显示进度，失败可重试或移除，不影响其余内容保存。
+- **筛选与统计**：按日期区间、游戏、玩家、模式、结果、是否有照片筛选，列表与统计共用同一筛选条件。
+- **回顾与分享卡片**：月度与年度回顾，以及可下载的 PNG 分享卡片。
+- **对局公开分享**：记录人或组主可为单条未删除对局生成不可猜测的公开链接，重新生成后旧链接立即失效，可随时撤销。
+- **站内通知**：新成员加入、玩家关联申请与处理、即将到期的小组邀请。
+- **回收站与备份**：删除的对局保留 7 天可恢复；组主可导出小组 JSON、CSV 与照片 ZIP。
+
+## 业务规则摘要
+
+### 三种对局模式
+
+| 模式 | 录入方式 | 统计处理 |
+| --- | --- | --- |
+| 个人竞技 | 至少两人，选择获胜玩家，支持共同获胜；也可选择全局平局或未记结果 | 记录玩家胜局与有效竞技局数 |
+| 组队竞技 | 至少两队，每队至少一人，每名玩家恰好属于一队；结果与可选分数记录在队伍上 | 队员继承本队结果，单独统计组队战绩 |
+| 合作 | 一人起，可记全队胜利、全队失败或未记结果，可填团队分数 | 单独计算合作成功率 |
+
+- 共同获胜的玩家各记一胜；平局无人记胜。
+- 不根据分数推断结果，避免高分胜、低分胜与特殊规则冲突。
+- 未记结果的对局保留在时间线并计入游玩次数，但不计入胜率。
+- 单人游戏使用合作模式记录挑战成功或失败。
+
+### 统计口径
+
+| 指标 | 定义 |
+| --- | --- |
+| 游玩次数 | 当前筛选范围内的对局记录数，包含未记结果 |
+| 玩过游戏数 | 对局关联的去重游戏数 |
+| 玩家参与次数 | 玩家参与的对局数 |
+| 竞技胜率 | 胜局数 ÷ 已记录结果的竞技局数（平局计入分母） |
+| 合作成功率 | 成功局数 ÷ 已记录结果的合作局数 |
+
+- 按具体游戏和模式分别展示战绩，不生成跨游戏综合实力排名。
+- 所有比例同时显示样本数，例如「60% · 3 胜 / 5 局」；没有有效样本时显示「暂无数据」。
+- 小组总局数按对局记录计数，不累加各玩家的参与次数。
+
+### 权限
+
+| 角色 | 权限 |
+| --- | --- |
+| 组主 | 查看全部记录、记录对局、管理组内记录与成员、确认玩家关联、管理游戏 |
+| 普通成员 | 查看全部组内记录、记录对局、添加游戏与昵称玩家、修改或删除自己创建的记录 |
+| 未注册昵称玩家 | 作为参与者出现在记录中，没有访问权限 |
+| 非小组成员 | 不能查看组内对局、照片与统计 |
+
+所有组内读写、统计与照片都在服务端校验当前成员身份，资源 ID 与小组必须一致。
+
+### 关键数值约束
+
+- **分数**：十进制字符串或空值，整数最多 12 位、小数最多 4 位，支持负数；空值与零严格区分，超精度直接拒绝而不是静默舍入。
+- **回忆**：最多 500 个 Unicode 字符（按字符而非字节校验）。
+- **照片**：每局最多 3 张，单张原始文件不超过 2 MiB；浏览器先压缩至最长边 1600px，服务端重编码去除定位元数据后只保存一张 JPEG 展示图。
+- **日期**：默认北京时间今天，支持补录历史日期；审计时间保存为带时区的时间戳。
+- **并发安全**：创建对局使用服务端幂等键，重复提交不产生重复记录；编辑与删除携带版本号原子校验，冲突时提示刷新而不静默覆盖。
+
+## 技术栈
+
+| 层面 | 选型 |
+| --- | --- |
+| 后端 | Go 1.27.1、Gin、[goutils](https://github.com/miebyte/goutils) |
+| 数据 | MySQL，GORM + `gorm.io/gen` 生成 Query，启动时按 Model 自动迁移 |
+| 前端 | Vue 3 + TypeScript + Vite + pnpm 11.22.0 |
+| 照片 | 阿里云 OSS 私有 Bucket，服务端鉴权后流式转发 |
+| 邮件 | SMTP（465 直接 TLS，其他服务器要求 STARTTLS） |
+| 会话 | 数据库存摘要的 Cookie 会话，HttpOnly、SameSite=Strict、生产 Secure |
+| 打包 | 前端产物经 `go:embed` 嵌入，交付单个 Go 二进制，生产不依赖 Node 或 Vite |
+| 接口文档 | `swag` 注解生成到 `cmd/swagger/docs` |
+
+架构采用职责清晰的 DDD 分层：`API → Application → Domain ← Infrastructure`，由 `main.go` 组装依赖。持久化 Model、Domain 实体与应用 DTO 三类模型分离，转换集中在 `internal/converter`。
+
+```text
+main.go             # 配置、依赖注入、服务启动
+api/                # HTTP 装配：路由表、会话与错误、中间件、资源路由
+cmd/swagger/        # swag 生成入口与文档产物
+config/             # 配置结构与启动校验
+internal/app/       # dto / ports / services（每个业务边界一个 XxxApp）
+internal/converter/ # Model ↔ Domain ↔ DTO 的唯一转换入口
+internal/domain/    # identity、group、game、diary、photo 等领域模型与仓储接口
+internal/infra/     # mysql、photos、mail 等基础设施适配
+internal/errcode/   # 业务错误码 + HTTP 状态 + 提示文案
+web/                # Vue 项目与 Go 静态资源嵌入入口
+docs/               # PRD、接口契约、设计稿与实施记录
+```
+
+## 快速开始
+
+需要 Go 1.27.1、Node.js >= 22.12、pnpm 11.22.0、MySQL（本地验证版本 9.0.1）及 SMTP。
+
+1. 将 `config.example.json` 复制为 `config.json`，填写 `app.mysql`、`app.smtp`、`app.origin` 和 `app.oss`。该文件已被 Git 忽略，真实凭证只放在私有配置中。
+2. `app.origin` 必须是浏览器实际访问的源，例如 `http://127.0.0.1:8080`，不能带末尾斜杠。公网部署要求 HTTPS，Cookie 会自动启用 Secure。
 3. 构建并启动：
 
 ```sh
@@ -21,145 +161,51 @@ make build
 ./bin/one-more-round --configFile ./config.json
 ```
 
-启动执行 GORM 自动迁移，按 Model 补齐缺失的表、列和索引。业务数据、配置、OSS 照片均独立于二进制；生产无需 Node、Vite 或外部 `web/dist`。
-
-SMTP 465 使用直接 TLS，其他外部服务器要求 STARTTLS。只允许本机 SMTP 收件箱使用明文连接；发送操作有连接/读写超时与请求取消。验证码不写入应用日志。生产请填写真实 SMTP 发件地址与账号。
-
-## 照片存储（阿里云 OSS）
-
-`app.oss` 的 Bucket、Region、Endpoint、Prefix 和 AccessKey 均从 `config.json` 读取，不写入代码。当前 Bucket 为 `one-more-round`，Region 为 `cn-shenzhen`，对象前缀为 `image/`（不包含 `*`）；新上传只生成 `image/<照片ID>.jpg` 一张展示图。列表、详情、放大查看和导出使用同一图片；旧 `?size=thumb` 请求仍可用，主对象不存在时回退读取旧 `-thumb.jpg`。
-
-浏览器先将照片缩至最长边 1600px，再顺序上传。后端在完整解码前拒绝超尺寸文件，仅做 JPEG 规范化重编码（去除 EXIF/GPS），不再缩放或生成第二张图。整个进程的上传并发为 1，繁忙返回 503，可保留表单稍后重试。原始选图和上传文件都保留 2 MiB 上限。更新时需同时发布内嵌前端；仍开着旧页面的用户遇到尺寸提示后应刷新页面再选图。
-
-- 本地测试 Endpoint：`https://oss-cn-shenzhen.aliyuncs.com`。
-- 阿里云深圳服务器 Endpoint：`https://oss-cn-shenzhen-internal.aliyuncs.com`。
-- 也接受控制台复制的完整 Bucket 域名，配置校验会去掉 Bucket 前缀，避免 SDK 重复拼接。
-- `access_id`、`access_secret` 填写专用 RAM 身份的凭证。配置文件使用 `chmod 600 config.json`；容器挂载时保证运行用户可读。不要提交配置文件、将它加入镜像，或开启会输出完整配置的 `--debug --watchConfig` 组合。
-
-Bucket 保持私有，程序上传时明确设置对象为 `private`。浏览器仅通过现有图片 API 访问，由 Go 服务校验成员权限后打开 OSS 响应流，并通过 `DataFromReader` 分块转发，不预先读取整张图片；不返回公开地址或签名链接。读取超时覆盖整个传输过程，结束或客户端断开时关闭上游流。上传后再次校验成员身份，上传中和待删除状态不能读取或关联。打开图片失败时，OSS 故障返回 503，与图片不存在的 404 区分；图片已开始发送后发生故障会停止传输，不向图片正文追加 JSON。
-
-RAM 授权需覆盖以下对象范围；若有其他显式拒绝或资源组限制，还需检查对应策略。无需为了上传授予整个账号的 OSS 管理权限。
-
-```json
-{
-  "Version": "1",
-  "Statement": [{
-    "Effect": "Allow",
-    "Action": ["oss:PutObject", "oss:GetObject", "oss:DeleteObject"],
-    "Resource": ["acs:oss:*:*:one-more-round/image/*"]
-  }]
-}
-```
-
-首次接入需使用真实凭证验证，不能以编译通过代替。以下测试会在配置前缀下上传两张随机命名的测试图片，读取校验后删除，不修改业务数据库；平时测试不会自动访问 OSS：
-
-```sh
-OMR_TEST_OSS_CONFIG="$PWD/config.json" go test -count=1 -run '^TestOSSLive$' -v ./internal/infra/photos
-```
-
-存储实现使用 [OSS Go SDK V2](https://help.aliyun.com/zh/oss/developer-reference/manual-for-go-sdk-v2/)，权限依据 [PutObject](https://help.aliyun.com/zh/oss/developer-reference/putobject)。原有本地照片如需保留，应先按相同文件名上传到配置的前缀并校验，再切换服务；本次不会自动迁移或删除旧目录。
-
-切换时同时更新二进制与 `app.oss` 配置，旧的 `app.photo_dir` 配置不再使用。`AutoMigrate` 新增照片状态列，已有元数据默认就绪；切换期间避免新旧版本同时写入，因为旧版本不识别上传中和待删除状态。
-
-## 发放首次试用邀请
-
-使用同一配置创建一次性邀请，写入仅当前用户可读的文件，7 天有效：
-
-```sh
-./bin/one-more-round --configFile ./config.json --trial-output ./trial-invitation.txt
-```
-
-命令不覆盖已有文件。把文件内链接交给首批试用者即可；不要提交或公开该文件。已有账号无需再用试用邀请。组主可在小组页生成/撤销小组邀请：朋友只需打开一条链接并验证邮箱，即可注册或登录并加入，不需要额外试用邀请码。小组链接 7 天内可供多人使用，获得或被转发链接的人均可加入，请只分享给信任的朋友。
-
-撤销尚未使用的试用邀请：
-
-```sh
-./bin/one-more-round --configFile ./config.json --revoke-trial-file ./trial-invitation.txt
-```
+启动时执行 GORM 自动迁移，按 Model 补齐缺失的表、列与索引。业务数据、配置与照片均独立于二进制。
 
 ## 开发
 
 ```sh
 # config.json 中 app.origin 设置为 http://127.0.0.1:5173
-make dev-api
-# 另一个终端：
-make dev-web
+make dev-api    # 启动后端
+make dev-web    # 另一个终端启动 Vite，API 代理到 127.0.0.1:8080
 ```
-
-Vite 将 API 代理到 `127.0.0.1:8080`。切回单二进制访问前，将 origin 改为实际服务地址。服务端使用数据库 Cookie 会话，写操作校验 Origin，不启用任意跨域。
-
-## Docker 镜像发布
-
-`Dockerfile` 会先按 `pnpm-lock.yaml` 构建前端，再编译内嵌前端资源的 Linux Go 二进制；运行镜像以非 root 用户启动，监听 `0.0.0.0:8080`。部署时将私有生产配置只读挂载到 `/app/config.json`，照片存入 OSS，不再需要本地照片数据卷。深圳服务器使用上述内网 Endpoint。
-
-推送形如 `server/0.1.0` 的 Git 标签会触发 `.github/workflows/docker-image.yml`，并发布：
-
-```text
-crpi-zl1i6kvg9tgjh9f7.cn-shenzhen.personal.cr.aliyuncs.com/hoven-prod/one-more-round:0.1.0
-```
-
-GitHub 仓库需配置与参考项目相同的 `DOCKERHUB_USERNAME`、`DOCKERHUB_TOKEN` Secrets，内容分别为阿里云 ACR 用户名和访问凭据。镜像标签只接受字母、数字、点、下划线和连字符。
-
-数据库表 Model 位于 `internal/infra/mysql/models`（`models.AllModels()` 供 `AutoMigrate` 使用），业务仓储使用 `gorm.io/gen` 生成的 `internal/infra/mysql/query`，按业务上下文拆在 `internal/infra/mysql/{identity,group,game,diary,photo}.go`，由 `RepositoryFactory` 汇总；Model ↔ Domain ↔ DTO 的转换集中在 `internal/converter`。API DTO 在 `internal/app/dto`，用例在 `internal/app/services`（每个边界一个 `XxxApp`），事务/邮件/文件等端口在 `internal/app/ports`；业务错误与随机标识分别在 `internal/errcode`、`internal/pkg/secure`。修改 Model 后执行：
 
 ```sh
-make generate  # 等价于 go generate ./internal/infra/mysql；无需数据库连接
-make swagger   # 依据 api/ 注解重新生成 cmd/swagger/docs
+make check      # 锁定依赖、TS 检查、生产构建、前端测试、Go 测试/vet、空白检查
+make build      # 同一前端构建顺序 + 二进制
+make integration  # 独立临时 MySQL 上运行 race 测试，结束后清理
+make generate   # Model 变更后重新生成 gorm gen Query
+make swagger    # 依据 api/ 注解重新生成接口文档
 ```
 
-生成器版本锁定在 `go.mod`，`query/*.gen.go` 随源码入库，不能手改。表结构由启动时的 `AutoMigrate` 按 Model 维护；业务读写使用带 Context 的 Gen Query，事务内所有 Query 绑定同一连接。
+`query/*.gen.go` 与 `cmd/swagger/docs` 随源码入库，不能手改。前端源码需使用项目锁定的 Prettier 版本，改完在 `web/` 下运行 `pnpm format`。
 
-HTTP 层按资源拆分：`api/api.go` 是路由表与中间件装配，`api/router/<资源>.go` 只做协议适配（用 `ginutils.RequestHandler` 绑定与校验），`api/common` 负责会话 Cookie 与统一错误响应，`api/middleware` 负责会话校验、来源校验、日志上下文与兜底恢复。业务失败同时给出稳定业务码（`code`）和语义化 HTTP 状态，前端以 `code` 判断成败、以 HTTP 状态处理传输层失败。接口文档由注解生成到 `cmd/swagger/docs`，开发环境访问 `/swagger/`，`app.is_prod=true` 时自动隐藏。
+## 文档
 
-## 前端结构
+| 文档 | 内容 |
+| --- | --- |
+| [PRD](docs/PRD.md) | 产品定位、业务规则、数据边界与验收场景 |
+| [接口契约](docs/API.md) | 接口字段、错误码、权限与数值约束 |
+| [前端产品稿](docs/FRONTEND_DESIGN.md) | 页面结构、内容层级与交互提案 |
+| [测试与验证](docs/TESTING.md) | 测试入口、环境变量与已验证范围 |
+| [实施与验收](docs/IMPLEMENTATION.md) | 技术选型、交付顺序与验证方式 |
+| [AGENTS.md](AGENTS.md) | 后端开发规范；前端另有 [web/AGENTS.md](web/AGENTS.md) |
 
-`web/src/routers/index.ts` 统一创建路由与处理登录/小组入口；每个正式业务页对应独立的 `views/**/*.vue`，不通过 URL 分支渲染多种页面。新增与编辑对局分别编排提交，共用 `RoundForm`；回顾、桌游详情和玩家详情共用时间线及统计组件。
+## 当前状态
 
-```text
-web/src/
-├── api/          # request.ts 统一请求；auth/group/game/round/photo 按业务封装
-├── components/   # common、layout、rounds、groups 等可复用 UI
-├── routers/      # 唯一路由实例及守卫
-├── types/        # 服务端 DTO、共享业务类型；无请求和存储副作用
-├── utils/        # 日期、结果展示、草稿清理、错误文本
-├── views/        # 登录、小组、回顾、桌游、玩家和对局独立页面
-├── composables/  # 小组上下文、异步请求与分页等共享响应式逻辑
-├── stores/       # 会话和当前小组状态
-├── styles/       # 共用视觉规则与表单样式
-├── App.vue       # 仅承载 RouterView
-├── main.ts       # 注册应用与路由
-└── style.css     # 全局基础规则
-```
+服务已部署上线，使用真实 SMTP 发信与阿里云 OSS 存储照片，正式入口为 `/`。
 
-跨层导入使用 `@/`。表单草稿仍按账号、小组和记录隔离；会话凭据仍由服务端 HttpOnly Cookie 管理。
+**尚未完成：**
 
-## 验证
+- BGG 检索未接入。官方授权尚未获批，搜索导入、关联与合并均未实现，当前明确返回降级提示，手动添加始终可用。
+- 60 秒录入目标与 2—3 个真实小组的两周试用尚未进行。
 
-```sh
-make check        # 锁定依赖、TS、生产构建、客户端测试、Go 测试/vet、空白检查
-make build        # 同一前端构建顺序 + 二进制
-make integration  # 需要 mysqld/mysqladmin/python3；创建独立临时 MySQL 并运行 race 测试，结束后关闭并清理
-```
-
-没有 `OMR_TEST_MYSQL` 时，普通 Go 测试会明确跳过 MySQL 集成用例；不能把跳过视为通过。`make integration` 不访问本机已有 MySQL 服务，不修改已有业务库。已有专用测试实例也可通过 `OMR_TEST_MYSQL=127.0.0.1:端口 go test -race ./...` 验证（需要 root 空密码，仅用于隔离测试实例）。测试创建并删除随机名称的独立数据库。
-
-安装 Playwright 与 Chrome 后，使用 `OMR_BROWSER_TEST=1 make integration` 运行小组邀请的真实浏览器回归（新邮箱注册入组、刷新恢复、已有成员进入、加入第二个组、注销清理及邀请失效提示）。若 Playwright 不在默认模块路径，可用 `OMR_PLAYWRIGHT_MODULE=file:///绝对路径/playwright/index.mjs` 指向现有安装；`OMR_BROWSER_ARTIFACTS` 可指定已存在的截图目录。测试使用隔离数据库和仅在测试服务器中存在的内存收件箱，不向外部邮箱发信。
-
-使用 `OMR_PHOTO_BROWSER_TEST=1 make integration` 验证照片限制：每局最多 3 张、单张原始文件最多 2 MiB，覆盖前端 1600px 预压缩、顺序上传、繁忙重试、损坏图片、统一图片 URL、批量选择、编辑替换、旧草稿、直接 API 拦截和 320/390px/桌面布局。沿用上述 Playwright 和截图配置，图片写入隔离的临时目录，不访问 OSS。
-
-图片内存回归（不要加 `-race`）：`OMR_PHOTO_MEMORY_TEST=1 go test -run '^TestDisplayPhotoMemoryBudget$' -count=1 -v ./internal/infra/photos`。该用例连续处理三张 1600×1600、16 位、2 MiB 的 PNG，采样额外 Go 堆峰值并要求不超过 100 MiB；不是整个进程 RSS 或服务器总内存的保证。`go test -run '^$' -bench BenchmarkDisplayPhotoMemory -benchtime=1x -benchmem ./internal/infra/photos` 可比较 JPEG、8 位和 16 位 PNG 的处理分配量。
-
-`make build` 后可同时设置 `OMR_TEST_BINARY` 为新二进制的绝对路径，集成测试会将它复制到不含 `web/dist` 的临时目录，用隔离配置/数据库启动，检查首页、邀请/登录深链接、嵌入资源及 API/资源错误分流。
-
-已验证：并发重复提交、同键异内容冲突、旧版本编辑/删除、非成员与移除成员隔离、验证码限制、跨组资源拒绝、共同获胜与统计分母、照片权限、事务失败回滚、临时照片清理。浏览器验证了登录、建组、手动游戏/玩家、草稿刷新恢复、保存与编辑、再记一局、照片上传，以及 320/390px 与桌面布局。
+**首版不做：**实时多人计分、公开社区、评论聊天、陌生人组局、Elo 排名、桌游店运营、付费订阅、原生 App，以及完整离线同步。
 
 ## 运行边界
 
-- 当前为单实例、私有 OSS 照片方案；备份 MySQL 和 OSS 对象，配置及密钥单独保管。
-- 组主可从小组页导出当前小组 JSON、CSV 与照片 ZIP；当前邀请试用规模下在内存生成，不作为超大数据集导出方案。
-- 删除的对局保留 7 天，期间仍保留照片关联；到期后后台永久清理并进入照片释放流程。
-- 未关联照片保留 7 天；启动及每小时清理。需要长时间保留的草稿应及时保存。
-- 对局响应分页最多 100 条；统计在服务端按本组数据计算，尚未针对大规模历史数据优化。
-- `/health_check` 用于进程健康检查。
-- 普通 API 错误、缺失静态资源和图片不返回 SPA 首页；前端深链接可刷新。
-- 尚未部署，没有连接远端生产或发送真实外部邮件。
+- 当前为单实例部署，对局响应分页最多 100 条，统计在服务端按本组数据计算，尚未针对大规模历史数据优化。
+- 删除的对局保留 7 天，期间保留照片关联，到期后由后台永久清理；未关联的上传照片同样保留 7 天。
+- 数据库与 OSS 对象需要分别备份，配置与密钥单独保管。
+- `/health_check` 用于进程健康检查；普通 API 错误、缺失静态资源与图片不会返回 SPA 首页，前端深链接可以刷新。
