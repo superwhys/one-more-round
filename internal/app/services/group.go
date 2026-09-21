@@ -15,8 +15,8 @@ import (
 	"time"
 
 	"github.com/superwhys/one-more-round/internal/app/dto"
+	"github.com/superwhys/one-more-round/internal/app/mapper"
 	"github.com/superwhys/one-more-round/internal/app/ports"
-	"github.com/superwhys/one-more-round/internal/converter"
 	"github.com/superwhys/one-more-round/internal/domain/diary"
 	"github.com/superwhys/one-more-round/internal/domain/game"
 	"github.com/superwhys/one-more-round/internal/domain/group"
@@ -26,14 +26,13 @@ import (
 
 // GroupApp handles groups, their players, games, invitations and membership.
 type GroupApp struct {
-	repos     ports.Repositories
-	photos    ports.PhotoFiles
-	converter *converter.Converter
+	repos  ports.Repositories
+	photos ports.PhotoFiles
 }
 
 // NewGroupApp builds the group application service.
 func NewGroupApp(ctx *AppContext) *GroupApp {
-	return &GroupApp{repos: ctx.Repos, photos: ctx.Photos, converter: ctx.Converter}
+	return &GroupApp{repos: ctx.Repos, photos: ctx.Photos}
 }
 
 // List returns the groups the account belongs to.
@@ -45,7 +44,7 @@ func (a *GroupApp) List(ctx context.Context, userID string) ([]dto.Group, error)
 	if groups == nil {
 		groups = []*group.Group{}
 	}
-	return a.converter.GroupDomainListToDTOList(groups), nil
+	return mapper.GroupDomainListToDTOList(groups), nil
 }
 
 // Create creates a group and the owner's linked player profile atomically.
@@ -62,7 +61,7 @@ func (a *GroupApp) Create(ctx context.Context, userID string, req *dto.CreateGro
 	}); err != nil {
 		return dto.Group{}, err
 	}
-	return a.converter.GroupDomainToDTO(created), nil
+	return mapper.GroupDomainToDTO(created), nil
 }
 
 // Snapshot returns the group with the games and players ordered by recent
@@ -109,7 +108,7 @@ func (a *GroupApp) Snapshot(ctx context.Context, groupID, userID string) (dto.Sn
 	}); err != nil {
 		return dto.Snapshot{}, err
 	}
-	return a.converter.SnapshotDomainToDTO(snapshot), nil
+	return mapper.SnapshotDomainToDTO(snapshot), nil
 }
 
 // AddPlayer creates a nickname profile of the group.
@@ -122,7 +121,7 @@ func (a *GroupApp) AddPlayer(ctx context.Context, groupID, userID string, req *d
 	}); err != nil {
 		return dto.Player{}, err
 	}
-	return a.converter.PlayerDomainToDTO(created), nil
+	return mapper.PlayerDomainToDTO(created), nil
 }
 
 // AddGame adds a game to the group catalogue, reusing the entry with the same
@@ -139,7 +138,7 @@ func (a *GroupApp) AddGame(ctx context.Context, groupID, userID string, req *dto
 	}); err != nil {
 		return dto.Game{}, err
 	}
-	return a.converter.GameDomainToDTO(resolved), nil
+	return mapper.GameDomainToDTO(resolved), nil
 }
 
 // SearchExternalGames reports that the external catalogue is unavailable; the
@@ -194,7 +193,7 @@ func (a *GroupApp) Invite(ctx context.Context, groupID, userID string) (dto.Invi
 	}); err != nil {
 		return dto.Invite{}, "", err
 	}
-	return a.converter.InviteDomainToDTO(invited), token, nil
+	return mapper.InviteDomainToDTO(invited), token, nil
 }
 
 // Invites lists the group's invitations for the owner.
@@ -207,7 +206,7 @@ func (a *GroupApp) Invites(ctx context.Context, groupID, userID string) ([]dto.I
 	}); err != nil {
 		return nil, err
 	}
-	return a.converter.InviteDomainListToDTOList(invites), nil
+	return mapper.InviteDomainListToDTOList(invites), nil
 }
 
 // PreviewInvite returns only the invited group's ID and name before login.
@@ -221,7 +220,7 @@ func (a *GroupApp) PreviewInvite(ctx context.Context, token string) (dto.InviteP
 	if err != nil {
 		return dto.InvitePreview{}, err
 	}
-	return a.converter.GroupDomainToInvitePreviewDTO(invited), nil
+	return mapper.GroupDomainToInvitePreviewDTO(invited), nil
 }
 
 // Join accepts a group invitation and returns the joined group.
@@ -278,7 +277,7 @@ func (a *GroupApp) Export(ctx context.Context, groupID, userID string) ([]byte, 
 		Snapshot   dto.Snapshot `json:"snapshot"`
 		Rounds     []dto.Round  `json:"rounds"`
 		RecycleBin []dto.Round  `json:"recycle_bin"`
-	}{time.Now().UTC(), a.converter.SnapshotDomainToDTO(snapshot), a.converter.RoundDomainListToDTOList(rounds), a.converter.RoundDomainListToDTOList(deleted)}
+	}{time.Now().UTC(), mapper.SnapshotDomainToDTO(snapshot), mapper.RoundDomainListToDTOList(rounds), mapper.RoundDomainListToDTOList(deleted)}
 
 	var buffer bytes.Buffer
 	archive := zip.NewWriter(&buffer)

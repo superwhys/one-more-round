@@ -27,7 +27,7 @@
 
 会话固定 30 天，CLI 发放/撤销一次性试用邀请；每邮箱每小时 10 次、每来源 IP 每小时 30 次发送请求。完整实现约束见 API.md。服务已部署到阿里云服务器并以 Docker 镜像运行（由 `server/*` 标签触发 ACR 发布），生产的真实 SMTP 与 OSS 凭证由部署环境注入。
 
-持久化约定：14 张业务表使用独立 Go Model，通过锁定版本的 `gorm.io/gen` 生成 Query，由仓储调用。`make generate` 无需连接数据库；生成文件随源码维护。分层按业务边界组织：领域包 `internal/domain/{identity,group,game,diary,photo}` 各自声明仓储接口与领域服务；`internal/infra/mysql` 用 `RepositoryFactory` 汇总实现并以 `WithTransaction` 派生事务实例；应用层 `internal/app/services` 每个边界一个 `XxxApp`，经 `AppContext` 注入依赖；Model、Domain、DTO 三种模型的转换集中在 `internal/converter`。对局 JSON 存储格式、Read Committed 隔离级别和小组行锁保持不变。
+持久化约定：14 张业务表使用独立 Go Model，通过锁定版本的 `gorm.io/gen` 生成 Query，由仓储调用。`make generate` 无需连接数据库；生成文件随源码维护。分层按业务边界组织：领域包 `internal/domain/{identity,group,game,diary,photo}` 各自声明仓储接口与领域服务；`internal/infra/mysql` 用 `RepositoryFactory` 汇总实现并以 `WithTransaction` 派生事务实例；应用层 `internal/app/services` 每个边界一个 `XxxApp`，经 `AppContext` 注入依赖。Model、Domain、DTO 三种模型保持分离，DTO ↔ Domain 转换集中在 `internal/app/mapper`，Model ↔ Domain 转换集中在 `internal/infra/mysql/mapper`，两个 Mapper 区域不跨边界依赖。对局 JSON 存储格式、Read Committed 隔离级别和小组行锁保持不变。
 
 ## 交付顺序与验证
 

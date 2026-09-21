@@ -4,17 +4,16 @@ import (
 	"context"
 	"time"
 
-	"github.com/superwhys/one-more-round/internal/converter"
 	"github.com/superwhys/one-more-round/internal/domain/diary"
 	"github.com/superwhys/one-more-round/internal/errcode"
+	"github.com/superwhys/one-more-round/internal/infra/mysql/mapper"
 	"github.com/superwhys/one-more-round/internal/infra/mysql/models"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 )
 
 type roundRepository struct {
-	db        *gorm.DB
-	converter *converter.Converter
+	db *gorm.DB
 }
 
 // ListByGroup returns the group's rounds, newest first.
@@ -26,7 +25,7 @@ func (r *roundRepository) ListByGroup(ctx context.Context, groupID string) ([]*d
 	}
 	items := make([]*diary.Round, 0, len(rows))
 	for _, m := range rows {
-		round, err := r.converter.RoundModelToDomain(m)
+		round, err := mapper.RoundModelToDomain(m)
 		if err != nil {
 			return nil, err
 		}
@@ -55,7 +54,7 @@ func (r *roundRepository) decode(rows []*models.Round, err error) ([]*diary.Roun
 	}
 	items := make([]*diary.Round, 0, len(rows))
 	for _, m := range rows {
-		round, e := r.converter.RoundModelToDomain(m)
+		round, e := mapper.RoundModelToDomain(m)
 		if e != nil {
 			return nil, e
 		}
@@ -66,7 +65,7 @@ func (r *roundRepository) decode(rows []*models.Round, err error) ([]*diary.Roun
 
 // Save inserts the round or overwrites its stored document.
 func (r *roundRepository) Save(ctx context.Context, groupID string, round *diary.Round) error {
-	row, err := r.converter.RoundDomainToModel(round)
+	row, err := mapper.RoundDomainToModel(round)
 	if err != nil {
 		return err
 	}

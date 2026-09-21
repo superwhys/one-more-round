@@ -21,7 +21,6 @@ import (
 	"github.com/superwhys/one-more-round/config"
 	"github.com/superwhys/one-more-round/internal/app/services"
 	"github.com/superwhys/one-more-round/internal/cli"
-	"github.com/superwhys/one-more-round/internal/converter"
 	"github.com/superwhys/one-more-round/internal/infra/mail"
 	"github.com/superwhys/one-more-round/internal/infra/mysql"
 	"github.com/superwhys/one-more-round/internal/infra/photos"
@@ -57,10 +56,9 @@ func main() {
 	photoFiles, err := photos.NewOSS(runtime.OSS)
 	logging.PanicError(err)
 	appCtx := &services.AppContext{
-		Repos:     repos,
-		Mailer:    &mail.Sender{Config: runtime.SMTP},
-		Photos:    photoFiles,
-		Converter: converter.New(),
+		Repos:  repos,
+		Mailer: &mail.Sender{Config: runtime.SMTP},
+		Photos: photoFiles,
 	}
 	authApp := services.NewAuthApp(appCtx)
 	groupApp := services.NewGroupApp(appCtx)

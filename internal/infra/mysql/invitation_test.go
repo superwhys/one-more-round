@@ -16,7 +16,6 @@ import (
 	"github.com/superwhys/one-more-round/internal/app/dto"
 	"github.com/superwhys/one-more-round/internal/app/ports"
 	"github.com/superwhys/one-more-round/internal/app/services"
-	"github.com/superwhys/one-more-round/internal/converter"
 	"github.com/superwhys/one-more-round/internal/domain/group"
 	"github.com/superwhys/one-more-round/internal/errcode"
 )
@@ -212,7 +211,7 @@ func TestGroupInvitationRegistrationRollsBackOnJoinFailure(t *testing.T) {
 	if err := json.Unmarshal(raw, &request); err != nil {
 		t.Fatal(err)
 	}
-	auth := services.NewAuthApp(&services.AppContext{Repos: failingJoinRepos{s.repos}, Mailer: s.inbox, Converter: converter.New()})
+	auth := services.NewAuthApp(&services.AppContext{Repos: failingJoinRepos{s.repos}, Mailer: s.inbox})
 	if _, _, err := auth.Login(context.Background(), &request); !errors.Is(err, errJoinFailure) {
 		t.Fatalf("expected injected failure: %v", err)
 	}
@@ -299,7 +298,7 @@ func TestGroupInvitationConcurrentRevokeBlocksRegistration(t *testing.T) {
 		t.Fatal(err)
 	}
 	reached := make(chan struct{})
-	auth := services.NewAuthApp(&services.AppContext{Repos: observedGroupRepos{s.repos, reached, &sync.Once{}}, Mailer: s.inbox, Converter: converter.New()})
+	auth := services.NewAuthApp(&services.AppContext{Repos: observedGroupRepos{s.repos, reached, &sync.Once{}}, Mailer: s.inbox})
 	result := make(chan error, 1)
 	err := s.repos.WithTransaction(ctx, func(repos ports.Repositories) error {
 		if _, err := repos.Group().GetByID(ctx, g.ID); err != nil {

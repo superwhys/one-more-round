@@ -64,9 +64,9 @@ config/                    # 配置结构与启动校验
 internal/app/dto/          # 用例输入输出 DTO，JSON tag 即对外契约
 internal/app/ports/        # 事务、邮件、文件等技术端口
 internal/app/services/     # Application Service：每个业务边界一个 XxxApp + AppContext
-internal/converter/        # Model ↔ Domain ↔ DTO 的唯一转换入口
+internal/app/mapper/       # Application 边界的 DTO ↔ Domain 转换
 internal/domain/<上下文>/   # 聚合/实体、仓储接口、领域服务（identity、group、game、diary、photo）
-internal/infra/            # 持久化与外部适配；infra/mysql 提供 RepositoryFactory
+internal/infra/            # 持久化与外部适配；infra/mysql 提供 RepositoryFactory 与 Model ↔ Domain Mapper
 internal/errcode/          # 业务错误码 + HTTP 状态 + 提示文案
 internal/pkg/secure/       # 随机标识与摘要生成
 web/                       # Vue 项目与 Go 静态资源嵌入入口
@@ -80,7 +80,7 @@ docs/                      # PRD、确认后的技术决策与接口说明
 - API 仅处理绑定、身份提取、应用调用及协议错误映射：路由表集中在 `api/api.go`，资源路由在 `api/router`，会话与错误响应在 `api/common`，中间件在 `api/middleware`；不直接访问存储，不编排事务。
 - Application 编排用例、权限判断及事务，通过接口使用基础设施；每个业务边界一个 `XxxApp`，依赖由 `services.AppContext` 注入，不依赖具体数据库连接、Gin Context 或 SMTP 客户端。
 - Infrastructure 实现仓储与外部适配：`internal/infra/mysql` 的 `RepositoryFactory` 汇总各仓储，`WithTransaction` 派生绑定同一事务的实例，SQL 与 Model 转换不越过这层。
-- 三类模型分离：持久化 Model、Domain 实体、应用 DTO。三者之间的转换统一放在 `internal/converter`，转换函数按 `<X>ModelToDomain`、`<X>DomainToModel`、`<X>DomainToDTO` 命名，不在业务代码里散落字段搬运。
+- 三类模型分离：持久化 Model、Domain 实体、应用 DTO。转换按边界集中：DTO ↔ Domain 放在 `internal/app/mapper`，Model ↔ Domain 放在 `internal/infra/mysql/mapper`；转换函数按 `<X>DTOToDomain`、`<X>DomainToDTO`、`<X>ModelToDomain`、`<X>DomainToModel` 命名。Mapper 不跨边界依赖，字段搬运不散落到 Handler、Application Service 或 Repository。
 - 接口由最窄的直接消费者定义：领域仓储接口属于对应 Domain，由 `ports.Repositories` 汇总为工作单元；邮件、图片文件等技术端口由使用它的 Application 定义。
 - 错误统一用 `internal/errcode.Error`（业务码 + HTTP 状态 + 文案）：领域与用例返回预定义错误，API 通过 `common.HandleRouterError` 映射响应，不在各 Handler 重复 `switch`。
 - `main.go` 是组合根。必选配置在 `Validate()` 中校验，必选依赖在构造或启动时校验一次；请求持续传递 `context.Context`，后台工作响应取消。

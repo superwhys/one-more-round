@@ -4,15 +4,14 @@ import (
 	"context"
 	"time"
 
-	"github.com/superwhys/one-more-round/internal/converter"
 	"github.com/superwhys/one-more-round/internal/domain/photo"
+	"github.com/superwhys/one-more-round/internal/infra/mysql/mapper"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 )
 
 type photoRepository struct {
-	db        *gorm.DB
-	converter *converter.Converter
+	db *gorm.DB
 }
 
 // Save inserts the photo metadata, replacing its round binding.
@@ -20,7 +19,7 @@ func (r *photoRepository) Save(ctx context.Context, groupID string, p *photo.Pho
 	q := queryOf(r.db).Photo
 	return mapErr(q.WithContext(ctx).Clauses(clause.OnConflict{DoUpdates: clause.AssignmentColumns([]string{
 		string(q.RoundID.ColumnName()), string(q.Created.ColumnName()), string(q.State.ColumnName()),
-	})}).Create(r.converter.PhotoDomainToModel(groupID, p)))
+	})}).Create(mapper.PhotoDomainToModel(groupID, p)))
 }
 
 // Get returns the metadata of one photo of the group.
@@ -30,7 +29,7 @@ func (r *photoRepository) Get(ctx context.Context, groupID, id string) (*photo.P
 	if err != nil {
 		return nil, mapErr(err)
 	}
-	return r.converter.PhotoModelToDomain(m), nil
+	return mapper.PhotoModelToDomain(m), nil
 }
 
 // ListCleanup includes failed deletions even when their retention cutoff changed.
@@ -44,7 +43,7 @@ func (r *photoRepository) ListCleanup(ctx context.Context, before time.Time, lim
 	}
 	items := make([]*photo.Photo, 0, len(rows))
 	for _, m := range rows {
-		items = append(items, r.converter.PhotoModelToDomain(m))
+		items = append(items, mapper.PhotoModelToDomain(m))
 	}
 	return items, nil
 }

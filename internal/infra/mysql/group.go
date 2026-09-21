@@ -5,18 +5,17 @@ import (
 	"errors"
 	"time"
 
-	"github.com/superwhys/one-more-round/internal/converter"
 	"github.com/superwhys/one-more-round/internal/domain/game"
 	"github.com/superwhys/one-more-round/internal/domain/group"
 	"github.com/superwhys/one-more-round/internal/errcode"
+	"github.com/superwhys/one-more-round/internal/infra/mysql/mapper"
 	"github.com/superwhys/one-more-round/internal/infra/mysql/models"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 )
 
 type groupRepository struct {
-	db        *gorm.DB
-	converter *converter.Converter
+	db *gorm.DB
 }
 
 // ListByUser returns the groups the account belongs to.
@@ -29,7 +28,7 @@ func (r *groupRepository) ListByUser(ctx context.Context, userID string) ([]*gro
 	}
 	items := make([]*group.Group, 0, len(rows))
 	for _, m := range rows {
-		items = append(items, r.converter.GroupModelToDomain(m))
+		items = append(items, mapper.GroupModelToDomain(m))
 	}
 	return items, nil
 }
@@ -41,12 +40,12 @@ func (r *groupRepository) GetByID(ctx context.Context, id string) (*group.Group,
 	if err != nil {
 		return nil, mapErr(err)
 	}
-	return r.converter.GroupModelToDomain(m), nil
+	return mapper.GroupModelToDomain(m), nil
 }
 
 // Create stores the group and its first member.
 func (r *groupRepository) Create(ctx context.Context, g *group.Group, ownerID string) error {
-	if err := queryOf(r.db).Group.WithContext(ctx).Create(r.converter.GroupDomainToModel(g)); err != nil {
+	if err := queryOf(r.db).Group.WithContext(ctx).Create(mapper.GroupDomainToModel(g)); err != nil {
 		return mapErr(err)
 	}
 	return r.AddMember(ctx, g.ID, ownerID)
@@ -75,28 +74,28 @@ func (r *groupRepository) Snapshot(ctx context.Context, id string) (*group.Snaps
 		return nil, mapErr(err)
 	}
 	for _, m := range rows {
-		s.Members = append(s.Members, r.converter.MemberUserModelToDomain(m))
+		s.Members = append(s.Members, mapper.MemberUserModelToDomain(m))
 	}
 	players, err := q.Player.WithContext(ctx).Where(q.Player.GroupID.Eq(id)).Order(q.Player.Name).Find()
 	if err != nil {
 		return nil, mapErr(err)
 	}
 	for _, m := range players {
-		s.Players = append(s.Players, r.converter.PlayerModelToDomain(m))
+		s.Players = append(s.Players, mapper.PlayerModelToDomain(m))
 	}
 	games, err := q.Game.WithContext(ctx).Where(q.Game.GroupID.Eq(id)).Order(q.Game.Name).Find()
 	if err != nil {
 		return nil, mapErr(err)
 	}
 	for _, m := range games {
-		s.Games = append(s.Games, r.converter.GameModelToDomain(m))
+		s.Games = append(s.Games, mapper.GameModelToDomain(m))
 	}
 	claims, err := q.Claim.WithContext(ctx).Where(q.Claim.GroupID.Eq(id)).Find()
 	if err != nil {
 		return nil, mapErr(err)
 	}
 	for _, m := range claims {
-		s.Claims = append(s.Claims, r.converter.ClaimModelToDomain(m))
+		s.Claims = append(s.Claims, mapper.ClaimModelToDomain(m))
 	}
 	return s, nil
 }
@@ -108,7 +107,7 @@ func (r *groupRepository) AddMember(ctx context.Context, groupID, userID string)
 
 // RemoveMember removes the membership together with the account's claim.
 func (r *groupRepository) RemoveMember(ctx context.Context, groupID, userID string) error {
-	if err := (&claimRepository{db: r.db, converter: r.converter}).Delete(ctx, groupID, userID); err != nil {
+	if err := (&claimRepository{db: r.db}).Delete(ctx, groupID, userID); err != nil {
 		return err
 	}
 	q := queryOf(r.db).Member
@@ -117,8 +116,7 @@ func (r *groupRepository) RemoveMember(ctx context.Context, groupID, userID stri
 }
 
 type playerRepository struct {
-	db        *gorm.DB
-	converter *converter.Converter
+	db *gorm.DB
 }
 
 // Save inserts the player, or updates the account link of an existing profile.
@@ -133,12 +131,11 @@ func (r *playerRepository) Save(ctx context.Context, groupID string, p *group.Pl
 		_, err = q.WithContext(ctx).Where(q.ID.Eq(p.ID), q.GroupID.Eq(groupID)).Update(q.Account, p.Account)
 		return mapErr(err)
 	}
-	return mapErr(q.WithContext(ctx).Create(r.converter.PlayerDomainToModel(groupID, p)))
+	return mapErr(q.WithContext(ctx).Create(mapper.PlayerDomainToModel(groupID, p)))
 }
 
 type claimRepository struct {
-	db        *gorm.DB
-	converter *converter.Converter
+	db *gorm.DB
 }
 
 // Save stores the account's claim, replacing an earlier one.
@@ -146,7 +143,7 @@ func (r *claimRepository) Save(ctx context.Context, groupID string, c *group.Cla
 	q := queryOf(r.db).Claim
 	return mapErr(q.WithContext(ctx).Clauses(clause.OnConflict{DoUpdates: clause.AssignmentColumns([]string{
 		string(q.PlayerID.ColumnName()),
-	})}).Create(r.converter.ClaimDomainToModel(groupID, c)))
+	})}).Create(mapper.ClaimDomainToModel(groupID, c)))
 }
 
 // Delete removes the account's pending claim.
@@ -157,13 +154,12 @@ func (r *claimRepository) Delete(ctx context.Context, groupID, userID string) er
 }
 
 type inviteRepository struct {
-	db        *gorm.DB
-	converter *converter.Converter
+	db *gorm.DB
 }
 
 // Create stores an invitation holding the token digest.
 func (r *inviteRepository) Create(ctx context.Context, groupID string, inv *group.Invite, hash string) error {
-	return mapErr(queryOf(r.db).Invite.WithContext(ctx).Create(r.converter.InviteDomainToModel(groupID, hash, inv)))
+	return mapErr(queryOf(r.db).Invite.WithContext(ctx).Create(mapper.InviteDomainToModel(groupID, hash, inv)))
 }
 
 // ListByGroup returns the group's invitations, newest expiry first.
@@ -175,7 +171,7 @@ func (r *inviteRepository) ListByGroup(ctx context.Context, groupID string) ([]*
 	}
 	items := make([]*group.Invite, 0, len(rows))
 	for _, m := range rows {
-		items = append(items, r.converter.InviteModelToDomain(m))
+		items = append(items, mapper.InviteModelToDomain(m))
 	}
 	return items, nil
 }
