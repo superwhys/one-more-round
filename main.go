@@ -25,6 +25,7 @@ import (
 	"github.com/superwhys/one-more-round/internal/infra/mail"
 	"github.com/superwhys/one-more-round/internal/infra/mysql"
 	"github.com/superwhys/one-more-round/internal/infra/photos"
+	"github.com/superwhys/one-more-round/internal/worker"
 	"github.com/superwhys/one-more-round/web"
 )
 
@@ -77,29 +78,7 @@ func main() {
 	httpConfig.WriteTimeout = time.Minute
 	srv := cores.NewCores(
 		cores.WithHttpServerConfig(httpConfig),
-		cores.WithNameWorker("photo-cleanup", func(ctx context.Context) error {
-			ticker := time.NewTicker(time.Hour)
-			defer ticker.Stop()
-			for {
-				if err := services.CleanDeletedRounds(ctx, repos, time.Now().UTC().Add(-services.RoundRecycleRetention)); err != nil {
-					if ctx.Err() != nil {
-						return ctx.Err()
-					}
-					logging.Error("Deleted round cleanup failed")
-				}
-				if err := services.CleanPhotos(ctx, repos, photoFiles, services.PhotoCutoff(time.Now().UTC())); err != nil {
-					if ctx.Err() != nil {
-						return ctx.Err()
-					}
-					logging.Error("Temporary photo cleanup failed")
-				}
-				select {
-				case <-ctx.Done():
-					return ctx.Err()
-				case <-ticker.C:
-				}
-			}
-		}),
+		cores.WithNameWorker("photo-cleanup", worker.PhotoCleanup(repos, photoFiles)),
 		cores.WithHttpHandler("/", frontend),
 		cores.WithHttpHandler("/api", backend.SetupRouter()),
 		cores.WithHttpHandler("/swagger", backend.SwaggerRouter(runtime.IsProd)),
