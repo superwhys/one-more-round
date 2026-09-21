@@ -62,16 +62,24 @@ type InvitePreview struct {
 	Name    string `json:"name"`
 }
 
+// GroupPathReq targets one group by its path parameter, for endpoints that
+// take no other input.
+type GroupPathReq struct {
+	GroupID string `uri:"group"`
+}
+
 // AddPlayerReq creates a nickname profile.
 type AddPlayerReq struct {
-	Name string `json:"name" validate:"required"`
+	GroupID string `uri:"group"`
+	Name    string `json:"name" validate:"required"`
 }
 
 // ManageReq applies an action on the group.
 type ManageReq struct {
-	Action string `json:"action" validate:"required"`
-	Target string `json:"target"`
-	Value  string `json:"value"`
+	GroupID string `uri:"group"`
+	Action  string `json:"action" validate:"required"`
+	Target  string `json:"target"`
+	Value   string `json:"value"`
 }
 
 // InviteResp carries the one-time invitation link.

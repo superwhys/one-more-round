@@ -51,13 +51,13 @@ func PublicRoundRouter(roundApp *services.RoundApp) roundRouterFn {
 // @Success 200 {object} ginutils.Ret[dto.RoundShareStatus]
 // @Router /v1/groups/{group}/rounds/{id}/share [get]
 func roundShareStatusHandler(roundApp *services.RoundApp) gin.HandlerFunc {
-	return func(ctx *gin.Context) {
-		status, err := roundApp.ShareStatus(ctx.Request.Context(), ctx.Param("group"), common.UserID(ctx), ctx.Param("id"))
+	return ginutils.RequestHandler(func(ctx *gin.Context, req *dto.RoundPathReq) {
+		status, err := roundApp.ShareStatus(ctx.Request.Context(), req.GroupID, common.UserID(ctx), req.RoundID)
 		if common.HandleRouterError(ctx, err, "get round share status failed", errcode.ErrRoundShareRead) {
 			return
 		}
 		ctx.JSON(http.StatusOK, dto.ResponseWithData(status))
-	}
+	})
 }
 
 // createRoundShareHandler 生成或轮换对局分享链接
@@ -70,13 +70,13 @@ func roundShareStatusHandler(roundApp *services.RoundApp) gin.HandlerFunc {
 // @Success 200 {object} ginutils.Ret[dto.RoundShareToken]
 // @Router /v1/groups/{group}/rounds/{id}/share [post]
 func createRoundShareHandler(roundApp *services.RoundApp) gin.HandlerFunc {
-	return func(ctx *gin.Context) {
-		share, err := roundApp.CreateShare(ctx.Request.Context(), ctx.Param("group"), common.UserID(ctx), ctx.Param("id"))
+	return ginutils.RequestHandler(func(ctx *gin.Context, req *dto.RoundPathReq) {
+		share, err := roundApp.CreateShare(ctx.Request.Context(), req.GroupID, common.UserID(ctx), req.RoundID)
 		if common.HandleRouterError(ctx, err, "create round share failed", errcode.ErrRoundShare) {
 			return
 		}
 		ctx.JSON(http.StatusOK, dto.ResponseWithData(share))
-	}
+	})
 }
 
 // revokeRoundShareHandler 撤销对局分享链接
@@ -89,12 +89,12 @@ func createRoundShareHandler(roundApp *services.RoundApp) gin.HandlerFunc {
 // @Success 200 {object} ginutils.Ret[any]
 // @Router /v1/groups/{group}/rounds/{id}/share [delete]
 func revokeRoundShareHandler(roundApp *services.RoundApp) gin.HandlerFunc {
-	return func(ctx *gin.Context) {
-		if err := roundApp.RevokeShare(ctx.Request.Context(), ctx.Param("group"), common.UserID(ctx), ctx.Param("id")); common.HandleRouterError(ctx, err, "revoke round share failed", errcode.ErrRoundShare) {
+	return ginutils.RequestHandler(func(ctx *gin.Context, req *dto.RoundPathReq) {
+		if err := roundApp.RevokeShare(ctx.Request.Context(), req.GroupID, common.UserID(ctx), req.RoundID); common.HandleRouterError(ctx, err, "revoke round share failed", errcode.ErrRoundShare) {
 			return
 		}
 		ctx.JSON(http.StatusOK, dto.ResponseSuccess())
-	}
+	})
 }
 
 // publicRoundHandler 查看公开分享的对局
@@ -105,14 +105,14 @@ func revokeRoundShareHandler(roundApp *services.RoundApp) gin.HandlerFunc {
 // @Success 200 {object} ginutils.Ret[dto.PublicRound]
 // @Router /v1/shared-rounds [get]
 func publicRoundHandler(roundApp *services.RoundApp) gin.HandlerFunc {
-	return func(ctx *gin.Context) {
-		round, err := roundApp.PublicRound(ctx.Request.Context(), ctx.GetHeader("X-Round-Share"))
+	return ginutils.RequestHandler(func(ctx *gin.Context, req *dto.PublicRoundReq) {
+		round, err := roundApp.PublicRound(ctx.Request.Context(), req.Token)
 		if common.HandleRouterError(ctx, err, "read public round failed", errcode.ErrRoundShareRead) {
 			return
 		}
 		ctx.Header("Cache-Control", "private, no-store")
 		ctx.JSON(http.StatusOK, dto.ResponseWithData(round))
-	}
+	})
 }
 
 // publicRoundPhotoHandler 查看公开分享的对局照片
@@ -124,8 +124,8 @@ func publicRoundHandler(roundApp *services.RoundApp) gin.HandlerFunc {
 // @Success 200 {file} file
 // @Router /v1/shared-rounds/photos/{photo} [get]
 func publicRoundPhotoHandler(roundApp *services.RoundApp) gin.HandlerFunc {
-	return func(ctx *gin.Context) {
-		content, err := roundApp.PublicPhoto(ctx.Request.Context(), ctx.GetHeader("X-Round-Share"), ctx.Param("photo"))
+	return ginutils.RequestHandler(func(ctx *gin.Context, req *dto.PublicRoundPhotoReq) {
+		content, err := roundApp.PublicPhoto(ctx.Request.Context(), req.Token, req.PhotoID)
 		if common.HandleRouterError(ctx, err, "read public round photo failed", errcode.ErrPhotoRead) {
 			return
 		}
@@ -133,7 +133,7 @@ func publicRoundPhotoHandler(roundApp *services.RoundApp) gin.HandlerFunc {
 		ctx.Header("Cache-Control", "private, no-store")
 		ctx.Header("X-Content-Type-Options", "nosniff")
 		ctx.DataFromReader(http.StatusOK, content.Size, "image/jpeg", content.Body, nil)
-	}
+	})
 }
 
 // listRoundsHandler 获取对局列表
@@ -156,34 +156,31 @@ func publicRoundPhotoHandler(roundApp *services.RoundApp) gin.HandlerFunc {
 // @Success 200 {object} ginutils.Ret[dto.Page]
 // @Router /v1/groups/{group}/rounds [get]
 func listRoundsHandler(roundApp *services.RoundApp) gin.HandlerFunc {
-	return func(ctx *gin.Context) {
-		offset, e1 := strconv.Atoi(ctx.DefaultQuery("offset", "0"))
-		limit, e2 := strconv.Atoi(ctx.DefaultQuery("limit", "30"))
-		if e1 != nil || e2 != nil {
-			common.RespondError(ctx, errcode.ErrPageRange)
+	return ginutils.RequestHandler(func(ctx *gin.Context, req *dto.ListRoundsReq) {
+		hasPhotos, err := parseHasPhotos(ctx.Query("has_photos"))
+		if err != nil {
+			common.RespondError(ctx, errcode.ErrBadRequest)
 			return
 		}
-		var hasPhotos *bool
-		if raw := ctx.Query("has_photos"); raw != "" {
-			value, err := strconv.ParseBool(raw)
-			if err != nil {
-				common.RespondError(ctx, errcode.ErrBadRequest)
-				return
-			}
-			hasPhotos = &value
-		}
-		req := &dto.ListRoundsReq{
-			From: ctx.Query("from"), To: ctx.Query("to"),
-			Game: ctx.Query("game"), Player: ctx.Query("player"),
-			Query: ctx.Query("q"), Mode: ctx.Query("mode"), Outcome: ctx.Query("outcome"), HasPhotos: hasPhotos,
-			Offset: offset, Limit: limit,
-		}
-		page, err := roundApp.List(ctx.Request.Context(), ctx.Param("group"), common.UserID(ctx), req)
-		if common.HandleRouterError(ctx, err, "list rounds failed", errcode.ErrRoundList) {
+		req.HasPhotos = hasPhotos
+		page, appErr := roundApp.List(ctx.Request.Context(), req.GroupID, common.UserID(ctx), req)
+		if common.HandleRouterError(ctx, appErr, "list rounds failed", errcode.ErrRoundList) {
 			return
 		}
 		ctx.JSON(http.StatusOK, dto.ResponseWithData(page))
+	})
+}
+
+// parseHasPhotos 解析是否有照片筛选；参数缺省或为空表示不做限制。
+func parseHasPhotos(raw string) (*bool, error) {
+	if raw == "" {
+		return nil, nil
 	}
+	value, err := strconv.ParseBool(raw)
+	if err != nil {
+		return nil, err
+	}
+	return &value, nil
 }
 
 // recapHandler 获取月度或年度回顾
@@ -196,13 +193,13 @@ func listRoundsHandler(roundApp *services.RoundApp) gin.HandlerFunc {
 // @Success 200 {object} ginutils.Ret[dto.Recap]
 // @Router /v1/groups/{group}/rounds/recap [get]
 func recapHandler(roundApp *services.RoundApp) gin.HandlerFunc {
-	return func(ctx *gin.Context) {
-		result, err := roundApp.Recap(ctx.Request.Context(), ctx.Param("group"), common.UserID(ctx), ctx.Query("period"))
+	return ginutils.RequestHandler(func(ctx *gin.Context, req *dto.RecapReq) {
+		result, err := roundApp.Recap(ctx.Request.Context(), req.GroupID, common.UserID(ctx), req.Period)
 		if common.HandleRouterError(ctx, err, "recap failed", errcode.ErrRoundList) {
 			return
 		}
 		ctx.JSON(http.StatusOK, dto.ResponseWithData(result))
-	}
+	})
 }
 
 // recycleBinHandler 获取七天内可恢复的对局
@@ -214,13 +211,13 @@ func recapHandler(roundApp *services.RoundApp) gin.HandlerFunc {
 // @Success 200 {object} ginutils.Ret[[]dto.Round]
 // @Router /v1/groups/{group}/rounds/recycle-bin [get]
 func recycleBinHandler(roundApp *services.RoundApp) gin.HandlerFunc {
-	return func(ctx *gin.Context) {
-		items, err := roundApp.RecycleBin(ctx.Request.Context(), ctx.Param("group"), common.UserID(ctx))
+	return ginutils.RequestHandler(func(ctx *gin.Context, req *dto.GroupPathReq) {
+		items, err := roundApp.RecycleBin(ctx.Request.Context(), req.GroupID, common.UserID(ctx))
 		if common.HandleRouterError(ctx, err, "recycle bin failed", errcode.ErrRoundList) {
 			return
 		}
 		ctx.JSON(http.StatusOK, dto.ResponseWithData(items))
-	}
+	})
 }
 
 // restoreRoundHandler 恢复已删除对局
@@ -255,13 +252,13 @@ func restoreRoundHandler(roundApp *services.RoundApp) gin.HandlerFunc {
 // @Success 200 {object} ginutils.Ret[dto.Round]
 // @Router /v1/groups/{group}/rounds/{id} [get]
 func getRoundHandler(roundApp *services.RoundApp) gin.HandlerFunc {
-	return func(ctx *gin.Context) {
-		round, err := roundApp.Get(ctx.Request.Context(), ctx.Param("group"), common.UserID(ctx), ctx.Param("id"))
+	return ginutils.RequestHandler(func(ctx *gin.Context, req *dto.RoundPathReq) {
+		round, err := roundApp.Get(ctx.Request.Context(), req.GroupID, common.UserID(ctx), req.RoundID)
 		if common.HandleRouterError(ctx, err, "get round failed", errcode.ErrRoundGet) {
 			return
 		}
 		ctx.JSON(http.StatusOK, dto.ResponseWithData(round))
-	}
+	})
 }
 
 // saveRoundHandler 记一局或修改对局

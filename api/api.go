@@ -41,6 +41,9 @@ type API struct {
 
 // NewAPI wires the application services into the HTTP layer.
 func NewAPI(version string, conf *config.Runtime, authApp *services.AuthApp, groupApp *services.GroupApp, roundApp *services.RoundApp, photoApp *services.PhotoApp, notificationApp *services.NotificationApp) *API {
+	// Rejected input must answer with a business code and an HTTP status rather
+	// than the default success envelope of the request binder.
+	common.ConfigureRequestFailures()
 	return &API{version: version, config: conf, authApp: authApp, groupApp: groupApp, roundApp: roundApp, photoApp: photoApp, notificationApp: notificationApp}
 }
 

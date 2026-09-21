@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
+	"github.com/miebyte/goutils/ginutils"
 	"github.com/miebyte/goutils/logging"
 	"github.com/superwhys/one-more-round/api/common"
 	"github.com/superwhys/one-more-round/internal/app/dto"
@@ -101,9 +102,9 @@ func uploadPhotoHandler(photoApp photoUploader) gin.HandlerFunc {
 // @Success 200 {file} file
 // @Router /v1/groups/{group}/photos/{id} [get]
 func readPhotoHandler(photoApp photoReader) gin.HandlerFunc {
-	return func(ctx *gin.Context) {
-		thumb := strings.EqualFold(ctx.Query("size"), "thumb")
-		content, err := photoApp.Read(ctx.Request.Context(), ctx.Param("group"), common.UserID(ctx), ctx.Param("id"), thumb)
+	return ginutils.RequestHandler(func(ctx *gin.Context, req *dto.ReadPhotoReq) {
+		thumb := strings.EqualFold(req.Size, "thumb")
+		content, err := photoApp.Read(ctx.Request.Context(), req.GroupID, common.UserID(ctx), req.PhotoID, thumb)
 		if common.HandleRouterError(ctx, err, "read photo failed", errcode.ErrPhotoRead) {
 			return
 		}
@@ -123,5 +124,5 @@ func readPhotoHandler(photoApp photoReader) gin.HandlerFunc {
 				logging.Errorc(ctx.Request.Context(), "Photo stream interrupted")
 			}
 		}
-	}
+	})
 }

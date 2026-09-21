@@ -1303,6 +1303,9 @@
                 "name"
             ],
             "properties": {
+                "groupID": {
+                    "type": "string"
+                },
                 "name": {
                     "type": "string"
                 }
@@ -1314,6 +1317,9 @@
                 "name"
             ],
             "properties": {
+                "groupID": {
+                    "type": "string"
+                },
                 "name": {
                     "type": "string"
                 }
@@ -1490,6 +1496,9 @@
             ],
             "properties": {
                 "action": {
+                    "type": "string"
+                },
+                "groupID": {
                     "type": "string"
                 },
                 "target": {

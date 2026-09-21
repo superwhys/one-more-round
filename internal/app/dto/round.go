@@ -52,9 +52,12 @@ type DeleteRoundReq struct {
 }
 
 // ListRoundsReq filters the timeline; every field is optional and an empty
-// value means "no restriction".
+// value means "no restriction". HasPhotos is excluded from the automatic
+// binding because gin turns an empty value into a pointer to false, which would
+// filter out every round with photos; the handler fills it from the query and
+// keeps empty as "no restriction".
 type ListRoundsReq struct {
-	GroupID   string `uri:"group"`
+	GroupID   string `uri:"group" form:"-"`
 	From      string `form:"from"`
 	To        string `form:"to"`
 	Game      string `form:"game"`
@@ -62,15 +65,24 @@ type ListRoundsReq struct {
 	Query     string `form:"q"`
 	Mode      string `form:"mode"`
 	Outcome   string `form:"outcome"`
-	HasPhotos *bool  `form:"has_photos"`
+	HasPhotos *bool  `form:"-"`
 	Offset    int    `form:"offset"`
-	Limit     int    `form:"limit"`
+	Limit     int    `form:"limit,default=30"`
 }
 
-// RecapReq selects one calendar month (YYYY-MM) or year (YYYY).
-type RecapReq struct {
+// RoundPathReq targets one round of one group by their path parameters, with no
+// other input, so nothing can override the route.
+type RoundPathReq struct {
 	GroupID string `uri:"group"`
-	Period  string `form:"period" validate:"required"`
+	RoundID string `uri:"id"`
+}
+
+// RecapReq selects one calendar month (YYYY-MM) or year (YYYY). An empty or
+// malformed period is not rejected during binding: the use case reports it as a
+// business error, which keeps the business code and the specific message.
+type RecapReq struct {
+	GroupID string `uri:"group" form:"-"`
+	Period  string `form:"period"`
 }
 
 // Recap contains highlights derived from all rounds in the selected period.
@@ -106,6 +118,19 @@ type RoundShareStatus struct {
 type RoundShareToken struct {
 	Token     string    `json:"token"`
 	CreatedAt time.Time `json:"created_at"`
+}
+
+// PublicRoundReq carries the bearer token of a shared round. The token is
+// required, but a missing value is reported by the application as a share
+// error instead of a binding error.
+type PublicRoundReq struct {
+	Token string `header:"X-Round-Share"`
+}
+
+// PublicRoundPhotoReq reads one photo of a shared round with the bearer token.
+type PublicRoundPhotoReq struct {
+	Token   string `header:"X-Round-Share"`
+	PhotoID string `uri:"photo"`
 }
 
 // PublicPlayer is the nickname and result of one shared-round participant.

@@ -75,14 +75,14 @@ func GroupDetailRouter(groupApp *services.GroupApp, origin string) groupRouterFn
 // @Success 200 {file} binary
 // @Router /v1/groups/{group}/export [get]
 func exportGroupHandler(groupApp *services.GroupApp) gin.HandlerFunc {
-	return func(ctx *gin.Context) {
-		data, err := groupApp.Export(ctx.Request.Context(), ctx.Param("group"), common.UserID(ctx))
+	return ginutils.RequestHandler(func(ctx *gin.Context, req *dto.GroupPathReq) {
+		data, err := groupApp.Export(ctx.Request.Context(), req.GroupID, common.UserID(ctx))
 		if common.HandleRouterError(ctx, err, "export group failed", errcode.ErrSysInternal) {
 			return
 		}
 		ctx.Header("Content-Disposition", fmt.Sprintf(`attachment; filename="one-more-round-%s.zip"`, time.Now().Format("20060102")))
 		ctx.Data(http.StatusOK, "application/zip", data)
-	}
+	})
 }
 
 // listGroupsHandler 获取我的小组
@@ -153,13 +153,13 @@ func joinGroupHandler(groupApp *services.GroupApp) gin.HandlerFunc {
 // @Success 200 {object} ginutils.Ret[dto.Snapshot]
 // @Router /v1/groups/{group} [get]
 func groupSnapshotHandler(groupApp *services.GroupApp) gin.HandlerFunc {
-	return func(ctx *gin.Context) {
-		snapshot, err := groupApp.Snapshot(ctx.Request.Context(), ctx.Param("group"), common.UserID(ctx))
+	return ginutils.RequestHandler(func(ctx *gin.Context, req *dto.GroupPathReq) {
+		snapshot, err := groupApp.Snapshot(ctx.Request.Context(), req.GroupID, common.UserID(ctx))
 		if common.HandleRouterError(ctx, err, "read group failed", errcode.ErrGroupSnapshot) {
 			return
 		}
 		ctx.JSON(http.StatusOK, dto.ResponseWithData(snapshot))
-	}
+	})
 }
 
 // addPlayerHandler 添加玩家
@@ -175,7 +175,7 @@ func groupSnapshotHandler(groupApp *services.GroupApp) gin.HandlerFunc {
 // @Router /v1/groups/{group}/players [post]
 func addPlayerHandler(groupApp *services.GroupApp) gin.HandlerFunc {
 	return ginutils.RequestHandler(func(ctx *gin.Context, req *dto.AddPlayerReq) {
-		player, err := groupApp.AddPlayer(ctx.Request.Context(), ctx.Param("group"), common.UserID(ctx), req)
+		player, err := groupApp.AddPlayer(ctx.Request.Context(), req.GroupID, common.UserID(ctx), req)
 		if common.HandleRouterError(ctx, err, "add player failed", errcode.ErrPlayerSave) {
 			return
 		}
@@ -196,7 +196,7 @@ func addPlayerHandler(groupApp *services.GroupApp) gin.HandlerFunc {
 // @Router /v1/groups/{group}/games [post]
 func addGameHandler(groupApp *services.GroupApp) gin.HandlerFunc {
 	return ginutils.RequestHandler(func(ctx *gin.Context, req *dto.AddGameReq) {
-		game, err := groupApp.AddGame(ctx.Request.Context(), ctx.Param("group"), common.UserID(ctx), req)
+		game, err := groupApp.AddGame(ctx.Request.Context(), req.GroupID, common.UserID(ctx), req)
 		if common.HandleRouterError(ctx, err, "add game failed", errcode.ErrGameSave) {
 			return
 		}
@@ -214,13 +214,13 @@ func addGameHandler(groupApp *services.GroupApp) gin.HandlerFunc {
 // @Success 200 {object} ginutils.Ret[any]
 // @Router /v1/groups/{group}/bgg/search [get]
 func searchExternalGamesHandler(groupApp *services.GroupApp) gin.HandlerFunc {
-	return func(ctx *gin.Context) {
-		err := groupApp.SearchExternalGames(ctx.Request.Context(), ctx.Param("group"), common.UserID(ctx))
+	return ginutils.RequestHandler(func(ctx *gin.Context, req *dto.GroupPathReq) {
+		err := groupApp.SearchExternalGames(ctx.Request.Context(), req.GroupID, common.UserID(ctx))
 		if common.HandleRouterError(ctx, err, "search external games failed", errcode.ErrBGGUnavailable) {
 			return
 		}
 		ctx.JSON(http.StatusOK, dto.ResponseSuccess())
-	}
+	})
 }
 
 // listInvitesHandler 获取小组邀请
@@ -233,13 +233,13 @@ func searchExternalGamesHandler(groupApp *services.GroupApp) gin.HandlerFunc {
 // @Success 200 {object} ginutils.Ret[[]dto.Invite]
 // @Router /v1/groups/{group}/invites [get]
 func listInvitesHandler(groupApp *services.GroupApp) gin.HandlerFunc {
-	return func(ctx *gin.Context) {
-		invites, err := groupApp.Invites(ctx.Request.Context(), ctx.Param("group"), common.UserID(ctx))
+	return ginutils.RequestHandler(func(ctx *gin.Context, req *dto.GroupPathReq) {
+		invites, err := groupApp.Invites(ctx.Request.Context(), req.GroupID, common.UserID(ctx))
 		if common.HandleRouterError(ctx, err, "list invites failed", errcode.ErrInviteList) {
 			return
 		}
 		ctx.JSON(http.StatusOK, dto.ResponseWithData(invites))
-	}
+	})
 }
 
 // createInviteHandler 生成小组邀请
@@ -252,8 +252,8 @@ func listInvitesHandler(groupApp *services.GroupApp) gin.HandlerFunc {
 // @Success 200 {object} ginutils.Ret[dto.InviteResp]
 // @Router /v1/groups/{group}/invites [post]
 func createInviteHandler(groupApp *services.GroupApp, origin string) gin.HandlerFunc {
-	return func(ctx *gin.Context) {
-		invite, token, err := groupApp.Invite(ctx.Request.Context(), ctx.Param("group"), common.UserID(ctx))
+	return ginutils.RequestHandler(func(ctx *gin.Context, req *dto.GroupPathReq) {
+		invite, token, err := groupApp.Invite(ctx.Request.Context(), req.GroupID, common.UserID(ctx))
 		if common.HandleRouterError(ctx, err, "create invite failed", errcode.ErrInviteCreate) {
 			return
 		}
@@ -262,7 +262,7 @@ func createInviteHandler(groupApp *services.GroupApp, origin string) gin.Handler
 			URL:     origin + "/join#" + url.QueryEscape(token),
 			Expires: invite.Expires,
 		}))
-	}
+	})
 }
 
 // manageGroupHandler 修改小组与成员
@@ -278,7 +278,7 @@ func createInviteHandler(groupApp *services.GroupApp, origin string) gin.Handler
 // @Router /v1/groups/{group}/manage [post]
 func manageGroupHandler(groupApp *services.GroupApp) gin.HandlerFunc {
 	return ginutils.RequestHandler(func(ctx *gin.Context, req *dto.ManageReq) {
-		err := groupApp.Manage(ctx.Request.Context(), ctx.Param("group"), common.UserID(ctx), req)
+		err := groupApp.Manage(ctx.Request.Context(), req.GroupID, common.UserID(ctx), req)
 		if common.HandleRouterError(ctx, err, "manage group failed", errcode.ErrGroupManage) {
 			return
 		}

@@ -6,9 +6,11 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/superwhys/one-more-round/config"
+	"github.com/superwhys/one-more-round/internal/errcode"
 )
 
 // TestStatusResponseEnvelope checks that a success response carries business code
@@ -52,6 +54,31 @@ func TestFailureKeepsBusinessCodeAndStatus(t *testing.T) {
 	}
 	if payload.Code == 0 || payload.Code == rec.Code {
 		t.Fatalf("failure must carry a distinct business code: %s", rec.Body.String())
+	}
+}
+
+// TestRejectedInputKeepsBusinessCodeAndStatus checks that a request rejected by
+// binding or validation answers with the business code and status of this API
+// instead of the default success envelope of the request binder.
+func TestRejectedInputKeepsBusinessCodeAndStatus(t *testing.T) {
+	handler := NewAPI("test", &config.Runtime{Origin: "http://localhost:8080"}, nil, nil, nil, nil, nil).SetupRouter()
+	rec := httptest.NewRecorder()
+	// The invitation preview takes no session, so a missing token fails during
+	// validation before any service is called.
+	request := httptest.NewRequest(http.MethodPost, "/v1/auth/group-invite", strings.NewReader("{}"))
+	request.Header.Set("Content-Type", "application/json")
+	request.Header.Set("Origin", "http://localhost:8080")
+	handler.ServeHTTP(rec, request)
+
+	var payload struct {
+		Code    int    `json:"code"`
+		Message string `json:"message"`
+	}
+	if err := json.Unmarshal(rec.Body.Bytes(), &payload); err != nil {
+		t.Fatal(err)
+	}
+	if rec.Code != http.StatusBadRequest || payload.Code != errcode.CodeBadRequest || payload.Message != errcode.ErrBadRequest.Message {
+		t.Fatalf("rejected input: status=%d code=%d message=%q", rec.Code, payload.Code, payload.Message)
 	}
 }
 

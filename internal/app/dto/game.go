@@ -10,5 +10,6 @@ type Game struct {
 
 // AddGameReq adds a game by its local name.
 type AddGameReq struct {
-	Name string `json:"name" validate:"required"`
+	GroupID string `uri:"group"`
+	Name    string `json:"name" validate:"required"`
 }

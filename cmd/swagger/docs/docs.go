@@ -1310,6 +1310,9 @@ const docTemplate = `{
                 "name"
             ],
             "properties": {
+                "groupID": {
+                    "type": "string"
+                },
                 "name": {
                     "type": "string"
                 }
@@ -1321,6 +1324,9 @@ const docTemplate = `{
                 "name"
             ],
             "properties": {
+                "groupID": {
+                    "type": "string"
+                },
                 "name": {
                     "type": "string"
                 }
@@ -1497,6 +1503,9 @@ const docTemplate = `{
             ],
             "properties": {
                 "action": {
+                    "type": "string"
+                },
+                "groupID": {
                     "type": "string"
                 },
                 "target": {
