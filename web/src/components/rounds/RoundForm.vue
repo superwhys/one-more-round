@@ -36,6 +36,7 @@ const localError = ref('')
 const notice = ref('')
 const restored = ref(false)
 const more = ref(!!props.editing)
+const animateMore = ref(false)
 const playerName = ref('')
 const gameSearch = ref('')
 const gamePickerOpen = ref(false)
@@ -163,6 +164,7 @@ function save() {
   localError.value = ''
   if (form.value.photos.length > maxPhotos) {
     localError.value = `最多 ${maxPhotos} 张照片，请先移除多余照片`
+    animateMore.value = false
     more.value = true
     return
   }
@@ -204,6 +206,10 @@ function discardDraft() {
   gameSearch.value = props.snapshot.games.find(game => game.id === form.value.game_id)?.name ?? ''
   key.value = crypto.randomUUID()
   restored.value = false
+}
+function toggleMore(event: MouseEvent) {
+  animateMore.value = event.detail > 0
+  more.value = !more.value
 }
 async function upload(item: Upload) {
   item.state = 'uploading'
@@ -260,13 +266,21 @@ function selectPhotos(event: Event) {
     <p v-if="notice" class="j-notice">{{ notice }}</p>
     <fieldset :disabled="saving" class="j-fieldset">
       <div class="d-form-context">
-        <span>{{ snapshot.group.name }}</span
-        ><label>对局日期<input v-model="form.date" type="date" required /></label>
+        <div class="round-group-context">
+          <span>记录到小组</span>
+          <strong>{{ snapshot.group.name }}</strong>
+        </div>
+        <label>对局日期<input v-model="form.date" type="date" required /></label>
       </div>
       <section class="d-form-section">
         <div class="d-section-title">
-          <h2><em>01</em>玩了什么</h2>
-          <span>必选</span>
+          <div>
+            <h2><em>01</em>玩了什么</h2>
+            <p class="round-section-description">从本组桌游里选一款，或记下新的游戏。</p>
+          </div>
+          <span class="round-selection-state" :class="{ complete: form.game_id }">
+            {{ form.game_id ? '✓ 已选择' : '必选' }}
+          </span>
         </div>
         <div class="d-field j-game-picker" @focusout="closeGamePicker">
           <label for="round-game">本局桌游</label
@@ -320,8 +334,13 @@ function selectPhotos(event: Event) {
       </section>
       <section class="d-form-section">
         <div class="d-section-title">
-          <h2><em>02</em>和谁一起</h2>
-          <span>已选 {{ form.players.length }} 人</span>
+          <div>
+            <h2><em>02</em>和谁一起</h2>
+            <p class="round-section-description">点选这一桌的朋友，一个人就能记下整桌。</p>
+          </div>
+          <span class="round-selection-state" :class="{ complete: form.players.length }">
+            已选 {{ form.players.length }} 人
+          </span>
         </div>
         <div class="j-players">
           <button
@@ -351,9 +370,12 @@ function selectPhotos(event: Event) {
           </button>
         </div>
       </section>
-      <section class="d-form-section">
+      <section class="d-form-section round-result-section">
         <div class="d-section-title">
-          <h2><em>03</em>怎么记结果</h2>
+          <div>
+            <h2><em>03</em>怎么记结果</h2>
+            <p class="round-section-description">选一种玩法，记录这局的结果。</p>
+          </div>
         </div>
         <div class="d-segment">
           <button
@@ -425,47 +447,67 @@ function selectPhotos(event: Event) {
         /></label>
         <p class="d-note">支持负数和最多 4 位小数；留空与零不同，不从分数推断结果。</p>
       </section>
-      <section class="d-form-section">
-        <button type="button" class="d-text-link" @click="more = !more">
-          {{ more ? '收起' : '＋ 添加' }}回忆、照片和更多信息
+      <section class="d-form-section round-extra-section">
+        <button
+          type="button"
+          class="d-text-link round-extra-toggle"
+          :aria-label="`${more ? '收起' : '＋ 添加'}回忆、照片和更多信息`"
+          :aria-expanded="more"
+          aria-controls="round-memory-fields"
+          aria-describedby="round-extra-hint"
+          @click="toggleMore"
+        >
+          <span>
+            <strong>{{ more ? '收起' : '＋ 添加' }}回忆、照片和更多信息</strong>
+            <small id="round-extra-hint">选填 · 留住这一局的小细节</small>
+          </span>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path :d="more ? 'm6 15 6-6 6 6' : 'm6 9 6 6 6-6'" stroke="currentColor" stroke-width="1.5" />
+          </svg>
         </button>
-        <div v-if="more">
-          <label class="d-field"
-            >一句话回忆<textarea v-model="form.memory" rows="4" placeholder="这局有什么值得记住？" /><small
-              >{{ Array.from(form.memory).length }} / 500 字</small
-            ></label
-          >
-          <div class="j-inline">
-            <label class="d-field">时长（分钟）<input v-model="form.minutes" type="number" min="1" step="1" /></label>
-          </div>
-          <label class="d-field"
-            >照片（最多 {{ maxPhotos }} 张，每张不超过 2 MB）<input
-              type="file"
-              multiple
-              accept="image/jpeg,image/png,image/webp"
-              @change="selectPhotos"
-          /></label>
-          <div class="j-photos">
-            <div v-for="(id, i) in form.photos" :key="id">
-              <img :src="photoURL(snapshot.group.id, id)" alt="本局照片" /><button
-                type="button"
-                @click="form.photos.splice(i, 1)"
-              >
-                移除
-              </button>
-            </div>
-          </div>
-          <div v-for="(item, i) in uploads.filter(p => p.state !== 'done')" :key="i" class="j-notice">
-            {{ item.file.name }}<progress v-if="item.state === 'uploading'" aria-label="照片压缩或上传中" /><template
-              v-else
-              >{{ item.error }}<button type="button" @click="upload(item)">重试</button
-              ><button type="button" @click="uploads.splice(uploads.indexOf(item), 1)">移除</button></template
+        <Transition
+          name="round-details"
+          :css="animateMore"
+          @before-leave="element => element.setAttribute('inert', '')"
+        >
+          <div v-if="more" id="round-memory-fields" class="round-extra-content">
+            <label class="d-field"
+              >一句话回忆<textarea v-model="form.memory" rows="4" placeholder="这局有什么值得记住？" /><small
+                >{{ Array.from(form.memory).length }} / 500 字</small
+              ></label
             >
+            <div class="j-inline">
+              <label class="d-field">时长（分钟）<input v-model="form.minutes" type="number" min="1" step="1" /></label>
+            </div>
+            <label class="d-field"
+              >照片（最多 {{ maxPhotos }} 张，每张不超过 2 MB）<input
+                type="file"
+                multiple
+                accept="image/jpeg,image/png,image/webp"
+                @change="selectPhotos"
+            /></label>
+            <div class="j-photos">
+              <div v-for="(id, i) in form.photos" :key="id">
+                <img :src="photoURL(snapshot.group.id, id)" alt="本局照片" /><button
+                  type="button"
+                  @click="form.photos.splice(i, 1)"
+                >
+                  移除
+                </button>
+              </div>
+            </div>
+            <div v-for="(item, i) in uploads.filter(p => p.state !== 'done')" :key="i" class="j-notice">
+              {{ item.file.name }}<progress v-if="item.state === 'uploading'" aria-label="照片压缩或上传中" /><template
+                v-else
+                >{{ item.error }}<button type="button" @click="upload(item)">重试</button
+                ><button type="button" @click="uploads.splice(uploads.indexOf(item), 1)">移除</button></template
+              >
+            </div>
+            <p v-if="uploads.some(p => p.state === 'failed')" class="d-note">
+              失败照片不会关联到记录，可以先保存其他内容。
+            </p>
           </div>
-          <p v-if="uploads.some(p => p.state === 'failed')" class="d-note">
-            失败照片不会关联到记录，可以先保存其他内容。
-          </p>
-        </div>
+        </Transition>
       </section>
     </fieldset>
     <p v-if="localError || error" class="j-error" role="alert">{{ localError || error }}</p>
@@ -476,3 +518,224 @@ function selectPhotos(event: Event) {
     </div>
   </form>
 </template>
+
+<style scoped>
+.d-editor {
+  max-width: 780px;
+  margin-inline: auto;
+}
+
+.d-form-context {
+  padding: 17px 20px;
+  background: #eeeee5;
+  border: 1px solid var(--d-line);
+  border-radius: 14px;
+}
+
+.round-group-context {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+}
+
+.round-group-context > span {
+  color: var(--d-muted);
+  font-size: 10px;
+  letter-spacing: 1px;
+}
+
+.round-group-context strong {
+  color: var(--d-ink);
+  font-size: 15px;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.d-form-section {
+  padding: 24px;
+  border-radius: 16px;
+  box-shadow: 0 3px 10px #35382f03;
+}
+
+.d-section-title {
+  align-items: flex-start;
+  margin-bottom: 18px;
+}
+
+.d-section-title > div {
+  min-width: 0;
+}
+
+.d-section-title h2 {
+  gap: 11px;
+  font-size: 17px;
+}
+
+.d-section-title em {
+  display: grid;
+  place-items: center;
+  flex: 0 0 31px;
+  height: 31px;
+  border: 1px solid #e9dfd1;
+  border-radius: 50%;
+  background: #faf2e9;
+  color: var(--d-accent);
+  font-size: 13px;
+}
+
+.round-section-description {
+  margin: 7px 0 0 42px;
+  color: var(--d-muted);
+  font-size: 11px;
+  line-height: 1.7;
+}
+
+.d-section-title .round-selection-state {
+  flex-shrink: 0;
+  padding: 5px 9px;
+  border-radius: 20px;
+  background: #f2f1ea;
+  color: var(--d-muted);
+  font-size: 10px;
+}
+
+.d-section-title .round-selection-state.complete {
+  background: #edf1e7;
+  color: var(--d-green);
+}
+
+.j-game-picker {
+  margin-bottom: 0;
+}
+
+.j-players {
+  padding-bottom: 16px;
+  border-bottom: 1px dashed var(--d-line);
+}
+
+.j-player {
+  max-width: 100%;
+  padding: 9px 12px;
+  border-radius: 12px;
+}
+
+.j-player.selected {
+  border-color: #d5ae95;
+  background: #fbf0e6;
+}
+
+.j-player :deep(.d-player-chip) {
+  min-width: 0;
+}
+
+.j-player :deep(.d-player-label) {
+  overflow-wrap: anywhere;
+}
+
+.round-result-section .d-segment {
+  margin-bottom: 21px;
+  padding: 5px;
+  border-radius: 12px;
+  background: #f1f1e9;
+}
+
+.round-result-section .j-score {
+  gap: 12px;
+  margin-top: 8px;
+  padding: 12px 14px;
+  border: 1px solid var(--d-line);
+  border-radius: 10px;
+  background: #fbfaf5;
+}
+
+.round-result-section .j-score > strong {
+  overflow-wrap: anywhere;
+}
+
+.round-extra-section {
+  border-style: dashed;
+  background: transparent;
+}
+
+.round-extra-toggle {
+  width: 100%;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  text-align: left;
+}
+
+.round-extra-toggle > span {
+  min-width: 0;
+  display: grid;
+  gap: 5px;
+}
+
+.round-extra-toggle strong {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.round-extra-toggle small {
+  color: var(--d-muted);
+  font-size: 11px;
+}
+
+.round-extra-content {
+  padding-top: 5px;
+}
+
+.round-details-enter-active,
+.round-details-leave-active {
+  transition:
+    opacity 180ms var(--ease-out),
+    transform 180ms var(--ease-out);
+}
+
+.round-details-enter-from,
+.round-details-leave-to {
+  opacity: 0;
+  transform: translateY(-4px);
+}
+
+@media (max-width: 600px) {
+  .d-form-context {
+    padding: 14px;
+  }
+
+  .d-form-section {
+    padding: 18px 15px;
+    border-radius: 13px;
+  }
+
+  .d-section-title {
+    gap: 8px;
+  }
+
+  .d-section-title h2 {
+    font-size: 15px;
+  }
+
+  .round-section-description {
+    margin-left: 0;
+  }
+
+  .round-result-section .j-score {
+    padding: 12px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .round-details-enter-active,
+  .round-details-leave-active {
+    transition: opacity 120ms linear;
+  }
+
+  .round-details-enter-from,
+  .round-details-leave-to {
+    transform: none;
+  }
+}
+</style>

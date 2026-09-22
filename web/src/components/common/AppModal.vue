@@ -1,13 +1,15 @@
 <script setup lang="ts">
-import { onMounted, onBeforeUnmount, ref } from 'vue'
+import { nextTick, onMounted, onBeforeUnmount, ref } from 'vue'
 import Icon from './AppIcon.vue'
 defineProps<{ title: string; wide?: boolean }>()
 const emit = defineEmits<{ close: [] }>()
 const dialog = ref<HTMLDialogElement>()
+const animateEntry = ref(false)
 let previousFocus: HTMLElement | null = null
 onMounted(() => {
   previousFocus = document.activeElement as HTMLElement
-  dialog.value?.showModal()
+  animateEntry.value = !previousFocus?.matches(':focus-visible')
+  void nextTick(() => dialog.value?.showModal())
 })
 onBeforeUnmount(() => {
   dialog.value?.close()
@@ -18,7 +20,7 @@ onBeforeUnmount(() => {
   <dialog
     ref="dialog"
     class="d-modal"
-    :class="{ wide }"
+    :class="{ wide, 'modal-motion': animateEntry }"
     aria-labelledby="design-dialog-title"
     @cancel.prevent="emit('close')"
     @click="
@@ -37,3 +39,36 @@ onBeforeUnmount(() => {
     <slot />
   </dialog>
 </template>
+
+<style scoped>
+.modal-motion[open] {
+  opacity: 1;
+  transform: scale(1);
+  transition:
+    opacity 200ms var(--ease-out),
+    transform 200ms var(--ease-out);
+}
+.modal-motion[open]::backdrop {
+  opacity: 1;
+  transition: opacity 200ms var(--ease-out);
+}
+@starting-style {
+  .modal-motion[open] {
+    opacity: 0;
+    transform: scale(0.97);
+  }
+  .modal-motion[open]::backdrop {
+    opacity: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .modal-motion[open] {
+    transform: none;
+  }
+  @starting-style {
+    .modal-motion[open] {
+      transform: none;
+    }
+  }
+}
+</style>

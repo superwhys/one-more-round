@@ -6,6 +6,7 @@
   --d-line: #e8e8df;
   --d-accent: #bc5a3b;
   --d-green: #617461;
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
   background: var(--d-bg);
   color: var(--d-ink);
   min-height: 100dvh;
@@ -209,10 +210,10 @@
   font-weight: 600;
   line-height: 1.5;
   transition:
-    transform 130ms cubic-bezier(0.23, 1, 0.32, 1),
+    transform 130ms var(--ease-out),
     background 130ms ease;
 }
-.d-button:active:not(:disabled) {
+.d-button:active:not(:disabled):where(:not(:focus-visible)) {
   transform: scale(0.98);
 }
 .d-button.secondary {

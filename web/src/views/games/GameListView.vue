@@ -15,15 +15,23 @@ const { busy, error, notice, run } = useGroupOperation()
 const gameSearch = ref('')
 const name = ref('')
 const addingOpen = ref(false)
+const searchTerm = computed(() => gameSearch.value.trim())
 const filteredGames = computed(
   () =>
     snapshot.value?.games.filter(game =>
-      `${game.name} ${game.original}`.toLowerCase().includes(gameSearch.value.toLowerCase()),
+      `${game.name} ${game.original}`.toLowerCase().includes(searchTerm.value.toLowerCase()),
     ) ?? [],
 )
+function coverTone(id: string) {
+  let hash = 0
+  for (const character of id) hash = (hash * 31 + character.charCodeAt(0)) >>> 0
+  return ['sage', 'clay', 'slate', 'wheat'][hash % 4]
+}
 const gameCount = (id: string) => {
+  if (loading.value) return '正在整理记录…'
+  if (loadError.value) return '记录暂未加载'
   const activity = page.value.activity[id]
-  return activity ? `${activity.count} 局 · 最近 ${activity.last_date}` : '还没记过局'
+  return activity ? `${activity.count} 局相聚` : '等待第一局'
 }
 function openAddForm(initialName = '') {
   addingOpen.value = true
@@ -56,56 +64,488 @@ function retry() {
 </script>
 
 <template>
-  <template v-if="snapshot"
-    ><RequestStatus
+  <template v-if="snapshot">
+    <RequestStatus
       :loading="loading"
       :error="loadError || error"
       :notice="notice"
       @retry="retry"
       @dismiss="notice = ''"
     />
-    <header class="d-page-heading">
+    <header class="d-page-heading shelf-heading">
       <div>
         <p class="d-eyebrow">FAVORITES ON OUR TABLE</p>
         <h1>我们的桌游架<span class="d-title-dot">。</span></h1>
         <p>每一盒打开的，都是一起玩的理由。</p>
       </div>
-      <button class="d-button" @click="openAddForm()">＋ 添加桌游</button>
+      <button class="d-button" @click="openAddForm()"><Icon name="plus" :size="16" /> 添加桌游</button>
     </header>
-    <div class="d-game-toolbar">
-      <label class="d-search"
-        ><Icon name="search" /><input
-          v-model="gameSearch"
-          type="search"
-          placeholder="名称 / 中文别名"
-          aria-label="搜索本组桌游" /></label
-      ><button class="d-text-link" :disabled="busy" @click="searchBGG">搜索更多桌游</button>
+
+    <section class="shelf-toolbar" aria-label="桌游架与搜索">
+      <div class="shelf-count">
+        <span class="shelf-count-icon"><Icon name="game" :size="22" /></span>
+        <p>
+          <strong>{{ snapshot.games.length }}</strong
+          ><span>款桌游，在我们的架上</span>
+        </p>
+      </div>
+      <label class="d-search shelf-search">
+        <Icon name="search" :size="18" />
+        <input v-model="gameSearch" type="search" placeholder="找一款桌游，或搜中文别名" aria-label="搜索本组桌游" />
+      </label>
+      <button class="d-text-link shelf-external-search" :disabled="busy" @click="searchBGG">
+        搜索更多桌游 <Icon name="arrow" :size="15" />
+      </button>
+    </section>
+    <div class="shelf-caption">
+      <p aria-live="polite">
+        {{ searchTerm ? `找到 ${filteredGames.length} 款桌游` : '熟悉的老朋友，下一局的新故事。' }}
+      </p>
+      <span v-if="!searchTerm && snapshot.games.length" aria-hidden="true">OUR COLLECTION</span>
     </div>
-    <div class="d-game-grid">
-      <RouterLink v-for="g in filteredGames" :key="g.id" :to="`/games/${g.id}`" class="d-game-tile"
-        ><div class="d-cover sun">
-          <span class="d-cover-orbit"></span><span class="d-cover-motif">✳</span><strong>OUR GAME</strong>
+
+    <div v-if="filteredGames.length" class="shelf-grid">
+      <RouterLink v-for="game in filteredGames" :key="game.id" :to="`/games/${game.id}`" class="shelf-card">
+        <div class="shelf-cover" :class="coverTone(game.id)" aria-hidden="true">
+          <div class="shelf-cover-frame"></div>
+          <span class="shelf-cover-label">ONE MORE ROUND</span>
+          <span class="shelf-cover-letter">{{ Array.from(game.name.trim())[0]?.toUpperCase() }}</span>
+          <span class="shelf-cover-mark"><Icon name="game" :size="20" /></span>
+          <span class="shelf-cover-note">好游戏，一起玩。</span>
         </div>
-        <div>
-          <h2>{{ g.name }}</h2>
-          <p>{{ g.original || '新的游戏，新的故事。' }}</p>
+        <div class="shelf-card-body">
+          <h2 :title="game.name">{{ game.name }}</h2>
+          <p v-if="game.original && game.original !== game.name" class="shelf-original" :title="game.original">
+            {{ game.original }}
+          </p>
           <footer>
-            <span>{{ gameCount(g.id) }}</span
-            ><Icon name="arrow" />
-          </footer></div
-      ></RouterLink>
+            <div class="shelf-activity">
+              <span>{{ gameCount(game.id) }}</span>
+              <small v-if="!loading && !loadError && page.activity[game.id]"
+                >最近 {{ page.activity[game.id]?.last_date }}</small
+              >
+            </div>
+            <span class="shelf-card-arrow"><Icon name="arrow" :size="17" /></span>
+          </footer>
+        </div>
+      </RouterLink>
     </div>
-    <div v-if="!filteredGames.length" class="d-empty">
-      <h3>游戏架还留着位置。</h3>
-      <p>先手动添加一款常玩的桌游吧。</p>
-      <button class="d-button secondary" @click="openAddForm(gameSearch)">手动添加</button>
+    <div v-else class="d-empty shelf-empty">
+      <span class="shelf-empty-icon"><Icon :name="searchTerm ? 'search' : 'game'" :size="30" /></span>
+      <h3>{{ searchTerm ? '这款桌游，还没在架上。' : '游戏架还留着位置。' }}</h3>
+      <p>
+        {{
+          searchTerm
+            ? `没有找到「${searchTerm}」，换个名字找找，或把它加进来。`
+            : '把大家常玩的那一盒放上来，一起留下第一局。'
+        }}
+      </p>
+      <div class="shelf-empty-actions">
+        <button v-if="searchTerm" class="d-button secondary" @click="gameSearch = ''">查看全部桌游</button>
+        <button class="d-button" @click="openAddForm(searchTerm)">＋ 手动添加</button>
+      </div>
     </div>
-    <Modal v-if="addingOpen" title="把它放上游戏架。" @close="addingOpen = false"
-      ><form @submit.prevent="add">
+    <Modal v-if="addingOpen" title="把它放上游戏架。" @close="addingOpen = false">
+      <form @submit.prevent="add">
         <label class="d-field">桌游名称<input v-model="name" required maxlength="255" autofocus /></label>
         <p v-if="error" class="j-error" role="alert">{{ error }}</p>
         <button class="d-button full" :disabled="busy">保存</button>
-      </form></Modal
-    >
+      </form>
+    </Modal>
   </template>
 </template>
+
+<style scoped>
+.shelf-heading {
+  margin-bottom: 28px;
+}
+.shelf-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding: 18px 20px;
+  border: 1px solid var(--d-line);
+  border-radius: 14px;
+  background: var(--d-paper);
+}
+.shelf-count {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+  min-width: 0;
+}
+.shelf-count-icon,
+.shelf-empty-icon {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  color: var(--d-green);
+  background: #edf0e8;
+}
+.shelf-count p {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  column-gap: 8px;
+  row-gap: 2px;
+}
+.shelf-count strong {
+  font-family: Georgia, 'Songti SC', serif;
+  font-size: 28px;
+  line-height: 1;
+  font-weight: 400;
+  font-variant-numeric: tabular-nums;
+}
+.shelf-count p > span {
+  font-size: 11px;
+  color: var(--d-muted);
+}
+.shelf-search {
+  flex: 1;
+  max-width: 320px;
+  background: var(--d-bg);
+}
+.shelf-external-search {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-height: 44px;
+  white-space: nowrap;
+}
+.shelf-caption {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  margin: 25px 0 16px;
+  color: var(--d-muted);
+  font-size: 11px;
+}
+.shelf-caption > span {
+  font-size: 9px;
+  letter-spacing: 1.8px;
+  white-space: nowrap;
+}
+.shelf-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 24px;
+}
+.shelf-card {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  padding: 10px;
+  border: 1px solid var(--d-line);
+  border-radius: 14px;
+  background: var(--d-paper);
+  box-shadow: 0 3px 0 #ebe9e1;
+  transition: transform 160ms var(--ease-out);
+}
+.shelf-card:focus-visible {
+  outline: 2px solid var(--d-accent);
+  outline-offset: 4px;
+}
+.shelf-cover {
+  --cover-paper: #dfe5d6;
+  --cover-ink: #637557;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  aspect-ratio: 1.3;
+  overflow: hidden;
+  border-radius: 7px;
+  isolation: isolate;
+  color: var(--cover-ink);
+  background: var(--cover-paper);
+  box-shadow:
+    inset 7px 0 0 rgb(255 255 255 / 23%),
+    inset 8px 0 0 rgb(0 0 0 / 7%);
+}
+.shelf-cover.clay {
+  --cover-paper: #eddbce;
+  --cover-ink: #a1694e;
+}
+.shelf-cover.slate {
+  --cover-paper: #dce4e6;
+  --cover-ink: #617985;
+}
+.shelf-cover.wheat {
+  --cover-paper: #eae3cb;
+  --cover-ink: #97814c;
+}
+.shelf-cover::before,
+.shelf-cover::after {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  width: 62%;
+  aspect-ratio: 1;
+  border: 1px solid currentColor;
+  border-radius: 50%;
+  opacity: 0.15;
+}
+.shelf-cover::before {
+  right: -23%;
+  top: -22%;
+}
+.shelf-cover::after {
+  left: -32%;
+  bottom: -36%;
+  width: 94%;
+}
+.shelf-cover-frame {
+  position: absolute;
+  inset: 13px 12px 13px 19px;
+  border: 1px solid currentColor;
+  border-radius: 2px;
+  opacity: 0.23;
+}
+.shelf-cover-label {
+  position: absolute;
+  top: 24px;
+  font-size: 8px;
+  font-weight: 600;
+  letter-spacing: 2px;
+}
+.shelf-cover-letter {
+  font-family: 'Songti SC', 'Noto Serif CJK SC', 'STSong', serif;
+  font-size: clamp(48px, 5.8vw, 76px);
+  font-weight: 700;
+  line-height: 1;
+}
+.shelf-cover-mark {
+  position: absolute;
+  right: 22px;
+  bottom: 24px;
+  opacity: 0.6;
+  transform: rotate(12deg);
+}
+.shelf-cover-note {
+  position: absolute;
+  bottom: 25px;
+  left: 29px;
+  font-size: 9px;
+  letter-spacing: 1px;
+}
+.shelf-card-body {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  padding: 17px 7px 7px;
+  min-width: 0;
+}
+.shelf-card h2 {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  font-size: 16px;
+  line-height: 1.55;
+}
+.shelf-original {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  color: var(--d-muted);
+  font-size: 10px;
+  margin-top: 5px;
+}
+.shelf-card footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding-top: 15px;
+  margin-top: auto;
+}
+.shelf-activity {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 0;
+  font-size: 11px;
+  color: var(--d-green);
+}
+.shelf-activity small {
+  font-size: 9px;
+  color: var(--d-muted);
+}
+.shelf-card-arrow {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: #f0f1e9;
+  color: var(--d-green);
+}
+.shelf-card-arrow svg {
+  transition: transform 160ms var(--ease-out);
+}
+.shelf-empty {
+  border: 1px dashed #d6d9ca;
+  border-radius: 16px;
+  background: rgb(255 254 250 / 60%);
+  padding: 52px 24px;
+}
+.shelf-empty-icon {
+  width: 68px;
+  height: 68px;
+  border-radius: 20px;
+  margin-bottom: 5px;
+}
+.shelf-empty > p {
+  max-width: 360px;
+  line-height: 1.8;
+  overflow-wrap: anywhere;
+}
+.shelf-empty-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 8px;
+}
+@media (hover: hover) and (pointer: fine) {
+  .shelf-card:hover {
+    transform: translateY(-2px);
+    border-color: #c9ceb9;
+  }
+  .shelf-card:hover .shelf-card-arrow svg {
+    transform: translateX(2px);
+  }
+}
+.shelf-card:active:not(:focus-visible) {
+  transform: scale(0.985);
+}
+@media (max-width: 1050px) {
+  .shelf-toolbar {
+    flex-wrap: wrap;
+    gap: 12px 18px;
+  }
+  .shelf-count {
+    flex-basis: 100%;
+  }
+  .shelf-search {
+    max-width: none;
+  }
+}
+@media (min-width: 761px) and (max-width: 1050px) {
+  .shelf-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 18px;
+  }
+}
+@media (max-width: 700px) {
+  .shelf-heading {
+    flex-wrap: wrap;
+    gap: 16px;
+  }
+  .shelf-toolbar {
+    padding: 15px;
+    gap: 12px;
+  }
+  .shelf-count strong {
+    font-size: 26px;
+  }
+  .shelf-search {
+    flex-basis: 100%;
+  }
+  .shelf-external-search {
+    margin-left: auto;
+    min-height: 36px;
+  }
+  .shelf-caption {
+    margin-top: 22px;
+    font-size: 10px;
+  }
+  .shelf-caption > span {
+    display: none;
+  }
+  .shelf-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px;
+  }
+  .shelf-card {
+    padding: 7px;
+    border-radius: 11px;
+  }
+  .shelf-cover {
+    aspect-ratio: 0.95;
+  }
+  .shelf-cover-frame {
+    inset: 10px 8px 10px 14px;
+  }
+  .shelf-cover-label {
+    top: 20px;
+    font-size: 6px;
+    letter-spacing: 1.1px;
+  }
+  .shelf-cover-letter {
+    font-size: 54px;
+  }
+  .shelf-cover-note {
+    left: 19px;
+    bottom: 19px;
+    font-size: 8px;
+  }
+  .shelf-cover-mark {
+    display: none;
+  }
+  .shelf-card-body {
+    padding: 12px 3px 4px;
+  }
+  .shelf-card h2 {
+    font-size: 14px;
+  }
+  .shelf-card footer {
+    gap: 4px;
+    padding-top: 12px;
+  }
+  .shelf-activity {
+    font-size: 10px;
+  }
+  .shelf-activity small {
+    font-size: 8px;
+  }
+  .shelf-card-arrow {
+    width: 24px;
+    height: 24px;
+  }
+}
+@media (max-width: 360px) {
+  .shelf-grid {
+    gap: 10px;
+  }
+  .shelf-card-arrow {
+    display: none;
+  }
+  .shelf-cover-letter {
+    font-size: 46px;
+  }
+  .shelf-cover-label {
+    letter-spacing: 0.6px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .shelf-card,
+  .shelf-card-arrow svg {
+    transition: none;
+  }
+  .shelf-card:hover,
+  .shelf-card:active:not(:focus-visible),
+  .shelf-card:hover .shelf-card-arrow svg {
+    transform: none;
+  }
+}
+</style>
