@@ -1,11 +1,9 @@
 // Package services implements the application use cases. Each App owns one
-// business boundary, orchestrates transactions through the repository ports and
-// converts results with the shared converter.
+// business boundary and orchestrates transactions through the repository ports.
 package services
 
 import (
 	"github.com/superwhys/one-more-round/internal/app/ports"
-	"github.com/superwhys/one-more-round/internal/converter"
 	"github.com/superwhys/one-more-round/internal/domain/game"
 	"github.com/superwhys/one-more-round/internal/domain/group"
 	"github.com/superwhys/one-more-round/internal/domain/identity"
@@ -13,10 +11,9 @@ import (
 
 // AppContext carries the dependencies every application service shares.
 type AppContext struct {
-	Repos     ports.Repositories
-	Mailer    ports.Mailer
-	Photos    ports.PhotoFiles
-	Converter *converter.Converter
+	Repos  ports.Repositories
+	Mailer ports.Mailer
+	Photos ports.PhotoFiles
 }
 
 // identityService builds the identity domain service on top of a unit of work.

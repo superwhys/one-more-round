@@ -5,20 +5,19 @@ import (
 	"time"
 
 	"github.com/superwhys/one-more-round/internal/app/dto"
+	"github.com/superwhys/one-more-round/internal/app/mapper"
 	"github.com/superwhys/one-more-round/internal/app/ports"
-	"github.com/superwhys/one-more-round/internal/converter"
 	"github.com/superwhys/one-more-round/internal/domain/notification"
 	"github.com/superwhys/one-more-round/internal/pkg/secure"
 )
 
 // NotificationApp serves the current account's private activity center.
 type NotificationApp struct {
-	repos     ports.Repositories
-	converter *converter.Converter
+	repos ports.Repositories
 }
 
 func NewNotificationApp(ctx *AppContext) *NotificationApp {
-	return &NotificationApp{repos: ctx.Repos, converter: ctx.Converter}
+	return &NotificationApp{repos: ctx.Repos}
 }
 
 // List creates due invitation reminders and returns the newest activity items.
@@ -56,7 +55,7 @@ func (a *NotificationApp) List(ctx context.Context, userID string) (dto.Notifica
 	}
 	page := dto.NotificationPage{Items: make([]dto.Notification, 0, len(items))}
 	for _, item := range items {
-		page.Items = append(page.Items, a.converter.NotificationDomainToDTO(item))
+		page.Items = append(page.Items, mapper.NotificationDomainToDTO(item))
 		if item.ReadAt == nil {
 			page.Unread++
 		}

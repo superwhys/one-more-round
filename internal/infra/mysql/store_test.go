@@ -24,7 +24,6 @@ import (
 	"github.com/superwhys/one-more-round/internal/app/dto"
 	"github.com/superwhys/one-more-round/internal/app/ports"
 	"github.com/superwhys/one-more-round/internal/app/services"
-	"github.com/superwhys/one-more-round/internal/converter"
 	"github.com/superwhys/one-more-round/internal/errcode"
 	storepkg "github.com/superwhys/one-more-round/internal/infra/mysql"
 	"github.com/superwhys/one-more-round/internal/infra/photos"
@@ -192,7 +191,7 @@ func setup(t *testing.T) *stack {
 	repos := storepkg.NewRepositoryFactory(client.Gorm)
 	mailer := &inbox{codes: map[string]string{}}
 	photoRoot := t.TempDir()
-	appCtx := &services.AppContext{Repos: repos, Mailer: mailer, Photos: &photos.Files{Root: photoRoot}, Converter: converter.New()}
+	appCtx := &services.AppContext{Repos: repos, Mailer: mailer, Photos: &photos.Files{Root: photoRoot}}
 	return &stack{
 		client:        client,
 		repos:         repos,

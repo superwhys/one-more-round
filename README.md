@@ -132,17 +132,16 @@
 | 打包 | 前端产物经 `go:embed` 嵌入，交付单个 Go 二进制，生产不依赖 Node 或 Vite |
 | 接口文档 | `swag` 注解生成到 `cmd/swagger/docs` |
 
-架构采用职责清晰的 DDD 分层：`API → Application → Domain ← Infrastructure`，由 `main.go` 组装依赖。持久化 Model、Domain 实体与应用 DTO 三类模型分离，转换集中在 `internal/converter`。
+架构采用职责清晰的 DDD 分层：`API → Application → Domain ← Infrastructure`，由 `main.go` 组装依赖。持久化 Model、Domain 实体与应用 DTO 三类模型分离，转换按所属边界集中，避免 Application 与 Infrastructure 经由共享转换包耦合。
 
 ```text
 main.go             # 配置、依赖注入、服务启动
 api/                # HTTP 装配：路由表、会话与错误、中间件、资源路由
 cmd/swagger/        # swag 生成入口与文档产物
 config/             # 配置结构与启动校验
-internal/app/       # dto / ports / services（每个业务边界一个 XxxApp）
-internal/converter/ # Model ↔ Domain ↔ DTO 的唯一转换入口
+internal/app/       # dto / mapper / ports / services（每个业务边界一个 XxxApp）
 internal/domain/    # identity、group、game、diary、photo 等领域模型与仓储接口
-internal/infra/     # mysql、photos、mail 等基础设施适配
+internal/infra/     # mysql（含持久化 mapper）、photos、mail 等基础设施适配
 internal/errcode/   # 业务错误码 + HTTP 状态 + 提示文案
 web/                # Vue 项目与 Go 静态资源嵌入入口
 docs/               # PRD、接口契约、设计稿与实施记录

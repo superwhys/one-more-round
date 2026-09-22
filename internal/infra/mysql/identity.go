@@ -4,17 +4,16 @@ import (
 	"context"
 	"time"
 
-	"github.com/superwhys/one-more-round/internal/converter"
 	"github.com/superwhys/one-more-round/internal/domain/identity"
 	"github.com/superwhys/one-more-round/internal/errcode"
+	"github.com/superwhys/one-more-round/internal/infra/mysql/mapper"
 	"github.com/superwhys/one-more-round/internal/infra/mysql/models"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 )
 
 type userRepository struct {
-	db        *gorm.DB
-	converter *converter.Converter
+	db *gorm.DB
 }
 
 // GetByEmail returns the account of the address.
@@ -24,12 +23,12 @@ func (r *userRepository) GetByEmail(ctx context.Context, email string) (*identit
 	if err != nil {
 		return nil, mapErr(err)
 	}
-	return r.converter.UserModelToDomain(m), nil
+	return mapper.UserModelToDomain(m), nil
 }
 
 // Create inserts the account.
 func (r *userRepository) Create(ctx context.Context, u *identity.User) error {
-	return mapErr(queryOf(r.db).User.WithContext(ctx).Create(r.converter.UserDomainToModel(u)))
+	return mapErr(queryOf(r.db).User.WithContext(ctx).Create(mapper.UserDomainToModel(u)))
 }
 
 // GetBySessionToken returns the account of a live session digest.
@@ -40,12 +39,11 @@ func (r *userRepository) GetBySessionToken(ctx context.Context, hash string) (*i
 	if err != nil {
 		return nil, mapErr(err)
 	}
-	return r.converter.UserModelToDomain(m), nil
+	return mapper.UserModelToDomain(m), nil
 }
 
 type verifyCodeRepository struct {
-	db        *gorm.DB
-	converter *converter.Converter
+	db *gorm.DB
 }
 
 // Get returns the pending code, creating a placeholder row for an address that
@@ -60,7 +58,7 @@ func (r *verifyCodeRepository) Get(ctx context.Context, email string) (*identity
 	if err != nil {
 		return nil, mapErr(err)
 	}
-	return r.converter.ChallengeModelToDomain(m), nil
+	return mapper.ChallengeModelToDomain(m), nil
 }
 
 // Save stores the code, its limits and the readiness flag.
@@ -74,8 +72,7 @@ func (r *verifyCodeRepository) Save(ctx context.Context, ch *identity.Challenge)
 }
 
 type rateRepository struct {
-	db        *gorm.DB
-	converter *converter.Converter
+	db *gorm.DB
 }
 
 // Hit counts one send attempt inside an hourly window.
@@ -100,13 +97,12 @@ func (r *rateRepository) Hit(ctx context.Context, id string, now time.Time, limi
 }
 
 type trialRepository struct {
-	db        *gorm.DB
-	converter *converter.Converter
+	db *gorm.DB
 }
 
 // Create stores a trial invitation holding the token digest.
 func (r *trialRepository) Create(ctx context.Context, hash string, expires time.Time) error {
-	return mapErr(queryOf(r.db).Trial.WithContext(ctx).Create(r.converter.TrialDomainToModel(&identity.Trial{Hash: hash, Expires: expires})))
+	return mapErr(queryOf(r.db).Trial.WithContext(ctx).Create(mapper.TrialDomainToModel(&identity.Trial{Hash: hash, Expires: expires})))
 }
 
 // Consume marks an unused, unexpired trial invitation as used.
@@ -130,13 +126,12 @@ func (r *trialRepository) Revoke(ctx context.Context, hash string) error {
 }
 
 type sessionRepository struct {
-	db        *gorm.DB
-	converter *converter.Converter
+	db *gorm.DB
 }
 
 // Create stores the session of a token digest.
 func (r *sessionRepository) Create(ctx context.Context, s *identity.Session) error {
-	return mapErr(queryOf(r.db).Session.WithContext(ctx).Create(r.converter.SessionDomainToModel(s)))
+	return mapErr(queryOf(r.db).Session.WithContext(ctx).Create(mapper.SessionDomainToModel(s)))
 }
 
 // Delete removes the session row of a token digest.

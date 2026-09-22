@@ -3,15 +3,14 @@ package mysql
 import (
 	"context"
 
-	"github.com/superwhys/one-more-round/internal/converter"
 	"github.com/superwhys/one-more-round/internal/domain/notification"
+	"github.com/superwhys/one-more-round/internal/infra/mysql/mapper"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 )
 
 type notificationRepository struct {
-	db        *gorm.DB
-	converter *converter.Converter
+	db *gorm.DB
 }
 
 func (r *notificationRepository) ListByUser(ctx context.Context, userID string, limit int) ([]*notification.Notification, error) {
@@ -22,14 +21,14 @@ func (r *notificationRepository) ListByUser(ctx context.Context, userID string, 
 	}
 	items := make([]*notification.Notification, 0, len(rows))
 	for _, row := range rows {
-		items = append(items, r.converter.NotificationModelToDomain(row))
+		items = append(items, mapper.NotificationModelToDomain(row))
 	}
 	return items, nil
 }
 
 func (r *notificationRepository) Create(ctx context.Context, item *notification.Notification) error {
 	q := queryOf(r.db).Notification
-	return mapErr(q.WithContext(ctx).Clauses(clause.OnConflict{DoNothing: true}).Create(r.converter.NotificationDomainToModel(item)))
+	return mapErr(q.WithContext(ctx).Clauses(clause.OnConflict{DoNothing: true}).Create(mapper.NotificationDomainToModel(item)))
 }
 
 func (r *notificationRepository) Save(ctx context.Context, item *notification.Notification) error {
@@ -44,5 +43,5 @@ func (r *notificationRepository) Get(ctx context.Context, userID, id string) (*n
 	if err != nil {
 		return nil, mapErr(err)
 	}
-	return r.converter.NotificationModelToDomain(row), nil
+	return mapper.NotificationModelToDomain(row), nil
 }

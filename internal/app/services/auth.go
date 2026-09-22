@@ -6,22 +6,21 @@ import (
 	"time"
 
 	"github.com/superwhys/one-more-round/internal/app/dto"
+	"github.com/superwhys/one-more-round/internal/app/mapper"
 	"github.com/superwhys/one-more-round/internal/app/ports"
-	"github.com/superwhys/one-more-round/internal/converter"
 	"github.com/superwhys/one-more-round/internal/domain/identity"
 	"github.com/superwhys/one-more-round/internal/errcode"
 )
 
 // AuthApp handles verification codes and sessions.
 type AuthApp struct {
-	repos     ports.Repositories
-	mailer    ports.Mailer
-	converter *converter.Converter
+	repos  ports.Repositories
+	mailer ports.Mailer
 }
 
 // NewAuthApp builds the authentication application service.
 func NewAuthApp(ctx *AppContext) *AuthApp {
-	return &AuthApp{repos: ctx.Repos, mailer: ctx.Mailer, converter: ctx.Converter}
+	return &AuthApp{repos: ctx.Repos, mailer: ctx.Mailer}
 }
 
 // SendCode stores a fresh verification code and mails it. The stored code is
@@ -102,7 +101,7 @@ func (a *AuthApp) Login(ctx context.Context, req *dto.LoginReq) (*dto.LoginResp,
 	if rejected != nil {
 		return nil, "", rejected
 	}
-	return &dto.LoginResp{User: *a.converter.UserDomainToDTO(user), GroupID: groupID}, token, nil
+	return &dto.LoginResp{User: *mapper.UserDomainToDTO(user), GroupID: groupID}, token, nil
 }
 
 // Authenticate resolves a session token into the current account.
@@ -111,7 +110,7 @@ func (a *AuthApp) Authenticate(ctx context.Context, token string) (*dto.User, er
 	if err != nil {
 		return nil, err
 	}
-	return a.converter.UserDomainToDTO(user), nil
+	return mapper.UserDomainToDTO(user), nil
 }
 
 // Logout revokes the session of the token.

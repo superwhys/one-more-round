@@ -9,8 +9,8 @@ import (
 	"time"
 
 	"github.com/superwhys/one-more-round/internal/app/dto"
+	"github.com/superwhys/one-more-round/internal/app/mapper"
 	"github.com/superwhys/one-more-round/internal/app/ports"
-	"github.com/superwhys/one-more-round/internal/converter"
 	"github.com/superwhys/one-more-round/internal/domain/diary"
 	"github.com/superwhys/one-more-round/internal/domain/group"
 	"github.com/superwhys/one-more-round/internal/errcode"
@@ -19,14 +19,13 @@ import (
 
 // RoundApp handles the recorded rounds of a group.
 type RoundApp struct {
-	repos     ports.Repositories
-	files     ports.PhotoFiles
-	converter *converter.Converter
+	repos ports.Repositories
+	files ports.PhotoFiles
 }
 
 // NewRoundApp builds the round application service.
 func NewRoundApp(ctx *AppContext) *RoundApp {
-	return &RoundApp{repos: ctx.Repos, files: ctx.Photos, converter: ctx.Converter}
+	return &RoundApp{repos: ctx.Repos, files: ctx.Photos}
 }
 
 // ShareStatus returns whether the caller-managed round has an active link.
@@ -190,7 +189,7 @@ func (a *RoundApp) List(ctx context.Context, groupID, userID string, req *dto.Li
 	if err != nil {
 		return dto.Page{}, err
 	}
-	return a.converter.PageDomainToDTO(page), nil
+	return mapper.PageDomainToDTO(page), nil
 }
 
 // Recap returns full-period highlights independent of timeline pagination.
@@ -211,7 +210,7 @@ func (a *RoundApp) Recap(ctx context.Context, groupID, userID, period string) (d
 	if err != nil {
 		return dto.Recap{}, err
 	}
-	return a.converter.RecapDomainToDTO(period, diary.BuildRecap(rounds, from, to)), nil
+	return mapper.RecapDomainToDTO(period, diary.BuildRecap(rounds, from, to)), nil
 }
 
 func recapRange(period string) (string, string, error) {
@@ -243,7 +242,7 @@ func (a *RoundApp) RecycleBin(ctx context.Context, groupID, userID string) ([]dt
 	if err != nil {
 		return nil, err
 	}
-	return a.converter.RoundDomainListToDTOList(rounds), nil
+	return mapper.RoundDomainListToDTOList(rounds), nil
 }
 
 // Restore returns one recoverable round to the timeline.
@@ -283,7 +282,7 @@ func (a *RoundApp) Restore(ctx context.Context, userID string, req *dto.RestoreR
 	if err != nil {
 		return dto.Round{}, err
 	}
-	return a.converter.RoundDomainToDTO(restored), nil
+	return mapper.RoundDomainToDTO(restored), nil
 }
 
 // Get returns one round of the group.
@@ -307,7 +306,7 @@ func (a *RoundApp) Get(ctx context.Context, groupID, userID, id string) (dto.Rou
 	}); err != nil {
 		return dto.Round{}, err
 	}
-	return a.converter.RoundDomainToDTO(found), nil
+	return mapper.RoundDomainToDTO(found), nil
 }
 
 // Save validates a submitted round and stores it as a new record or an edit.
@@ -319,7 +318,7 @@ func (a *RoundApp) Save(ctx context.Context, userID string, req *dto.SaveRoundRe
 	normalizeRound(&input)
 	input.ID = req.RoundID
 	input.Author, input.UpdatedBy, input.UpdatedAt, input.DeletedAt = "", "", time.Time{}, nil
-	if err := a.converter.RoundDTOToDomain(&input, groupID).Validate(); err != nil {
+	if err := mapper.RoundDTOToDomain(&input, groupID).Validate(); err != nil {
 		return dto.Round{}, errcode.ErrBadRequest.WithMessage(err.Error())
 	}
 	if req.RoundID == "" && (len(key) < 16 || len(key) > 128) {
@@ -366,7 +365,7 @@ func (a *RoundApp) Save(ctx context.Context, userID string, req *dto.SaveRoundRe
 				return errcode.ErrPlayerNotInGroup
 			}
 		}
-		round := a.converter.RoundDTOToDomain(&input, groupID)
+		round := mapper.RoundDTOToDomain(&input, groupID)
 		round.Author = userID
 		round.Version = 1
 		var released []string
@@ -430,7 +429,7 @@ func (a *RoundApp) Save(ctx context.Context, userID string, req *dto.SaveRoundRe
 	if err != nil {
 		return dto.Round{}, err
 	}
-	return a.converter.RoundDomainToDTO(saved), nil
+	return mapper.RoundDomainToDTO(saved), nil
 }
 
 // Delete moves a round into the seven-day recycle bin.
