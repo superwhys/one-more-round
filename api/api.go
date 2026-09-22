@@ -67,7 +67,10 @@ func (api *API) SetupRouter() http.Handler {
 		// Authentication and bearer-link reads are the routes without a session.
 		ginutils.WithGroupHandlers(
 			ginutils.WithPrefix("/v1/auth"),
-			ginutils.WithRouterHandler(router.AuthRouter(api.authApp, api.sessionOptions()), router.GroupInvitationRouter(api.groupApp)),
+			ginutils.WithRouterHandler(
+				router.AuthRouter(api.authApp, api.sessionOptions()),
+				router.GroupInvitationRouter(api.groupApp),
+			),
 		),
 		ginutils.WithGroupHandlers(
 			ginutils.WithPrefix("/v1"),
@@ -80,7 +83,11 @@ func (api *API) SetupRouter() http.Handler {
 				middleware.TokenVerifyMiddleware(api.authApp),
 				middleware.ContextInjectMiddleware(),
 			),
-			ginutils.WithRouterHandler(router.MeRouter(), router.GroupRouter(api.groupApp), router.NotificationRouter(api.notificationApp)),
+			ginutils.WithRouterHandler(
+				router.MeRouter(),
+				router.GroupRouter(api.groupApp),
+				router.NotificationRouter(api.notificationApp),
+			),
 			ginutils.WithGroupHandlers(
 				ginutils.WithPrefix("/groups/:group"),
 				ginutils.WithRouterHandler(
