@@ -107,6 +107,17 @@ export interface NotificationPage {
   items: Notification[]
   unread: number
 }
+export interface RoundComment {
+  id: string
+  author: string
+  body: string
+  parent_id: string | null
+  created: string
+}
+export interface RoundCommentPage {
+  total: number
+  items: RoundComment[]
+}
 export interface RoundShareStatus {
   active: boolean
   created_at: string

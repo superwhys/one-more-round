@@ -45,7 +45,9 @@ function createGroupContext(groupId: string) {
   const playerName = (id: string) => snapshot.value?.players.find(player => player.id === id)?.name ?? '玩家'
   const gameName = (id: string) => snapshot.value?.games.find(game => game.id === id)?.name ?? '桌游'
   const memberName = (id: string) => snapshot.value?.members.find(member => member.user_id === id)?.email ?? '历史成员'
-  return { groupId, snapshot, owner, refresh, handleAccessError, playerName, gameName, memberName }
+  const commenterName = (id: string) =>
+    snapshot.value?.players.find(player => player.account === id)?.name ?? memberName(id)
+  return { groupId, snapshot, owner, refresh, handleAccessError, playerName, gameName, memberName, commenterName }
 }
 const groupKey: InjectionKey<ReturnType<typeof createGroupContext>> = Symbol('group')
 export function provideGroupContext(groupId: string) {

@@ -65,8 +65,9 @@ func main() {
 	roundApp := services.NewRoundApp(appCtx)
 	photoApp := services.NewPhotoApp(appCtx)
 	notificationApp := services.NewNotificationApp(appCtx)
+	commentApp := services.NewCommentApp(appCtx)
 
-	backend := api.NewAPI(buildinfo.Version, &runtime, authApp, groupApp, roundApp, photoApp, notificationApp)
+	backend := api.NewAPI(buildinfo.Version, &runtime, authApp, groupApp, roundApp, photoApp, notificationApp, commentApp)
 	frontend, err := web.NewHandler()
 	logging.PanicError(err)
 

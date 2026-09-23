@@ -10,6 +10,7 @@ import { useSession } from '@/stores/session'
 import { useRound } from '@/composables/useRound'
 import { createRoundShare, deleteRound as remove, getRoundShareStatus, revokeRoundShare } from '@/api/round'
 import { photoURL } from '@/api/photo'
+import RoundComments from '@/components/rounds/RoundComments.vue'
 import { modeNames, resultLabel } from '@/utils/round'
 import { message } from '@/utils/error'
 
@@ -137,6 +138,7 @@ async function revokeShare() {
         {{ new Date(current.updated_at).toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' }) }}（北京时间）
       </p>
       <RouterLink :to="`/games/${current.game_id}`" class="d-text-link">查看这款桌游的故事 →</RouterLink>
+      <RoundComments :round-id="current.id" />
       <div v-if="editable" class="j-actions">
         <button class="d-button" @click="openShare">分享这局</button>
         <RouterLink :to="`/edit/${current.id}`" class="d-button secondary">编辑记录</RouterLink>

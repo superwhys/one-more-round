@@ -45,7 +45,7 @@ func TestPhotoLimitsBrowser(t *testing.T) {
 	mux := http.NewServeMux()
 	server := httptest.NewUnstartedServer(mux)
 	origin := "http://" + server.Listener.Addr().String()
-	backend := api.NewAPI("photo-browser-test", &config.Runtime{Origin: origin}, s.auth, s.groups, s.rounds, s.photos, s.notifications).SetupRouter()
+	backend := api.NewAPI("photo-browser-test", &config.Runtime{Origin: origin}, s.auth, s.groups, s.rounds, s.photos, s.notifications, s.comments).SetupRouter()
 	mux.Handle("/api/", http.StripPrefix("/api", backend))
 	mux.Handle("/", frontend)
 	server.Start()

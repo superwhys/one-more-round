@@ -202,6 +202,15 @@ definitions:
       total:
         type: integer
     type: object
+  dto.Paginated-dto_RoundComment:
+    properties:
+      items:
+        items:
+          $ref: '#/definitions/dto.RoundComment'
+        type: array
+      total:
+        type: integer
+    type: object
   dto.Player:
     properties:
       account:
@@ -348,6 +357,26 @@ definitions:
         items:
           type: string
         type: array
+    type: object
+  dto.RoundComment:
+    properties:
+      author:
+        type: string
+      body:
+        type: string
+      created:
+        type: string
+      id:
+        type: string
+      parent_id:
+        type: string
+    type: object
+  dto.RoundCommentBody:
+    properties:
+      body:
+        type: string
+      parent_id:
+        type: string
     type: object
   dto.RoundShareStatus:
     properties:
@@ -538,6 +567,14 @@ definitions:
         $ref: '#/definitions/dto.Page'
       message: {}
     type: object
+  ginutils.Ret-dto_Paginated-dto_RoundComment:
+    properties:
+      code:
+        type: integer
+      data:
+        $ref: '#/definitions/dto.Paginated-dto_RoundComment'
+      message: {}
+    type: object
   ginutils.Ret-dto_Player:
     properties:
       code:
@@ -568,6 +605,14 @@ definitions:
         type: integer
       data:
         $ref: '#/definitions/dto.Round'
+      message: {}
+    type: object
+  ginutils.Ret-dto_RoundComment:
+    properties:
+      code:
+        type: integer
+      data:
+        $ref: '#/definitions/dto.RoundComment'
       message: {}
     type: object
   ginutils.Ret-dto_RoundShareStatus:
@@ -1142,6 +1187,109 @@ paths:
       summary: 获取对局详情
       tags:
       - Round
+  /v1/groups/{group}/rounds/{id}/comments:
+    get:
+      description: 按时间正序返回当前对局的组内评论，公开分享页不包含这些内容
+      parameters:
+      - description: 小组 ID
+        in: path
+        name: group
+        required: true
+        type: string
+      - description: 对局 ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: 偏移量
+        in: query
+        name: offset
+        type: integer
+      - description: 每页条数，最大 100
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/ginutils.Ret-dto_Paginated-dto_RoundComment'
+      security:
+      - SessionCookie: []
+      summary: 获取对局评论
+      tags:
+      - Round Comment
+    post:
+      consumes:
+      - application/json
+      description: 创建需携带 Idempotency-Key；parent_id 为空时评论对局，非空时只能回复根评论
+      parameters:
+      - description: 小组 ID
+        in: path
+        name: group
+        required: true
+        type: string
+      - description: 对局 ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: 提交标识
+        in: header
+        name: Idempotency-Key
+        required: true
+        type: string
+      - description: 评论内容
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.RoundCommentBody'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/ginutils.Ret-dto_RoundComment'
+      security:
+      - SessionCookie: []
+      summary: 发表对局评论或一层回复
+      tags:
+      - Round Comment
+  /v1/groups/{group}/rounds/{id}/comments/{comment}:
+    delete:
+      description: 作者可删自己的评论，组主可删任何条；删除根评论时一并删除回复
+      parameters:
+      - description: 小组 ID
+        in: path
+        name: group
+        required: true
+        type: string
+      - description: 对局 ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: 评论 ID
+        in: path
+        name: comment
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/ginutils.Ret-any'
+      security:
+      - SessionCookie: []
+      summary: 删除对局评论
+      tags:
+      - Round Comment
   /v1/groups/{group}/rounds/{id}/restore:
     post:
       consumes:

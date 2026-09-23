@@ -104,6 +104,31 @@ type RoundShare struct {
 
 func (RoundShare) TableName() string { return "omr_round_shares" }
 
+// RoundComment is one group-private note on a round.
+type RoundComment struct {
+	ID       string    `gorm:"column:id;type:varchar(64);primaryKey"`
+	GroupID  string    `gorm:"column:group_id;type:varchar(64);not null;index:round_created,priority:1"`
+	RoundID  string    `gorm:"column:round_id;type:varchar(64);not null;index:round_created,priority:2"`
+	Author   string    `gorm:"column:author;type:varchar(64);not null"`
+	Body     string    `gorm:"column:body;type:varchar(2000);not null"`
+	ParentID *string   `gorm:"column:parent_id;type:varchar(64);index:parent_id"`
+	Created  time.Time `gorm:"column:created;type:datetime(6);not null;index:round_created,priority:3"`
+}
+
+func (RoundComment) TableName() string { return "omr_round_comments" }
+
+// CommentIdempotency stores the fingerprint of a comment submission.
+type CommentIdempotency struct {
+	GroupID    string `gorm:"column:group_id;type:varchar(64);primaryKey"`
+	UserID     string `gorm:"column:user_id;type:varchar(64);primaryKey"`
+	RoundID    string `gorm:"column:round_id;type:varchar(64);primaryKey"`
+	RequestKey string `gorm:"column:request_key;type:varchar(128);primaryKey"`
+	Hash       string `gorm:"column:hash;type:char(64);not null"`
+	CommentID  string `gorm:"column:comment_id;type:varchar(64);not null"`
+}
+
+func (CommentIdempotency) TableName() string { return "omr_comment_idempotency" }
+
 type Idempotency struct {
 	GroupID    string `gorm:"column:group_id;type:varchar(64);primaryKey"`
 	UserID     string `gorm:"column:user_id;type:varchar(64);primaryKey"`
@@ -169,6 +194,8 @@ func AllModels() []any {
 		&Game{},
 		&Round{},
 		&RoundShare{},
+		&RoundComment{},
+		&CommentIdempotency{},
 		&Challenge{},
 		&Rate{},
 		&Trial{},

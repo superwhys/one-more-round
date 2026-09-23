@@ -33,7 +33,13 @@
 - 创建必须带 `Idempotency-Key`（16—128 字符）；按账号和小组隔离。同键相同内容返回已有记录；同键不同内容返回 409；已删除的提交不会重新创建。
 - 编辑携带读取时的 `version`；在事务中校验，成功递增。最近修改人和时间由服务端填写。
 
-对局字段：`game_id/date/mode/outcome/players/winners/scores/teams/team_score/memory/minutes/photos/version`；返回另含 `id/author/updated_by/updated_at`。`updated_at` 是带时区的 RFC3339 时间戳；对局日期仅为日期字符串。
+- GET `/groups/:group/rounds/:id/comments`：组内评论，按时间正序；`offset` 默认 0，`limit` 默认 30、最多 100。返回 `{total, items}`。对局不存在或已进回收站时 404。
+- POST `/groups/:group/rounds/:id/comments`：发表评论或一层回复。Body 为 `{body, parent_id}`；`parent_id` 为空时评论对局，非空时只能指向同局根评论。创建必须带 `Idempotency-Key`（16—128 字符），按账号、小组和对局隔离。同键相同内容返回已有评论；同键不同内容返回 409。
+- DELETE `/groups/:group/rounds/:id/comments/:comment`：作者可删自己的评论，组主可删任何条；删除根评论时一并删除回复。不支持编辑。
+- 评论正文去空白后非空，最多 500 个 Unicode 字符。公开分享页不包含评论。对局永久删除时一并清除评论；恢复回收站中的对局后评论仍在。
+- 评论对局时通知记录人（评论者不是记录人时）；回复时通知被回复作者。通知不含评论原文，`link` 为 `/rounds/:id`。
+
+对局字段：`game_id/date/mode/outcome/players/winners/scores/teams/team_score/memory/minutes/photos/version`；返回另含 `id/author/updated_by/updated_at`。`updated_at` 是带时区的 RFC3339 时间戳；对局日期仅为日期字符串。评论字段：`id/author/body/parent_id/created`。
 
 | 模式 | 结果与分数 |
 | --- | --- |
@@ -61,7 +67,7 @@
 
 ## 通知
 
-- GET `/notifications`：返回当前账号最多 100 条新近站内通知及未读数，覆盖新成员加入、玩家关联申请/处理和 24 小时内到期的小组邀请。
+- GET `/notifications`：返回当前账号最多 100 条新近站内通知及未读数，覆盖新成员加入、玩家关联申请/处理、24 小时内到期的小组邀请，以及对局评论/回复。
 - POST `/notifications/:id/read`：只能把当前账号自己的通知标为已读。
 
 ## 运维

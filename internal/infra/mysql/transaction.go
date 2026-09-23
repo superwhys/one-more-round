@@ -100,6 +100,16 @@ func (f *RepositoryFactory) Idempotency() diary.IIdempotencyRepository {
 	return &idempotencyRepository{db: f.db}
 }
 
+// Comment returns the round comment repository.
+func (f *RepositoryFactory) Comment() diary.ICommentRepository {
+	return &commentRepository{db: f.db}
+}
+
+// CommentIdempotency returns the comment submission fingerprint repository.
+func (f *RepositoryFactory) CommentIdempotency() diary.ICommentIdempotencyRepository {
+	return &commentIdempotencyRepository{db: f.db}
+}
+
 // Photo returns the photo metadata repository.
 func (f *RepositoryFactory) Photo() photo.IPhotoRepository {
 	return &photoRepository{db: f.db}

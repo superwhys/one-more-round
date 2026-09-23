@@ -27,6 +27,29 @@ type IRoundRepository interface {
 	RevokeShare(ctx context.Context, groupID, roundID string, at time.Time) error
 }
 
+// ICommentRepository reads and writes the comments of a round.
+type ICommentRepository interface {
+	// ListByRound returns the round's comments, oldest first, with the total count.
+	ListByRound(ctx context.Context, groupID, roundID string, offset, limit int) ([]*Comment, int, error)
+	// Get returns one comment of the round.
+	Get(ctx context.Context, groupID, roundID, id string) (*Comment, error)
+	// Save inserts a comment.
+	Save(ctx context.Context, c *Comment) error
+	// Delete removes one comment of the round and any replies that point at it.
+	Delete(ctx context.Context, groupID, roundID, id string) error
+	// DeleteByRound permanently removes every comment of the round.
+	DeleteByRound(ctx context.Context, groupID, roundID string) error
+}
+
+// ICommentIdempotencyRepository stores the fingerprint of a comment submission
+// so a retried request reuses the comment it already created.
+type ICommentIdempotencyRepository interface {
+	// Get returns the stored fingerprint and comment of a submission key.
+	Get(ctx context.Context, groupID, userID, roundID, key string) (hash, commentID string, err error)
+	// Create stores the fingerprint of a submission key.
+	Create(ctx context.Context, groupID, userID, roundID, key, hash, commentID string) error
+}
+
 // IIdempotencyRepository stores the fingerprint of a round submission so a
 // retried request reuses the record it already created.
 type IIdempotencyRepository interface {

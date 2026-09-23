@@ -1,5 +1,14 @@
 import { ApiError, request, send } from './request'
-import type { Round, Page, Recap, PublicRound, RoundShareStatus, RoundShareToken } from '@/types/journal'
+import type {
+  Round,
+  Page,
+  Recap,
+  PublicRound,
+  RoundShareStatus,
+  RoundShareToken,
+  RoundComment,
+  RoundCommentPage,
+} from '@/types/journal'
 import type { RoundQuery } from '@/types/round'
 export function listRounds(groupId: string, query: RoundQuery = {}) {
   const params = new URLSearchParams()
@@ -24,6 +33,18 @@ export const createRoundShare = (groupId: string, id: string) =>
   send<RoundShareToken>(`/groups/${groupId}/rounds/${id}/share`, {})
 export const revokeRoundShare = (groupId: string, id: string) =>
   send<void>(`/groups/${groupId}/rounds/${id}/share`, {}, 'DELETE')
+export const listRoundComments = (groupId: string, id: string, offset = 0, limit = 100) =>
+  request<RoundCommentPage>(
+    `/groups/${groupId}/rounds/${id}/comments?${new URLSearchParams({ offset: String(offset), limit: String(limit) })}`,
+  )
+export const createRoundComment = (
+  groupId: string,
+  id: string,
+  body: { body: string; parent_id?: string | null },
+  key: string,
+) => send<RoundComment>(`/groups/${groupId}/rounds/${id}/comments`, body, 'POST', key)
+export const deleteRoundComment = (groupId: string, id: string, commentId: string) =>
+  send<void>(`/groups/${groupId}/rounds/${id}/comments/${commentId}`, {}, 'DELETE')
 export const getPublicRound = (token: string) =>
   request<PublicRound>('/shared-rounds', { headers: { 'X-Round-Share': token } })
 export async function getPublicRoundPhoto(token: string, id: string): Promise<Blob> {

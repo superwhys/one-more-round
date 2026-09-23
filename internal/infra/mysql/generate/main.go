@@ -13,7 +13,7 @@ func main() {
 	g.ApplyBasic(
 		models.User{}, models.Challenge{}, models.Rate{}, models.Trial{},
 		models.Session{}, models.Group{}, models.Member{}, models.Player{},
-		models.Game{}, models.Round{}, models.RoundShare{}, models.Idempotency{}, models.Invite{},
+		models.Game{}, models.Round{}, models.RoundShare{}, models.RoundComment{}, models.CommentIdempotency{}, models.Idempotency{}, models.Invite{},
 		models.Claim{}, models.Photo{}, models.Notification{},
 	)
 	g.Execute()

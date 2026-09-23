@@ -49,7 +49,7 @@ onMounted(load)
     <div>
       <p class="d-eyebrow">AROUND OUR TABLE</p>
       <h1>通知<span class="d-title-dot">。</span></h1>
-      <p>关联申请、新成员和即将到期的邀请都在这里。</p>
+      <p>关联申请、新成员、即将到期的邀请和对局评论都在这里。</p>
     </div>
     <button v-if="page.unread" class="d-text-link" @click="readAll">全部已读</button>
   </header>

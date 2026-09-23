@@ -82,6 +82,9 @@ func (r *roundRepository) Delete(ctx context.Context, groupID, id string) error 
 	if _, err := queries.RoundShare.WithContext(ctx).Where(queries.RoundShare.GroupID.Eq(groupID), queries.RoundShare.RoundID.Eq(id)).Delete(); err != nil {
 		return mapErr(err)
 	}
+	if err := (&commentRepository{db: r.db}).DeleteByRound(ctx, groupID, id); err != nil {
+		return err
+	}
 	q := queries.Round
 	_, err := q.WithContext(ctx).Where(q.GroupID.Eq(groupID), q.ID.Eq(id)).Delete()
 	return mapErr(err)

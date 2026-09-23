@@ -17,45 +17,49 @@ import (
 
 func Use(db *gorm.DB, opts ...gen.DOOption) *Query {
 	return &Query{
-		db:           db,
-		Challenge:    newChallenge(db, opts...),
-		Claim:        newClaim(db, opts...),
-		Game:         newGame(db, opts...),
-		Group:        newGroup(db, opts...),
-		Idempotency:  newIdempotency(db, opts...),
-		Invite:       newInvite(db, opts...),
-		Member:       newMember(db, opts...),
-		Notification: newNotification(db, opts...),
-		Photo:        newPhoto(db, opts...),
-		Player:       newPlayer(db, opts...),
-		Rate:         newRate(db, opts...),
-		Round:        newRound(db, opts...),
-		RoundShare:   newRoundShare(db, opts...),
-		Session:      newSession(db, opts...),
-		Trial:        newTrial(db, opts...),
-		User:         newUser(db, opts...),
+		db:                 db,
+		Challenge:          newChallenge(db, opts...),
+		Claim:              newClaim(db, opts...),
+		CommentIdempotency: newCommentIdempotency(db, opts...),
+		Game:               newGame(db, opts...),
+		Group:              newGroup(db, opts...),
+		Idempotency:        newIdempotency(db, opts...),
+		Invite:             newInvite(db, opts...),
+		Member:             newMember(db, opts...),
+		Notification:       newNotification(db, opts...),
+		Photo:              newPhoto(db, opts...),
+		Player:             newPlayer(db, opts...),
+		Rate:               newRate(db, opts...),
+		Round:              newRound(db, opts...),
+		RoundComment:       newRoundComment(db, opts...),
+		RoundShare:         newRoundShare(db, opts...),
+		Session:            newSession(db, opts...),
+		Trial:              newTrial(db, opts...),
+		User:               newUser(db, opts...),
 	}
 }
 
 type Query struct {
 	db *gorm.DB
 
-	Challenge    challenge
-	Claim        claim
-	Game         game
-	Group        group
-	Idempotency  idempotency
-	Invite       invite
-	Member       member
-	Notification notification
-	Photo        photo
-	Player       player
-	Rate         rate
-	Round        round
-	RoundShare   roundShare
-	Session      session
-	Trial        trial
-	User         user
+	Challenge          challenge
+	Claim              claim
+	CommentIdempotency commentIdempotency
+	Game               game
+	Group              group
+	Idempotency        idempotency
+	Invite             invite
+	Member             member
+	Notification       notification
+	Photo              photo
+	Player             player
+	Rate               rate
+	Round              round
+	RoundComment       roundComment
+	RoundShare         roundShare
+	Session            session
+	Trial              trial
+	User               user
 }
 
 func (q *Query) Available() bool { return q.db != nil }
@@ -64,23 +68,25 @@ func (q *Query) UnderlyingDB() *gorm.DB { return q.db }
 
 func (q *Query) clone(db *gorm.DB) *Query {
 	return &Query{
-		db:           db,
-		Challenge:    q.Challenge.clone(db),
-		Claim:        q.Claim.clone(db),
-		Game:         q.Game.clone(db),
-		Group:        q.Group.clone(db),
-		Idempotency:  q.Idempotency.clone(db),
-		Invite:       q.Invite.clone(db),
-		Member:       q.Member.clone(db),
-		Notification: q.Notification.clone(db),
-		Photo:        q.Photo.clone(db),
-		Player:       q.Player.clone(db),
-		Rate:         q.Rate.clone(db),
-		Round:        q.Round.clone(db),
-		RoundShare:   q.RoundShare.clone(db),
-		Session:      q.Session.clone(db),
-		Trial:        q.Trial.clone(db),
-		User:         q.User.clone(db),
+		db:                 db,
+		Challenge:          q.Challenge.clone(db),
+		Claim:              q.Claim.clone(db),
+		CommentIdempotency: q.CommentIdempotency.clone(db),
+		Game:               q.Game.clone(db),
+		Group:              q.Group.clone(db),
+		Idempotency:        q.Idempotency.clone(db),
+		Invite:             q.Invite.clone(db),
+		Member:             q.Member.clone(db),
+		Notification:       q.Notification.clone(db),
+		Photo:              q.Photo.clone(db),
+		Player:             q.Player.clone(db),
+		Rate:               q.Rate.clone(db),
+		Round:              q.Round.clone(db),
+		RoundComment:       q.RoundComment.clone(db),
+		RoundShare:         q.RoundShare.clone(db),
+		Session:            q.Session.clone(db),
+		Trial:              q.Trial.clone(db),
+		User:               q.User.clone(db),
 	}
 }
 
@@ -94,63 +100,69 @@ func (q *Query) WriteDB() *Query {
 
 func (q *Query) ReplaceDB(db *gorm.DB) *Query {
 	return &Query{
-		db:           db,
-		Challenge:    q.Challenge.replaceDB(db),
-		Claim:        q.Claim.replaceDB(db),
-		Game:         q.Game.replaceDB(db),
-		Group:        q.Group.replaceDB(db),
-		Idempotency:  q.Idempotency.replaceDB(db),
-		Invite:       q.Invite.replaceDB(db),
-		Member:       q.Member.replaceDB(db),
-		Notification: q.Notification.replaceDB(db),
-		Photo:        q.Photo.replaceDB(db),
-		Player:       q.Player.replaceDB(db),
-		Rate:         q.Rate.replaceDB(db),
-		Round:        q.Round.replaceDB(db),
-		RoundShare:   q.RoundShare.replaceDB(db),
-		Session:      q.Session.replaceDB(db),
-		Trial:        q.Trial.replaceDB(db),
-		User:         q.User.replaceDB(db),
+		db:                 db,
+		Challenge:          q.Challenge.replaceDB(db),
+		Claim:              q.Claim.replaceDB(db),
+		CommentIdempotency: q.CommentIdempotency.replaceDB(db),
+		Game:               q.Game.replaceDB(db),
+		Group:              q.Group.replaceDB(db),
+		Idempotency:        q.Idempotency.replaceDB(db),
+		Invite:             q.Invite.replaceDB(db),
+		Member:             q.Member.replaceDB(db),
+		Notification:       q.Notification.replaceDB(db),
+		Photo:              q.Photo.replaceDB(db),
+		Player:             q.Player.replaceDB(db),
+		Rate:               q.Rate.replaceDB(db),
+		Round:              q.Round.replaceDB(db),
+		RoundComment:       q.RoundComment.replaceDB(db),
+		RoundShare:         q.RoundShare.replaceDB(db),
+		Session:            q.Session.replaceDB(db),
+		Trial:              q.Trial.replaceDB(db),
+		User:               q.User.replaceDB(db),
 	}
 }
 
 type queryCtx struct {
-	Challenge    IChallengeDo
-	Claim        IClaimDo
-	Game         IGameDo
-	Group        IGroupDo
-	Idempotency  IIdempotencyDo
-	Invite       IInviteDo
-	Member       IMemberDo
-	Notification INotificationDo
-	Photo        IPhotoDo
-	Player       IPlayerDo
-	Rate         IRateDo
-	Round        IRoundDo
-	RoundShare   IRoundShareDo
-	Session      ISessionDo
-	Trial        ITrialDo
-	User         IUserDo
+	Challenge          IChallengeDo
+	Claim              IClaimDo
+	CommentIdempotency ICommentIdempotencyDo
+	Game               IGameDo
+	Group              IGroupDo
+	Idempotency        IIdempotencyDo
+	Invite             IInviteDo
+	Member             IMemberDo
+	Notification       INotificationDo
+	Photo              IPhotoDo
+	Player             IPlayerDo
+	Rate               IRateDo
+	Round              IRoundDo
+	RoundComment       IRoundCommentDo
+	RoundShare         IRoundShareDo
+	Session            ISessionDo
+	Trial              ITrialDo
+	User               IUserDo
 }
 
 func (q *Query) WithContext(ctx context.Context) *queryCtx {
 	return &queryCtx{
-		Challenge:    q.Challenge.WithContext(ctx),
-		Claim:        q.Claim.WithContext(ctx),
-		Game:         q.Game.WithContext(ctx),
-		Group:        q.Group.WithContext(ctx),
-		Idempotency:  q.Idempotency.WithContext(ctx),
-		Invite:       q.Invite.WithContext(ctx),
-		Member:       q.Member.WithContext(ctx),
-		Notification: q.Notification.WithContext(ctx),
-		Photo:        q.Photo.WithContext(ctx),
-		Player:       q.Player.WithContext(ctx),
-		Rate:         q.Rate.WithContext(ctx),
-		Round:        q.Round.WithContext(ctx),
-		RoundShare:   q.RoundShare.WithContext(ctx),
-		Session:      q.Session.WithContext(ctx),
-		Trial:        q.Trial.WithContext(ctx),
-		User:         q.User.WithContext(ctx),
+		Challenge:          q.Challenge.WithContext(ctx),
+		Claim:              q.Claim.WithContext(ctx),
+		CommentIdempotency: q.CommentIdempotency.WithContext(ctx),
+		Game:               q.Game.WithContext(ctx),
+		Group:              q.Group.WithContext(ctx),
+		Idempotency:        q.Idempotency.WithContext(ctx),
+		Invite:             q.Invite.WithContext(ctx),
+		Member:             q.Member.WithContext(ctx),
+		Notification:       q.Notification.WithContext(ctx),
+		Photo:              q.Photo.WithContext(ctx),
+		Player:             q.Player.WithContext(ctx),
+		Rate:               q.Rate.WithContext(ctx),
+		Round:              q.Round.WithContext(ctx),
+		RoundComment:       q.RoundComment.WithContext(ctx),
+		RoundShare:         q.RoundShare.WithContext(ctx),
+		Session:            q.Session.WithContext(ctx),
+		Trial:              q.Trial.WithContext(ctx),
+		User:               q.User.WithContext(ctx),
 	}
 }
 

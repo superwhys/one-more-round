@@ -145,6 +145,14 @@ var (
 	ErrPageRange        = ErrBadRequest.WithMessage("分页范围无效")
 )
 
+// 对局评论
+var (
+	ErrCommentParent = ErrBadRequest.WithMessage("只能回复对局下的评论")
+	ErrCommentSave   = ErrSysInternal.WithMessage("保存评论失败")
+	ErrCommentList   = ErrSysInternal.WithMessage("读取评论失败")
+	ErrCommentDelete = ErrSysInternal.WithMessage("删除评论失败")
+)
+
 // 照片
 var (
 	ErrPhotoUpload     = ErrBadRequest.WithMessage("图片上传失败，请检查格式、大小和尺寸后重试")

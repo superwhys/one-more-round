@@ -34,6 +34,8 @@ type Repositories interface {
 
 	Round() diary.IRoundRepository
 	Idempotency() diary.IIdempotencyRepository
+	Comment() diary.ICommentRepository
+	CommentIdempotency() diary.ICommentIdempotencyRepository
 
 	Photo() photo.IPhotoRepository
 	Notification() notification.IRepository

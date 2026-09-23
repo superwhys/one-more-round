@@ -149,6 +149,7 @@ type stack struct {
 	rounds        *services.RoundApp
 	photos        *services.PhotoApp
 	notifications *services.NotificationApp
+	comments      *services.CommentApp
 	photoRoot     string
 	inbox         *inbox
 }
@@ -200,6 +201,7 @@ func setup(t *testing.T) *stack {
 		rounds:        services.NewRoundApp(appCtx),
 		photos:        services.NewPhotoApp(appCtx),
 		notifications: services.NewNotificationApp(appCtx),
+		comments:      services.NewCommentApp(appCtx),
 		photoRoot:     photoRoot,
 		inbox:         mailer,
 	}
@@ -608,6 +610,138 @@ func TestPhotoPermissionsRollbackAndCleanup(t *testing.T) {
 	}
 }
 
+func TestRoundCommentsPermissionsAndCleanup(t *testing.T) {
+	s := setup(t)
+	ctx := context.Background()
+	owner, _ := s.signup(t, "comment-owner@example.com")
+	member, _ := s.signup(t, "comment-member@example.com")
+	outsider, _ := s.signup(t, "comment-outsider@example.com")
+	g, err := s.groups.Create(ctx, owner.ID, &dto.CreateGroupReq{Name: "评论小组", PlayerName: "组主"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, token, err := s.groups.Invite(ctx, g.ID, owner.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err = s.groups.Join(ctx, member.ID, &dto.JoinReq{Token: token}); err != nil {
+		t.Fatal(err)
+	}
+	player, err := s.groups.AddPlayer(ctx, g.ID, owner.ID, &dto.AddPlayerReq{Name: "朋友"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	game, err := s.groups.AddGame(ctx, g.ID, owner.ID, &dto.AddGameReq{Name: "评论测试"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	saved, err := s.rounds.Save(ctx, owner.ID, &dto.SaveRoundReq{GroupID: g.ID, IdempotencyKey: secure.NewID(), Round: dto.Round{GameID: game.ID, Date: "2026-09-20", Mode: "coop", Outcome: "win", Players: []string{player.ID}}})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	parentID := "missing"
+	if _, err = s.comments.Create(ctx, member.ID, &dto.CreateRoundCommentReq{GroupID: g.ID, RoundID: saved.ID, IdempotencyKey: secure.NewID(), Body: "回复不存在的评论", ParentID: &parentID}); !errors.Is(err, errcode.ErrCommentParent) {
+		t.Fatalf("missing parent error = %v", err)
+	}
+	if _, err = s.comments.Create(ctx, outsider.ID, &dto.CreateRoundCommentReq{GroupID: g.ID, RoundID: saved.ID, IdempotencyKey: secure.NewID(), Body: "局外留言"}); !errors.Is(err, errcode.ErrForbidden) {
+		t.Fatalf("outsider comment error = %v", err)
+	}
+
+	key := secure.NewID()
+	root, err := s.comments.Create(ctx, member.ID, &dto.CreateRoundCommentReq{GroupID: g.ID, RoundID: saved.ID, IdempotencyKey: key, Body: "今晚这局真好看"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	again, err := s.comments.Create(ctx, member.ID, &dto.CreateRoundCommentReq{GroupID: g.ID, RoundID: saved.ID, IdempotencyKey: key, Body: "今晚这局真好看"})
+	if err != nil || again.ID != root.ID {
+		t.Fatalf("idempotent retry = %#v, %v", again, err)
+	}
+	if _, err = s.comments.Create(ctx, member.ID, &dto.CreateRoundCommentReq{GroupID: g.ID, RoundID: saved.ID, IdempotencyKey: key, Body: "换一句"}); !errors.Is(err, errcode.ErrIdempotencyBody) {
+		t.Fatalf("idempotent conflict = %v", err)
+	}
+
+	reply, err := s.comments.Create(ctx, owner.ID, &dto.CreateRoundCommentReq{GroupID: g.ID, RoundID: saved.ID, IdempotencyKey: secure.NewID(), Body: "下一局再来", ParentID: &root.ID})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err = s.comments.Create(ctx, member.ID, &dto.CreateRoundCommentReq{GroupID: g.ID, RoundID: saved.ID, IdempotencyKey: secure.NewID(), Body: "再套一层", ParentID: &reply.ID}); !errors.Is(err, errcode.ErrCommentParent) {
+		t.Fatalf("nested reply error = %v", err)
+	}
+	if err = s.comments.Delete(ctx, member.ID, &dto.DeleteRoundCommentReq{GroupID: g.ID, RoundID: saved.ID, CommentID: reply.ID}); !errors.Is(err, errcode.ErrForbidden) {
+		t.Fatalf("member deleted others = %v", err)
+	}
+
+	page, err := s.comments.List(ctx, owner.ID, &dto.ListRoundCommentsReq{GroupID: g.ID, RoundID: saved.ID, Limit: 30})
+	if err != nil || page.Total != 2 || len(page.Items) != 2 || page.Items[0].ID != root.ID || page.Items[1].ID != reply.ID {
+		t.Fatalf("list = %#v, %v", page, err)
+	}
+	ownerNotices, err := s.notifications.List(ctx, owner.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !hasNotificationKind(ownerNotices.Items, "round_commented") {
+		t.Fatalf("owner missing round comment notice: %#v", ownerNotices.Items)
+	}
+	memberNotices, err := s.notifications.List(ctx, member.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !hasNotificationKind(memberNotices.Items, "round_comment_replied") {
+		t.Fatalf("member missing reply notice: %#v", memberNotices.Items)
+	}
+
+	if err = s.comments.Delete(ctx, owner.ID, &dto.DeleteRoundCommentReq{GroupID: g.ID, RoundID: saved.ID, CommentID: root.ID}); err != nil {
+		t.Fatal(err)
+	}
+	page, err = s.comments.List(ctx, owner.ID, &dto.ListRoundCommentsReq{GroupID: g.ID, RoundID: saved.ID, Limit: 30})
+	if err != nil || page.Total != 0 {
+		t.Fatalf("cascade delete = %#v, %v", page, err)
+	}
+
+	kept, err := s.comments.Create(ctx, member.ID, &dto.CreateRoundCommentReq{GroupID: g.ID, RoundID: saved.ID, IdempotencyKey: secure.NewID(), Body: "删局后应保留"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err = s.rounds.Delete(ctx, owner.ID, &dto.DeleteRoundReq{GroupID: g.ID, RoundID: saved.ID, Version: saved.Version}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err = s.comments.Create(ctx, member.ID, &dto.CreateRoundCommentReq{GroupID: g.ID, RoundID: saved.ID, IdempotencyKey: secure.NewID(), Body: "回收站里不能评"}); !errors.Is(err, errcode.ErrNotFound) {
+		t.Fatalf("recycle-bin comment error = %v", err)
+	}
+	bin, err := s.rounds.RecycleBin(ctx, g.ID, owner.ID)
+	if err != nil || len(bin) != 1 {
+		t.Fatalf("recycle bin = %#v, %v", bin, err)
+	}
+	restored, err := s.rounds.Restore(ctx, owner.ID, &dto.RestoreRoundReq{GroupID: g.ID, RoundID: saved.ID, Version: bin[0].Version})
+	if err != nil {
+		t.Fatal(err)
+	}
+	page, err = s.comments.List(ctx, owner.ID, &dto.ListRoundCommentsReq{GroupID: g.ID, RoundID: restored.ID, Limit: 30})
+	if err != nil || page.Total != 1 || page.Items[0].ID != kept.ID {
+		t.Fatalf("restored comments = %#v, %v", page, err)
+	}
+	if err = s.rounds.Delete(ctx, owner.ID, &dto.DeleteRoundReq{GroupID: g.ID, RoundID: restored.ID, Version: restored.Version}); err != nil {
+		t.Fatal(err)
+	}
+	if err = services.CleanDeletedRounds(ctx, s.repos, time.Now().UTC().Add(time.Hour)); err != nil {
+		t.Fatal(err)
+	}
+	leftover, total, err := s.repos.Comment().ListByRound(ctx, g.ID, restored.ID, 0, 30)
+	if err != nil || total != 0 || len(leftover) != 0 {
+		t.Fatalf("permanent delete left comments = %#v total=%d err=%v", leftover, total, err)
+	}
+}
+
+func hasNotificationKind(items []dto.Notification, kind string) bool {
+	for _, item := range items {
+		if item.Kind == kind {
+			return true
+		}
+	}
+	return false
+}
+
 // countingFiles records whether a file removal happened during a cleanup pass.
 type countingFiles struct {
 	inner   *photos.Files
@@ -628,7 +762,7 @@ func (f countingFiles) Remove(ctx context.Context, id string) error {
 func TestHTTPAuthenticationAndCSRF(t *testing.T) {
 	s := setup(t)
 	u, session := s.signup(t, "api@example.com")
-	handler := api.NewAPI("test", &config.Runtime{Origin: testOrigin}, s.auth, s.groups, s.rounds, s.photos, s.notifications).SetupRouter()
+	handler := api.NewAPI("test", &config.Runtime{Origin: testOrigin}, s.auth, s.groups, s.rounds, s.photos, s.notifications, s.comments).SetupRouter()
 	call := func(method, path, origin, cookie string, payload any) *httptest.ResponseRecorder {
 		t.Helper()
 		data, _ := json.Marshal(payload)

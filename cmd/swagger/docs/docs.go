@@ -916,6 +916,165 @@ const docTemplate = `{
                 }
             }
         },
+        "/v1/groups/{group}/rounds/{id}/comments": {
+            "get": {
+                "security": [
+                    {
+                        "SessionCookie": []
+                    }
+                ],
+                "description": "按时间正序返回当前对局的组内评论，公开分享页不包含这些内容",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Round Comment"
+                ],
+                "summary": "获取对局评论",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "小组 ID",
+                        "name": "group",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "对局 ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "偏移量",
+                        "name": "offset",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "每页条数，最大 100",
+                        "name": "limit",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/ginutils.Ret-dto_Paginated-dto_RoundComment"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "SessionCookie": []
+                    }
+                ],
+                "description": "创建需携带 Idempotency-Key；parent_id 为空时评论对局，非空时只能回复根评论",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Round Comment"
+                ],
+                "summary": "发表对局评论或一层回复",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "小组 ID",
+                        "name": "group",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "对局 ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "提交标识",
+                        "name": "Idempotency-Key",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "description": "评论内容",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.RoundCommentBody"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/ginutils.Ret-dto_RoundComment"
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/groups/{group}/rounds/{id}/comments/{comment}": {
+            "delete": {
+                "security": [
+                    {
+                        "SessionCookie": []
+                    }
+                ],
+                "description": "作者可删自己的评论，组主可删任何条；删除根评论时一并删除回复",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Round Comment"
+                ],
+                "summary": "删除对局评论",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "小组 ID",
+                        "name": "group",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "对局 ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "评论 ID",
+                        "name": "comment",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/ginutils.Ret-any"
+                        }
+                    }
+                }
+            }
+        },
         "/v1/groups/{group}/rounds/{id}/restore": {
             "post": {
                 "security": [
@@ -1602,6 +1761,20 @@ const docTemplate = `{
                 }
             }
         },
+        "dto.Paginated-dto_RoundComment": {
+            "type": "object",
+            "properties": {
+                "items": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.RoundComment"
+                    }
+                },
+                "total": {
+                    "type": "integer"
+                }
+            }
+        },
         "dto.Player": {
             "type": "object",
             "properties": {
@@ -1823,6 +1996,37 @@ const docTemplate = `{
                     "items": {
                         "type": "string"
                     }
+                }
+            }
+        },
+        "dto.RoundComment": {
+            "type": "object",
+            "properties": {
+                "author": {
+                    "type": "string"
+                },
+                "body": {
+                    "type": "string"
+                },
+                "created": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "parent_id": {
+                    "type": "string"
+                }
+            }
+        },
+        "dto.RoundCommentBody": {
+            "type": "object",
+            "properties": {
+                "body": {
+                    "type": "string"
+                },
+                "parent_id": {
+                    "type": "string"
                 }
             }
         },
@@ -2113,6 +2317,18 @@ const docTemplate = `{
                 "message": {}
             }
         },
+        "ginutils.Ret-dto_Paginated-dto_RoundComment": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "integer"
+                },
+                "data": {
+                    "$ref": "#/definitions/dto.Paginated-dto_RoundComment"
+                },
+                "message": {}
+            }
+        },
         "ginutils.Ret-dto_Player": {
             "type": "object",
             "properties": {
@@ -2157,6 +2373,18 @@ const docTemplate = `{
                 },
                 "data": {
                     "$ref": "#/definitions/dto.Round"
+                },
+                "message": {}
+            }
+        },
+        "ginutils.Ret-dto_RoundComment": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "integer"
+                },
+                "data": {
+                    "$ref": "#/definitions/dto.RoundComment"
                 },
                 "message": {}
             }

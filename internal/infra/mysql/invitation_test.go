@@ -52,7 +52,7 @@ func invitationFixture(t *testing.T, s *stack) (dto.User, dto.Group, dto.Invite,
 func TestGroupInvitationRegistrationAndReuse(t *testing.T) {
 	s := setup(t)
 	_, g, _, token := invitationFixture(t, s)
-	handler := api.NewAPI("test", &config.Runtime{Origin: testOrigin}, s.auth, s.groups, s.rounds, s.photos, s.notifications).SetupRouter()
+	handler := api.NewAPI("test", &config.Runtime{Origin: testOrigin}, s.auth, s.groups, s.rounds, s.photos, s.notifications, s.comments).SetupRouter()
 	for _, email := range []string{"friend-one@example.com", "friend-two@example.com"} {
 		rec := invitationRequest(t, handler, "/auth/code", map[string]string{"email": email, "group_token": token})
 		if rec.Code != http.StatusOK {
@@ -104,7 +104,7 @@ func TestGroupInvitationExistingAccountLogin(t *testing.T) {
 	if err := s.client.Gorm.Exec("UPDATE omr_challenges SET sent=? WHERE email=?", time.Now().Add(-time.Minute), user.Email).Error; err != nil {
 		t.Fatal(err)
 	}
-	handler := api.NewAPI("test", &config.Runtime{Origin: testOrigin}, s.auth, s.groups, s.rounds, s.photos, s.notifications).SetupRouter()
+	handler := api.NewAPI("test", &config.Runtime{Origin: testOrigin}, s.auth, s.groups, s.rounds, s.photos, s.notifications, s.comments).SetupRouter()
 	rec := invitationRequest(t, handler, "/auth/code", map[string]string{"email": user.Email, "group_token": token})
 	if rec.Code != http.StatusOK {
 		t.Fatalf("send: %d", rec.Code)
@@ -123,7 +123,7 @@ func TestGroupInvitationPreviewAndInvalidation(t *testing.T) {
 		t.Run(state, func(t *testing.T) {
 			s := setup(t)
 			owner, g, inv, token := invitationFixture(t, s)
-			handler := api.NewAPI("test", &config.Runtime{Origin: testOrigin}, s.auth, s.groups, s.rounds, s.photos, s.notifications).SetupRouter()
+			handler := api.NewAPI("test", &config.Runtime{Origin: testOrigin}, s.auth, s.groups, s.rounds, s.photos, s.notifications, s.comments).SetupRouter()
 			rec := invitationRequest(t, handler, "/auth/group-invite", map[string]string{"token": token})
 			if rec.Code != http.StatusOK {
 				t.Fatalf("preview: %d", rec.Code)

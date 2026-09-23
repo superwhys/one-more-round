@@ -37,14 +37,15 @@ type API struct {
 	roundApp        *services.RoundApp
 	photoApp        *services.PhotoApp
 	notificationApp *services.NotificationApp
+	commentApp      *services.CommentApp
 }
 
 // NewAPI wires the application services into the HTTP layer.
-func NewAPI(version string, conf *config.Runtime, authApp *services.AuthApp, groupApp *services.GroupApp, roundApp *services.RoundApp, photoApp *services.PhotoApp, notificationApp *services.NotificationApp) *API {
+func NewAPI(version string, conf *config.Runtime, authApp *services.AuthApp, groupApp *services.GroupApp, roundApp *services.RoundApp, photoApp *services.PhotoApp, notificationApp *services.NotificationApp, commentApp *services.CommentApp) *API {
 	// Rejected input must answer with a business code and an HTTP status rather
 	// than the default success envelope of the request binder.
 	common.ConfigureRequestFailures()
-	return &API{version: version, config: conf, authApp: authApp, groupApp: groupApp, roundApp: roundApp, photoApp: photoApp, notificationApp: notificationApp}
+	return &API{version: version, config: conf, authApp: authApp, groupApp: groupApp, roundApp: roundApp, photoApp: photoApp, notificationApp: notificationApp, commentApp: commentApp}
 }
 
 // SetupRouter godoc
@@ -93,6 +94,7 @@ func (api *API) SetupRouter() http.Handler {
 				ginutils.WithRouterHandler(
 					router.GroupDetailRouter(api.groupApp, api.config.Origin),
 					router.RoundRouter(api.roundApp),
+					router.CommentRouter(api.commentApp),
 					router.PhotoRouter(api.photoApp),
 				),
 			),

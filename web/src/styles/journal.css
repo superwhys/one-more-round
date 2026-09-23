@@ -800,6 +800,78 @@
   white-space: pre-wrap;
   overflow-wrap: anywhere;
 }
+.j-comments {
+  margin-top: 20px;
+  padding-top: 4px;
+  border-top: 1px solid var(--d-line);
+}
+.j-comments h3 {
+  margin: 0 0 8px;
+  font-size: 16px;
+}
+.j-comment {
+  padding: 8px 0;
+  border-bottom: 1px solid var(--d-line);
+}
+.j-comment.nested {
+  margin-left: 28px;
+  border-bottom: 0;
+  padding: 4px 0 0;
+}
+.j-comment header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 0;
+}
+.j-comment .d-player-chip {
+  gap: 6px;
+  min-width: 0;
+}
+.j-comment .d-avatar {
+  width: 22px;
+  height: 22px;
+  font-size: 11px;
+  background: #e6dbc5;
+  color: #8a7149;
+}
+.j-comment .d-player-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
+}
+.j-comment time,
+.j-comment p {
+  overflow-wrap: anywhere;
+}
+.j-comment time {
+  margin-left: auto;
+  flex-shrink: 0;
+  color: #858c79;
+  font-size: 11px;
+}
+.j-comment p {
+  margin: 2px 0 0 28px;
+  font-size: 14px;
+  line-height: 1.45;
+  white-space: pre-wrap;
+}
+.j-comment-actions {
+  display: flex;
+  gap: 12px;
+  margin: 0 0 0 28px;
+}
+.j-comment-actions .d-text-link {
+  min-height: 0;
+  padding: 0;
+  font-size: 12px !important;
+}
+.j-comment-form {
+  margin-top: 20px;
+  display: grid;
+  gap: 12px;
+}
 .j-member {
   border-bottom: 1px solid var(--d-line);
   padding: 18px 0;
@@ -1202,6 +1274,9 @@
   }
   .j-detail blockquote {
     font-size: 17px;
+  }
+  .j-comment.nested {
+    margin-left: 16px;
   }
   .journal-root .d-form-context {
     align-items: flex-start;

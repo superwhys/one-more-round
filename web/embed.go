@@ -12,8 +12,10 @@ import (
 )
 
 // Build the Vue app before compiling Go: make web-build.
+// all: keeps Vite hashes that start with "_" or ".". A plain embed skips those
+// names, and the browser then 404s a chunk the page still references.
 //
-//go:embed dist
+//go:embed all:dist
 var assets embed.FS
 
 func NewHandler() (http.Handler, error) {
