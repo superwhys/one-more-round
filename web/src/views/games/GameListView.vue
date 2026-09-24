@@ -9,6 +9,7 @@ import { useGroupOperation } from '@/composables/useGroupOperation'
 
 import { addGame, importGame, searchBGG as search, syncCover, type ExternalSearch } from '@/api/game'
 import type { Game } from '@/types/journal'
+import { message } from '@/utils/error'
 import { useRoundHistory } from '@/composables/useRoundHistory'
 const { groupId, snapshot, refresh } = useGroupContext()
 const { page, loading, error: loadError, load } = useRoundHistory()
@@ -21,6 +22,10 @@ const importingOriginal = ref('')
 const externalOpen = ref(false)
 const external = ref<ExternalSearch | null>(null)
 const linkingGame = ref<Game | null>(null)
+const searching = ref(false)
+const searchError = ref('')
+const addResults = ref<ExternalSearch | null>(null)
+let searchSeq = 0
 const searchTerm = computed(() => gameSearch.value.trim())
 const filteredGames = computed(
   () =>
@@ -39,11 +44,67 @@ const gameCount = (id: string) => {
   const activity = page.value.activity[id]
   return activity ? `${activity.count} 局相聚` : '等待第一局'
 }
+// resetAddSearch 丢弃进行中的 BGG 搜索，并清空弹窗里的结果与错误。
+function resetAddSearch() {
+  searchSeq += 1
+  searching.value = false
+  searchError.value = ''
+  addResults.value = null
+}
 function openAddForm(initialName = '') {
   importingID.value = null
   importingOriginal.value = ''
   addingOpen.value = true
   name.value = initialName
+  resetAddSearch()
+}
+// closeAddForm 关闭添加弹窗，避免关闭后的搜索结果再写回界面。
+function closeAddForm() {
+  addingOpen.value = false
+  resetAddSearch()
+}
+// onAddNameInput 在名称变化后清掉上一轮结果，避免选中与当前输入不符的条目。
+function onAddNameInput() {
+  addResults.value = null
+  searchError.value = ''
+}
+// searchFromAdd 按弹窗中的名称搜索 BGG，并用序号忽略已过期的响应。
+function searchFromAdd() {
+  const query = name.value.trim()
+  if (!query) {
+    searchError.value = '先输入要找的桌游名称'
+    return
+  }
+  if (searching.value) return
+  const seq = ++searchSeq
+  searching.value = true
+  searchError.value = ''
+  addResults.value = null
+  return search(groupId, query)
+    .then(result => {
+      if (seq !== searchSeq) return
+      addResults.value = result
+    })
+    .catch(cause => {
+      if (seq !== searchSeq) return
+      searchError.value = message(cause)
+    })
+    .finally(() => {
+      if (seq === searchSeq) searching.value = false
+    })
+}
+// chooseAddResult 选中一条 BGG 结果，转入填写本组名称后再保存。
+function chooseAddResult(id: number, original: string) {
+  importingID.value = id
+  importingOriginal.value = original
+  name.value = original
+  addResults.value = null
+  searchError.value = ''
+}
+// submitAdd 在确认导入时保存，否则先搜索 BGG。
+function submitAdd() {
+  if (importingID.value) return add()
+  return searchFromAdd()
 }
 function chooseExternal(id: number, original: string) {
   const target = linkingGame.value
@@ -238,17 +299,66 @@ function retry() {
         <a :href="external.source_url" target="_blank" rel="noreferrer">{{ external.source }}</a>
       </p>
     </Modal>
-    <Modal v-if="addingOpen" title="把它放上游戏架。" @close="addingOpen = false">
-      <form @submit.prevent="add">
+    <Modal
+      v-if="addingOpen"
+      title="把它放上游戏架。"
+      :wide="!importingID && (searching || !!addResults)"
+      @close="closeAddForm"
+    >
+      <form @submit.prevent="submitAdd">
         <label class="d-field">
           {{ importingID ? '本组名称' : '桌游名称' }}
-          <input v-model="name" :required="!importingID" maxlength="255" autofocus :placeholder="importingOriginal" />
+          <input
+            v-model="name"
+            :required="!importingID"
+            maxlength="255"
+            autofocus
+            :placeholder="importingOriginal"
+            @input="onAddNameInput"
+          />
         </label>
         <p v-if="importingOriginal" class="shelf-external-credit">
           架上会显示这个名称。BGG 的正式名称会另外保存，留空则改用正式名称。
         </p>
+        <p v-if="searching" class="shelf-search-status" role="status">正在从 BoardGameGeek 搜索…</p>
+        <p v-else-if="searchError" class="j-error" role="alert">{{ searchError }}</p>
+        <template v-else-if="addResults">
+          <p v-if="addResults.items.length === 0" class="shelf-external-empty">
+            没有找到这款。可以换原文名称，或只用这个名称添加。
+          </p>
+          <ul v-else class="shelf-external-list shelf-add-results">
+            <li v-for="item in addResults.items" :key="item.bgg_id">
+              <img v-if="item.thumbnail" class="shelf-external-cover" :src="item.thumbnail" :alt="item.name" />
+              <span v-else class="shelf-external-cover shelf-external-cover-empty" aria-hidden="true"></span>
+              <div>
+                <strong>{{ item.name }}</strong>
+                <span v-if="item.year">{{ item.year }}</span>
+              </div>
+              <button class="d-button secondary" type="button" @click="chooseAddResult(item.bgg_id, item.name)">
+                放入游戏架
+              </button>
+            </li>
+          </ul>
+          <p class="shelf-external-credit">
+            资料来自
+            <a :href="addResults.source_url" target="_blank" rel="noreferrer">{{ addResults.source }}</a>
+          </p>
+        </template>
         <p v-if="error" class="j-error" role="alert">{{ error }}</p>
-        <button class="d-button full" :disabled="busy">保存</button>
+        <button v-if="importingID" class="d-button full" :disabled="busy">{{ busy ? '正在保存…' : '保存' }}</button>
+        <div v-else class="shelf-add-actions">
+          <button class="d-button full" :disabled="searching || busy">
+            {{ searching ? '正在搜索…' : '搜索桌游' }}
+          </button>
+          <button
+            class="d-button secondary full"
+            type="button"
+            :disabled="searching || busy || !name.trim()"
+            @click="add"
+          >
+            {{ busy ? '正在保存…' : '只用这个名称添加' }}
+          </button>
+        </div>
       </form>
     </Modal>
   </template>
@@ -574,6 +684,26 @@ function retry() {
 }
 .shelf-external-credit a {
   color: var(--d-green);
+}
+.shelf-search-status {
+  margin: 12px 0 0;
+  color: var(--d-muted);
+  font-size: 12px;
+}
+.shelf-add-results {
+  max-height: min(360px, 42dvh);
+  margin-top: 14px;
+  overflow: auto;
+}
+.shelf-add-results .d-button {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+.shelf-add-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 16px;
 }
 @media (hover: hover) and (pointer: fine) {
   .shelf-card:hover {
