@@ -17,6 +17,7 @@ export interface Game {
   name: string
   original: string
   bgg_id: number | null
+  cover?: string
 }
 export interface Member {
   user_id: string

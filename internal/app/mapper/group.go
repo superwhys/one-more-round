@@ -115,7 +115,7 @@ func GameDomainToDTO(g *game.Game) dto.Game {
 	if g == nil {
 		return dto.Game{}
 	}
-	return dto.Game{ID: g.ID, Name: g.Name, Original: g.Original, BGGID: g.BGGID}
+	return dto.Game{ID: g.ID, Name: g.Name, Original: g.Original, BGGID: g.BGGID, Cover: g.Cover}
 }
 
 // GameDomainListToDTOList converts game entities into API DTOs.

@@ -77,6 +77,7 @@ type Game struct {
 	Name     string `gorm:"column:name;type:varchar(255);not null;index:group_id_2,priority:2"`
 	Original string `gorm:"column:original;type:varchar(255);not null"`
 	BGGID    *int   `gorm:"column:bgg_id;type:bigint;uniqueIndex:group_id,priority:2"`
+	Cover    string `gorm:"column:cover;type:varchar(512);not null"`
 }
 
 func (Game) TableName() string { return "omr_games" }

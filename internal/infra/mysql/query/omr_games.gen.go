@@ -33,6 +33,7 @@ func newGame(db *gorm.DB, opts ...gen.DOOption) game {
 	_game.Name = field.NewString(tableName, "name")
 	_game.Original = field.NewString(tableName, "original")
 	_game.BGGID = field.NewInt(tableName, "bgg_id")
+	_game.Cover = field.NewString(tableName, "cover")
 
 	_game.fillFieldMap()
 
@@ -48,6 +49,7 @@ type game struct {
 	Name     field.String
 	Original field.String
 	BGGID    field.Int
+	Cover    field.String
 
 	fieldMap map[string]field.Expr
 }
@@ -69,6 +71,7 @@ func (g *game) updateTableName(table string) *game {
 	g.Name = field.NewString(table, "name")
 	g.Original = field.NewString(table, "original")
 	g.BGGID = field.NewInt(table, "bgg_id")
+	g.Cover = field.NewString(table, "cover")
 
 	g.fillFieldMap()
 
@@ -93,12 +96,13 @@ func (g *game) GetFieldByName(fieldName string) (field.OrderExpr, bool) {
 }
 
 func (g *game) fillFieldMap() {
-	g.fieldMap = make(map[string]field.Expr, 5)
+	g.fieldMap = make(map[string]field.Expr, 6)
 	g.fieldMap["id"] = g.ID
 	g.fieldMap["group_id"] = g.GroupID
 	g.fieldMap["name"] = g.Name
 	g.fieldMap["original"] = g.Original
 	g.fieldMap["bgg_id"] = g.BGGID
+	g.fieldMap["cover"] = g.Cover
 }
 
 func (g game) clone(db *gorm.DB) game {

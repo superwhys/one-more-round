@@ -57,6 +57,8 @@ func GroupDetailRouter(groupApp *services.GroupApp, origin string) groupRouterFn
 		router.GET("", groupSnapshotHandler(groupApp))
 		router.POST("/players", addPlayerHandler(groupApp))
 		router.POST("/games", addGameHandler(groupApp))
+		router.POST("/games/import", importExternalGameHandler(groupApp))
+		router.POST("/games/:game/cover", syncCoverHandler(groupApp))
 		router.GET("/bgg/search", searchExternalGamesHandler(groupApp))
 		router.GET("/invites", listInvitesHandler(groupApp))
 		router.POST("/invites", createInviteHandler(groupApp, origin))
@@ -206,20 +208,64 @@ func addGameHandler(groupApp *services.GroupApp) gin.HandlerFunc {
 
 // searchExternalGamesHandler 搜索外部桌游
 // @Summary 搜索外部桌游
-// @Description 外部桌游检索；授权未配置时返回明确不可用提示
+// @Description 成员主动搜索 BoardGameGeek。未配置令牌、授权失败或外部服务不可用时返回 503，手动添加仍然可用
 // @Tags Game
 // @Produce json
 // @Security SessionCookie
 // @Param group path string true "小组 ID"
-// @Success 200 {object} ginutils.Ret[any]
+// @Param q query string true "桌游名称"
+// @Success 200 {object} ginutils.Ret[dto.ExternalSearch]
 // @Router /v1/groups/{group}/bgg/search [get]
 func searchExternalGamesHandler(groupApp *services.GroupApp) gin.HandlerFunc {
-	return ginutils.RequestHandler(func(ctx *gin.Context, req *dto.GroupPathReq) {
-		err := groupApp.SearchExternalGames(ctx.Request.Context(), req.GroupID, common.UserID(ctx))
-		if common.HandleRouterError(ctx, err, "search external games failed", errcode.ErrBGGUnavailable) {
+	return ginutils.RequestHandler(func(ctx *gin.Context, req *dto.SearchExternalGamesReq) {
+		found, err := groupApp.SearchExternalGames(ctx.Request.Context(), req.GroupID, common.UserID(ctx), req.Query)
+		if common.HandleRouterError(ctx, err, "search external games failed", errcode.ErrBGGSearch) {
 			return
 		}
-		ctx.JSON(http.StatusOK, dto.ResponseSuccess())
+		ctx.JSON(http.StatusOK, dto.ResponseWithData(found))
+	})
+}
+
+// importExternalGameHandler 导入外部桌游
+// @Summary 导入外部桌游
+// @Description 按 BGG ID 导入基础游戏；同组相同 ID 复用已有条目，本组名称与外部原名分开保存
+// @Tags Game
+// @Accept json
+// @Produce json
+// @Security SessionCookie
+// @Param group path string true "小组 ID"
+// @Param request body dto.ImportGameReq true "导入请求"
+// @Success 200 {object} ginutils.Ret[dto.Game]
+// @Router /v1/groups/{group}/games/import [post]
+func importExternalGameHandler(groupApp *services.GroupApp) gin.HandlerFunc {
+	return ginutils.RequestHandler(func(ctx *gin.Context, req *dto.ImportGameReq) {
+		game, err := groupApp.ImportExternalGame(ctx.Request.Context(), req.GroupID, common.UserID(ctx), req)
+		if common.HandleRouterError(ctx, err, "import external game failed", errcode.ErrGameSave) {
+			return
+		}
+		ctx.JSON(http.StatusOK, dto.ResponseWithData(game))
+	})
+}
+
+// syncCoverHandler 同步桌游封面
+// @Summary 同步桌游封面
+// @Description 把已有桌游关联到一条 BGG 条目并保存封面，不改本组名称
+// @Tags Game
+// @Accept json
+// @Produce json
+// @Security SessionCookie
+// @Param group path string true "小组 ID"
+// @Param game path string true "桌游 ID"
+// @Param request body dto.SyncCoverReq true "要关联的 BGG 条目"
+// @Success 200 {object} ginutils.Ret[dto.Game]
+// @Router /v1/groups/{group}/games/{game}/cover [post]
+func syncCoverHandler(groupApp *services.GroupApp) gin.HandlerFunc {
+	return ginutils.RequestHandler(func(ctx *gin.Context, req *dto.SyncCoverReq) {
+		game, err := groupApp.SyncCover(ctx.Request.Context(), req.GroupID, common.UserID(ctx), req)
+		if common.HandleRouterError(ctx, err, "sync game cover failed", errcode.ErrBGGSearch) {
+			return
+		}
+		ctx.JSON(http.StatusOK, dto.ResponseWithData(game))
 	})
 }
 

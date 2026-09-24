@@ -245,7 +245,7 @@ const docTemplate = `{
                         "SessionCookie": []
                     }
                 ],
-                "description": "外部桌游检索；授权未配置时返回明确不可用提示",
+                "description": "成员主动搜索 BoardGameGeek。未配置令牌、授权失败或外部服务不可用时返回 503，手动添加仍然可用",
                 "produces": [
                     "application/json"
                 ],
@@ -260,13 +260,20 @@ const docTemplate = `{
                         "name": "group",
                         "in": "path",
                         "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "桌游名称",
+                        "name": "q",
+                        "in": "query",
+                        "required": true
                     }
                 ],
                 "responses": {
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/ginutils.Ret-any"
+                            "$ref": "#/definitions/ginutils.Ret-dto_ExternalSearch"
                         }
                     }
                 }
@@ -339,6 +346,105 @@ const docTemplate = `{
                         "required": true,
                         "schema": {
                             "$ref": "#/definitions/dto.AddGameReq"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/ginutils.Ret-dto_Game"
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/groups/{group}/games/import": {
+            "post": {
+                "security": [
+                    {
+                        "SessionCookie": []
+                    }
+                ],
+                "description": "按 BGG ID 导入基础游戏；同组相同 ID 复用已有条目，本组名称与外部原名分开保存",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Game"
+                ],
+                "summary": "导入外部桌游",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "小组 ID",
+                        "name": "group",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "导入请求",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.ImportGameReq"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/ginutils.Ret-dto_Game"
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/groups/{group}/games/{game}/cover": {
+            "post": {
+                "security": [
+                    {
+                        "SessionCookie": []
+                    }
+                ],
+                "description": "把已有桌游关联到一条 BGG 条目并保存封面，不改本组名称",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Game"
+                ],
+                "summary": "同步桌游封面",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "小组 ID",
+                        "name": "group",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "桌游 ID",
+                        "name": "game",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "要关联的 BGG 条目",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.SyncCoverReq"
                         }
                     }
                 ],
@@ -1531,11 +1637,48 @@ const docTemplate = `{
                 }
             }
         },
+        "dto.ExternalGame": {
+            "type": "object",
+            "properties": {
+                "bgg_id": {
+                    "type": "integer"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "thumbnail": {
+                    "type": "string"
+                },
+                "year": {
+                    "type": "integer"
+                }
+            }
+        },
+        "dto.ExternalSearch": {
+            "type": "object",
+            "properties": {
+                "items": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.ExternalGame"
+                    }
+                },
+                "source": {
+                    "type": "string"
+                },
+                "source_url": {
+                    "type": "string"
+                }
+            }
+        },
         "dto.Game": {
             "type": "object",
             "properties": {
                 "bgg_id": {
                     "type": "integer"
+                },
+                "cover": {
+                    "type": "string"
                 },
                 "id": {
                     "type": "string"
@@ -1569,6 +1712,24 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "owner": {
+                    "type": "string"
+                }
+            }
+        },
+        "dto.ImportGameReq": {
+            "type": "object",
+            "required": [
+                "bgg_id"
+            ],
+            "properties": {
+                "bgg_id": {
+                    "type": "integer",
+                    "minimum": 1
+                },
+                "groupID": {
+                    "type": "string"
+                },
+                "name": {
                     "type": "string"
                 }
             }
@@ -2124,6 +2285,20 @@ const docTemplate = `{
                 }
             }
         },
+        "dto.SyncCoverReq": {
+            "type": "object",
+            "properties": {
+                "bgg_id": {
+                    "type": "integer"
+                },
+                "gameID": {
+                    "type": "string"
+                },
+                "groupID": {
+                    "type": "string"
+                }
+            }
+        },
         "dto.Team": {
             "type": "object",
             "properties": {
@@ -2229,6 +2404,18 @@ const docTemplate = `{
                     "items": {
                         "$ref": "#/definitions/dto.Round"
                     }
+                },
+                "message": {}
+            }
+        },
+        "ginutils.Ret-dto_ExternalSearch": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "integer"
+                },
+                "data": {
+                    "$ref": "#/definitions/dto.ExternalSearch"
                 },
                 "message": {}
             }

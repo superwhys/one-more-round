@@ -53,10 +53,34 @@ definitions:
       version:
         type: integer
     type: object
+  dto.ExternalGame:
+    properties:
+      bgg_id:
+        type: integer
+      name:
+        type: string
+      thumbnail:
+        type: string
+      year:
+        type: integer
+    type: object
+  dto.ExternalSearch:
+    properties:
+      items:
+        items:
+          $ref: '#/definitions/dto.ExternalGame'
+        type: array
+      source:
+        type: string
+      source_url:
+        type: string
+    type: object
   dto.Game:
     properties:
       bgg_id:
         type: integer
+      cover:
+        type: string
       id:
         type: string
       name:
@@ -79,6 +103,18 @@ definitions:
         type: string
       owner:
         type: string
+    type: object
+  dto.ImportGameReq:
+    properties:
+      bgg_id:
+        minimum: 1
+        type: integer
+      groupID:
+        type: string
+      name:
+        type: string
+    required:
+    - bgg_id
     type: object
   dto.Invite:
     properties:
@@ -439,6 +475,15 @@ definitions:
       wins:
         type: integer
     type: object
+  dto.SyncCoverReq:
+    properties:
+      bgg_id:
+        type: integer
+      gameID:
+        type: string
+      groupID:
+        type: string
+    type: object
   dto.Team:
     properties:
       id:
@@ -509,6 +554,14 @@ definitions:
         items:
           $ref: '#/definitions/dto.Round'
         type: array
+      message: {}
+    type: object
+  ginutils.Ret-dto_ExternalSearch:
+    properties:
+      code:
+        type: integer
+      data:
+        $ref: '#/definitions/dto.ExternalSearch'
       message: {}
     type: object
   ginutils.Ret-dto_Game:
@@ -805,11 +858,16 @@ paths:
       - Group
   /v1/groups/{group}/bgg/search:
     get:
-      description: 外部桌游检索；授权未配置时返回明确不可用提示
+      description: 成员主动搜索 BoardGameGeek。未配置令牌、授权失败或外部服务不可用时返回 503，手动添加仍然可用
       parameters:
       - description: 小组 ID
         in: path
         name: group
+        required: true
+        type: string
+      - description: 桌游名称
+        in: query
+        name: q
         required: true
         type: string
       produces:
@@ -818,7 +876,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/ginutils.Ret-any'
+            $ref: '#/definitions/ginutils.Ret-dto_ExternalSearch'
       security:
       - SessionCookie: []
       summary: 搜索外部桌游
@@ -872,6 +930,69 @@ paths:
       security:
       - SessionCookie: []
       summary: 添加桌游
+      tags:
+      - Game
+  /v1/groups/{group}/games/{game}/cover:
+    post:
+      consumes:
+      - application/json
+      description: 把已有桌游关联到一条 BGG 条目并保存封面，不改本组名称
+      parameters:
+      - description: 小组 ID
+        in: path
+        name: group
+        required: true
+        type: string
+      - description: 桌游 ID
+        in: path
+        name: game
+        required: true
+        type: string
+      - description: 要关联的 BGG 条目
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.SyncCoverReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/ginutils.Ret-dto_Game'
+      security:
+      - SessionCookie: []
+      summary: 同步桌游封面
+      tags:
+      - Game
+  /v1/groups/{group}/games/import:
+    post:
+      consumes:
+      - application/json
+      description: 按 BGG ID 导入基础游戏；同组相同 ID 复用已有条目，本组名称与外部原名分开保存
+      parameters:
+      - description: 小组 ID
+        in: path
+        name: group
+        required: true
+        type: string
+      - description: 导入请求
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.ImportGameReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/ginutils.Ret-dto_Game'
+      security:
+      - SessionCookie: []
+      summary: 导入外部桌游
       tags:
       - Game
   /v1/groups/{group}/invites:

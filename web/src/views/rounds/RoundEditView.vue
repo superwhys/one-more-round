@@ -16,7 +16,7 @@ const router = useRouter()
 const { user } = useSession()
 const { groupId, snapshot } = useGroupContext()
 const { busy, error, run } = useGroupOperation()
-const { addItem, upload, notice } = useRoundFormActions()
+const { addItem, importExternal, upload, notice } = useRoundFormActions()
 const saved = ref<Round | null>(null)
 
 const id = String(route.params.id)
@@ -41,6 +41,7 @@ function save(round: Round, key: string) {
     :error="error"
     :saved="saved"
     :add-item="addItem"
+    :import-external="importExternal"
     :upload-photo="upload"
     @submit="save"
     @again="saved = null"

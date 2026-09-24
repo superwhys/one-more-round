@@ -113,4 +113,4 @@ OMR_TEST_OSS_CONFIG="$PWD/config.json" go test -count=1 -run '^TestOSSLive$' -v 
 
 - 60 秒录入目标：需要真实用户参与，不能用编译通过或自动化操作代替。
 - 2—3 个真实小组的两周试用：尚未进行。
-- BGG 外部检索：授权未获批，未接入。
+- BGG 外部检索：配置 `app.bgg.token` 后由服务端搜索并导入；未配置时接口返回 503。关联已有自定义游戏和组主确认合并尚未实现。

@@ -2,6 +2,8 @@
 import { ref, watch, computed } from 'vue'
 import { RouterLink } from 'vue-router'
 import PlayerChip from '@/components/common/PlayerChip.vue'
+import Modal from '@/components/common/AppModal.vue'
+import { searchBGG, type ExternalSearch } from '@/api/game'
 import { message } from '@/utils/error'
 import { emptyRound, modeNames } from '@/utils/round'
 import { today } from '@/utils/date'
@@ -25,6 +27,7 @@ const props = defineProps<{
   error: string
   saved: Round | null
   addItem: (kind: 'games' | 'players', name: string) => Promise<Game | Player>
+  importExternal: (bggId: number, name: string) => Promise<Game>
   uploadPhoto: (file: File) => Promise<{ id: string }>
 }>()
 const emit = defineEmits<{ submit: [round: Round, key: string]; again: [] }>()
@@ -42,6 +45,11 @@ const gameSearch = ref('')
 const gamePickerOpen = ref(false)
 const gameInput = ref<HTMLInputElement>()
 const adding = ref(false)
+const bggOpen = ref(false)
+const bggResult = ref<ExternalSearch | null>(null)
+const bggName = ref('')
+const bggID = ref<number | null>(null)
+const bggOriginal = ref('')
 interface Upload {
   file: File
   id: string
@@ -127,6 +135,41 @@ function chooseGame(game: Game) {
 }
 function closeGamePicker(event: FocusEvent) {
   if (!(event.currentTarget as HTMLElement).contains(event.relatedTarget as Node | null)) gamePickerOpen.value = false
+}
+async function searchExternal() {
+  const query = gameSearch.value.trim()
+  if (adding.value || !query) return
+  adding.value = true
+  localError.value = ''
+  try {
+    bggResult.value = await searchBGG(props.snapshot.group.id, query)
+    bggID.value = null
+    bggOpen.value = true
+  } catch (e) {
+    localError.value = message(e)
+  } finally {
+    adding.value = false
+  }
+}
+function chooseExternal(id: number, name: string) {
+  bggID.value = id
+  bggOriginal.value = name
+  bggName.value = name
+  bggOpen.value = false
+}
+async function confirmExternal() {
+  if (adding.value || bggID.value == null) return
+  adding.value = true
+  localError.value = ''
+  try {
+    const game = await props.importExternal(bggID.value, bggName.value.trim())
+    chooseGame(game)
+    bggID.value = null
+  } catch (e) {
+    localError.value = message(e)
+  } finally {
+    adding.value = false
+  }
 }
 async function add(kind: 'games' | 'players') {
   if (adding.value) return
@@ -328,6 +371,15 @@ function selectPhotos(event: Event) {
               >
                 {{ adding ? '正在添加…' : `＋ 手动添加“${gameSearch.trim()}”` }}
               </button>
+              <button
+                v-if="gameSearch.trim()"
+                class="d-button secondary"
+                type="button"
+                :disabled="adding"
+                @click="searchExternal"
+              >
+                {{ adding ? '正在搜索…' : `＋ 通过 BGG 添加“${gameSearch.trim()}”` }}
+              </button>
             </div>
           </div>
         </div>
@@ -517,6 +569,37 @@ function selectPhotos(event: Event) {
       ><small>填写内容自动保留在当前设备</small>
     </div>
   </form>
+  <Modal v-if="bggOpen && bggResult" title="通过 BGG 添加。" wide @close="bggOpen = false">
+    <p v-if="bggResult.items.length === 0" class="j-bgg-empty">没有找到这款。可以换原文名称，或手动添加。</p>
+    <ul v-else class="j-bgg-list">
+      <li v-for="item in bggResult.items" :key="item.bgg_id">
+        <img v-if="item.thumbnail" :src="item.thumbnail" :alt="item.name" />
+        <span v-else class="j-bgg-empty-cover" aria-hidden="true"></span>
+        <div>
+          <strong>{{ item.name }}</strong>
+          <span v-if="item.year">{{ item.year }}</span>
+        </div>
+        <button class="d-button secondary" type="button" @click="chooseExternal(item.bgg_id, item.name)">
+          放入游戏架
+        </button>
+      </li>
+    </ul>
+    <p class="j-bgg-credit">
+      资料来自
+      <a :href="bggResult.source_url" target="_blank" rel="noreferrer">{{ bggResult.source }}</a>
+    </p>
+  </Modal>
+  <Modal v-if="bggID" title="把它放上游戏架。" @close="bggID = null">
+    <form @submit.prevent="confirmExternal">
+      <label class="d-field">
+        本组名称
+        <input v-model="bggName" maxlength="255" autofocus />
+      </label>
+      <p class="j-bgg-credit">架上会显示这个名称。BGG 的正式名称会另外保存，留空则改用正式名称。</p>
+      <p v-if="localError" class="j-error" role="alert">{{ localError }}</p>
+      <button class="d-button full" :disabled="adding">保存并选中</button>
+    </form>
+  </Modal>
 </template>
 
 <style scoped>
@@ -737,5 +820,47 @@ function selectPhotos(event: Event) {
   .round-details-leave-to {
     transform: none;
   }
+}
+.j-bgg-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.j-bgg-list li {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.j-bgg-list img,
+.j-bgg-empty-cover {
+  width: 48px;
+  height: 48px;
+  flex-shrink: 0;
+  object-fit: cover;
+  border-radius: 8px;
+  background: #edf0e8;
+}
+.j-bgg-list div {
+  flex: 1;
+  min-width: 0;
+}
+.j-bgg-list strong {
+  display: block;
+  overflow-wrap: anywhere;
+}
+.j-bgg-empty,
+.j-bgg-credit,
+.j-bgg-list span {
+  color: var(--d-muted);
+  font-size: 12px;
+}
+.j-bgg-credit {
+  margin-top: 14px;
+}
+.j-bgg-credit a {
+  color: var(--d-green);
 }
 </style>

@@ -7,7 +7,8 @@ import RequestStatus from '@/components/common/RequestStatus.vue'
 import { useGroupContext } from '@/composables/useGroupContext'
 import { useGroupOperation } from '@/composables/useGroupOperation'
 
-import { addGame, searchBGG as search } from '@/api/game'
+import { addGame, importGame, searchBGG as search, syncCover, type ExternalSearch } from '@/api/game'
+import type { Game } from '@/types/journal'
 import { useRoundHistory } from '@/composables/useRoundHistory'
 const { groupId, snapshot, refresh } = useGroupContext()
 const { page, loading, error: loadError, load } = useRoundHistory()
@@ -15,6 +16,11 @@ const { busy, error, notice, run } = useGroupOperation()
 const gameSearch = ref('')
 const name = ref('')
 const addingOpen = ref(false)
+const importingID = ref<number | null>(null)
+const importingOriginal = ref('')
+const externalOpen = ref(false)
+const external = ref<ExternalSearch | null>(null)
+const linkingGame = ref<Game | null>(null)
 const searchTerm = computed(() => gameSearch.value.trim())
 const filteredGames = computed(
   () =>
@@ -34,13 +40,61 @@ const gameCount = (id: string) => {
   return activity ? `${activity.count} 局相聚` : '等待第一局'
 }
 function openAddForm(initialName = '') {
+  importingID.value = null
+  importingOriginal.value = ''
   addingOpen.value = true
   name.value = initialName
 }
+function chooseExternal(id: number, original: string) {
+  const target = linkingGame.value
+  if (target) {
+    return run(async () => {
+      await syncCover(groupId, target.id, id)
+      linkingGame.value = null
+      externalOpen.value = false
+      notice.value = '封面已经同步'
+      try {
+        await refresh()
+      } catch {
+        notice.value = '封面已同步，刷新失败，请重新加载'
+      }
+    })
+  }
+  importingID.value = id
+  importingOriginal.value = original
+  name.value = original
+  externalOpen.value = false
+  addingOpen.value = true
+}
+function syncGameCover(game: Game) {
+  if (game.bgg_id) {
+    const bggID = game.bgg_id
+    return run(async () => {
+      await syncCover(groupId, game.id, bggID)
+      notice.value = '封面已经同步'
+      try {
+        await refresh()
+      } catch {
+        notice.value = '封面已同步，刷新失败，请重新加载'
+      }
+    })
+  }
+  return run(async () => {
+    linkingGame.value = game
+    external.value = await search(groupId, game.name)
+    externalOpen.value = true
+  })
+}
 function add() {
   return run(async () => {
-    await addGame(groupId, name.value)
+    const alias = name.value.trim()
+    if (importingID.value) {
+      await importGame(groupId, importingID.value, alias)
+    } else {
+      await addGame(groupId, alias)
+    }
     name.value = ''
+    importingID.value = null
     addingOpen.value = false
     notice.value = '已经添加，可以开始记局了'
     try {
@@ -52,7 +106,12 @@ function add() {
 }
 function searchBGG() {
   return run(async () => {
-    await search(groupId, gameSearch.value)
+    if (!searchTerm.value) {
+      error.value = '先输入要找的桌游名称'
+      return
+    }
+    external.value = await search(groupId, searchTerm.value)
+    externalOpen.value = true
   })
 }
 function retry() {
@@ -106,13 +165,17 @@ function retry() {
 
     <div v-if="filteredGames.length" class="shelf-grid">
       <RouterLink v-for="game in filteredGames" :key="game.id" :to="`/games/${game.id}`" class="shelf-card">
-        <div class="shelf-cover" :class="coverTone(game.id)" aria-hidden="true">
+        <img v-if="game.cover" class="shelf-photo" :src="game.cover" :alt="game.name" />
+        <div v-else class="shelf-cover" :class="coverTone(game.id)" aria-hidden="true">
           <div class="shelf-cover-frame"></div>
           <span class="shelf-cover-label">ONE MORE ROUND</span>
           <span class="shelf-cover-letter">{{ Array.from(game.name.trim())[0]?.toUpperCase() }}</span>
           <span class="shelf-cover-mark"><Icon name="game" :size="20" /></span>
           <span class="shelf-cover-note">好游戏，一起玩。</span>
         </div>
+        <button v-if="!game.cover" class="shelf-sync" type="button" @click.prevent.stop="syncGameCover(game)">
+          同步封面
+        </button>
         <div class="shelf-card-body">
           <h2 :title="game.name">{{ game.name }}</h2>
           <p v-if="game.original && game.original !== game.name" class="shelf-original" :title="game.original">
@@ -145,9 +208,45 @@ function retry() {
         <button class="d-button" @click="openAddForm(searchTerm)">＋ 手动添加</button>
       </div>
     </div>
+    <Modal
+      v-if="externalOpen && external"
+      :title="linkingGame ? '选择一张封面。' : '搜索更多桌游。'"
+      wide
+      @close="
+        () => {
+          externalOpen = false
+          linkingGame = null
+        }
+      "
+    >
+      <p v-if="external.items.length === 0" class="shelf-external-empty">没有找到这款。可以换原文名称，或手动添加。</p>
+      <ul v-else class="shelf-external-list">
+        <li v-for="item in external.items" :key="item.bgg_id">
+          <img v-if="item.thumbnail" class="shelf-external-cover" :src="item.thumbnail" :alt="item.name" />
+          <span v-else class="shelf-external-cover shelf-external-cover-empty" aria-hidden="true"></span>
+          <div>
+            <strong>{{ item.name }}</strong>
+            <span v-if="item.year">{{ item.year }}</span>
+          </div>
+          <button class="d-button secondary" type="button" @click="chooseExternal(item.bgg_id, item.name)">
+            {{ linkingGame ? '使用这张封面' : '放入游戏架' }}
+          </button>
+        </li>
+      </ul>
+      <p class="shelf-external-credit">
+        资料来自
+        <a :href="external.source_url" target="_blank" rel="noreferrer">{{ external.source }}</a>
+      </p>
+    </Modal>
     <Modal v-if="addingOpen" title="把它放上游戏架。" @close="addingOpen = false">
       <form @submit.prevent="add">
-        <label class="d-field">桌游名称<input v-model="name" required maxlength="255" autofocus /></label>
+        <label class="d-field">
+          {{ importingID ? '本组名称' : '桌游名称' }}
+          <input v-model="name" :required="!importingID" maxlength="255" autofocus :placeholder="importingOriginal" />
+        </label>
+        <p v-if="importingOriginal" class="shelf-external-credit">
+          架上会显示这个名称。BGG 的正式名称会另外保存，留空则改用正式名称。
+        </p>
         <p v-if="error" class="j-error" role="alert">{{ error }}</p>
         <button class="d-button full" :disabled="busy">保存</button>
       </form>
@@ -235,6 +334,23 @@ function retry() {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 24px;
+}
+.shelf-photo {
+  width: 100%;
+  aspect-ratio: 1.3;
+  object-fit: cover;
+  border-radius: 7px;
+  background: #edf0e8;
+}
+.shelf-sync {
+  align-self: flex-start;
+  margin: 8px 7px 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--d-green);
+  font-size: 12px;
+  cursor: pointer;
 }
 .shelf-card {
   display: flex;
@@ -416,6 +532,49 @@ function retry() {
   gap: 10px;
   margin-top: 8px;
 }
+.shelf-external-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.shelf-external-list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 44px;
+}
+.shelf-external-cover {
+  width: 48px;
+  height: 48px;
+  flex-shrink: 0;
+  object-fit: cover;
+  border-radius: 8px;
+  background: #edf0e8;
+}
+.shelf-external-list li > div {
+  flex: 1;
+  min-width: 0;
+}
+.shelf-external-list strong {
+  display: block;
+  overflow-wrap: anywhere;
+}
+.shelf-external-list span,
+.shelf-external-credit,
+.shelf-external-empty {
+  color: var(--d-muted);
+  font-size: 12px;
+}
+.shelf-external-credit {
+  margin-top: 14px;
+}
+.shelf-external-credit a {
+  color: var(--d-green);
+}
 @media (hover: hover) and (pointer: fine) {
   .shelf-card:hover {
     transform: translateY(-2px);
@@ -480,7 +639,8 @@ function retry() {
     padding: 7px;
     border-radius: 11px;
   }
-  .shelf-cover {
+  .shelf-cover,
+  .shelf-photo {
     aspect-ratio: 0.95;
   }
   .shelf-cover-frame {

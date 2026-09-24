@@ -11,9 +11,10 @@ import (
 
 // AppContext carries the dependencies every application service shares.
 type AppContext struct {
-	Repos  ports.Repositories
-	Mailer ports.Mailer
-	Photos ports.PhotoFiles
+	Repos     ports.Repositories
+	Mailer    ports.Mailer
+	Photos    ports.PhotoFiles
+	Catalogue ports.ExternalCatalogue
 }
 
 // identityService builds the identity domain service on top of a unit of work.

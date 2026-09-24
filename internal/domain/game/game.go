@@ -10,6 +10,7 @@ type Game struct {
 	Name     string
 	Original string
 	BGGID    *int
+	Cover    string
 }
 
 // SameName reports whether the game carries the given local name.

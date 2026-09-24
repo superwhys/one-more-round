@@ -21,6 +21,7 @@ import (
 	"github.com/superwhys/one-more-round/config"
 	"github.com/superwhys/one-more-round/internal/app/services"
 	"github.com/superwhys/one-more-round/internal/cli"
+	"github.com/superwhys/one-more-round/internal/infra/bgg"
 	"github.com/superwhys/one-more-round/internal/infra/mail"
 	"github.com/superwhys/one-more-round/internal/infra/mysql"
 	"github.com/superwhys/one-more-round/internal/infra/photos"
@@ -59,6 +60,9 @@ func main() {
 		Repos:  repos,
 		Mailer: &mail.Sender{Config: runtime.SMTP},
 		Photos: photoFiles,
+	}
+	if runtime.BGG.Enabled() {
+		appCtx.Catalogue = bgg.New(runtime.BGG.Token)
 	}
 	authApp := services.NewAuthApp(appCtx)
 	groupApp := services.NewGroupApp(appCtx)

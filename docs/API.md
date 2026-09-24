@@ -1,6 +1,6 @@
 # V0.1 本地试用接口契约
 
-当前实现以手动桌游为入口，BGG 未授权时返回明确的 503；外部导入、关联 BGG 和游戏合并尚未实现。所有业务路径以 `/api/v1` 开头，成功为 `{"code":0,"data":...,"message":"success"}`，错误同时使用非 2xx HTTP 状态和非零 code。
+当前实现支持手动添加，以及在配置 `app.bgg.token` 后搜索并导入 BoardGameGeek 基础游戏。未配置令牌、授权失败或外部服务不可用时返回 503。自定义游戏关联 BGG 与组主确认合并尚未实现。所有业务路径以 `/api/v1` 开头，成功为 `{"code":0,"data":...,"message":"success"}`，错误同时使用非 2xx HTTP 状态和非零 code。
 
 ## 身份与安全
 
@@ -10,7 +10,7 @@
 - GET `/me`：当前账号；POST `/auth/logout`：撤销服务端会话。
 - `omr_session` Cookie 使用 HttpOnly、SameSite=Strict、生产 Secure；有效期固定 30 天，退出立即失效，不自动续期。localStorage 只保存草稿和当前小组偏好；sessionStorage 保存当前标签页的待处理邀请（最多 7 天）及邮箱/验证码发送时间（恢复期 10 分钟），不保存验证码。成功/取消清除相应邀请，退出清除邀请及登录进度。
 - 所有非 GET/HEAD 业务请求的 Origin 必须与配置 `app.origin` 完全一致。命令行调用也必须带此 Header。不开放跨域访问。
-- 业务错误：400 输入无效、401 未登录、403 权限/来源失败、404 不存在、409 并发/重复/关联冲突、429 请求过多、502 邮件失败、503 BGG 未接入。
+- 业务错误：400 输入无效、401 未登录、403 权限/来源失败、404 不存在、409 并发/重复/关联冲突、429 请求过多、502 邮件失败、503 BGG 未配置或暂时不可用。
 
 ## 小组与资料
 
@@ -18,6 +18,8 @@
 - POST `/join`：已登录账号凭 `token` 加入小组；重复加入幂等。未登录账号使用 `/auth/login` 的 `group_token` 完成注册/登录并加入。
 - GET `/groups/:group`：小组、成员、玩家、游戏和可见的关联申请。游戏与玩家按近期参与顺序优先。
 - POST `/groups/:group/players`、`/games`：以 `name` 添加玩家或手动桌游。
+- GET `/groups/:group/bgg/search?q=`：成员搜索 BoardGameGeek 基础游戏，返回名称、年份、BGG ID、封面地址和来源标识。封面来自详情接口的 `thumbnail`，没有则省略。令牌只在服务端使用，结果缓存一小时。
+- POST `/groups/:group/games/import`：`bgg_id` 与可选 `name`。服务端读取外部原名；`name` 作为本组名称，留空则使用原名。同组相同 BGG ID 复用已有条目，不覆盖已有本组名称。同名但不同条目返回 409。
 - POST `/groups/:group/manage`：`action`、`target`、`value`。`claim` 申请关联 `target` 指定的已有档案；`claim-new` 以 `value` 为昵称创建新档案并同时申请关联。其余操作包括 `rename`、`alias`、`remove`、`transfer`、`approve`、`reject`、`revoke`；关联均由组主确认，服务端拒绝重复申请和重复绑定。
 - GET/POST `/groups/:group/invites`：组主查看/创建邀请；7 天有效、可多人使用、可撤销，链接密钥只在创建响应中返回。链接仍为 `/join#令牌`，使用 fragment 避免进入 HTTP 访问日志。无效、过期和撤销返回不同中文提示，HTTP 400；数据库故障保留系统错误语义。
 - GET `/groups/:group/export`：仅组主可下载 ZIP 备份，包含 `one-more-round.json`、`rounds.csv` 和已关联照片展示图；导出包含仍在 7 天恢复期内的记录。

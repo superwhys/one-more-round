@@ -18,7 +18,17 @@ type Runtime struct {
 	SMTP   smtp.Config            `json:"smtp"`
 	Origin string                 `json:"origin"`
 	OSS    photos.OSSConfig       `json:"oss"`
+	BGG    BGGConfig              `json:"bgg"`
 }
+
+// BGGConfig holds the server-side BoardGameGeek application token. An empty
+// token leaves external search unavailable and manual games usable.
+type BGGConfig struct {
+	Token string `json:"token"`
+}
+
+// Enabled reports whether an application token is configured.
+func (c BGGConfig) Enabled() bool { return strings.TrimSpace(c.Token) != "" }
 
 func (c *Runtime) Validate() error {
 	if c.Listen == "" {

@@ -56,6 +56,21 @@ type PhotoContent struct {
 	Size int64
 }
 
+// ExternalGame is a board game found in the external catalogue.
+type ExternalGame struct {
+	ID        int
+	Name      string
+	Year      *int
+	Thumbnail string
+}
+
+// ExternalCatalogue searches the external board-game catalogue. The token
+// stays inside the adapter.
+type ExternalCatalogue interface {
+	SearchBoardGames(ctx context.Context, query string) ([]ExternalGame, error)
+	LookupBoardGame(ctx context.Context, id int) (ExternalGame, error)
+}
+
 // PhotoFiles stores uploaded photo files outside the database.
 type PhotoFiles interface {
 	Save(ctx context.Context, id string, r io.Reader) error

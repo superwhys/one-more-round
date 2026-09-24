@@ -17,7 +17,7 @@ type gameRepository struct {
 func (r *gameRepository) Save(ctx context.Context, groupID string, g *game.Game) error {
 	q := queryOf(r.db).Game
 	return mapErr(q.WithContext(ctx).Clauses(clause.OnConflict{DoUpdates: clause.AssignmentColumns([]string{
-		string(q.Name.ColumnName()), string(q.Original.ColumnName()), string(q.BGGID.ColumnName()),
+		string(q.Name.ColumnName()), string(q.Original.ColumnName()), string(q.BGGID.ColumnName()), string(q.Cover.ColumnName()),
 	})}).Create(mapper.GameDomainToModel(groupID, g)))
 }
 

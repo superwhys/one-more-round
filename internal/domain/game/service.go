@@ -23,6 +23,10 @@ type IService interface {
 	Resolve(ctx context.Context, groupID, name string) (*Game, error)
 	// Rename sets a new local name for a game of the group.
 	Rename(ctx context.Context, groupID, target, name string) (*Game, error)
+	// Import stores an external game, reusing the same external id in the group.
+	Import(ctx context.Context, groupID string, bggID int, localName, original, cover string) (*Game, error)
+	// AttachCover links an existing game to an external entry and stores its cover.
+	AttachCover(ctx context.Context, groupID, target string, bggID int, original, cover string) (*Game, error)
 }
 
 var _ IService = (*service)(nil)
@@ -78,4 +82,85 @@ func (s *service) Rename(ctx context.Context, groupID, target, name string) (*Ga
 		}
 	}
 	return nil, errcode.ErrNotFound
+}
+
+// Import stores an external game. The same external id is reused; a different
+// game that already uses the local name is left unchanged.
+func (s *service) Import(ctx context.Context, groupID string, bggID int, localName, original, cover string) (*Game, error) {
+	original = strings.TrimSpace(original)
+	localName = strings.TrimSpace(localName)
+	cover = strings.TrimSpace(cover)
+	if localName == "" {
+		localName = original
+	}
+	if bggID <= 0 || !validName(original) || !validName(localName) || !validCover(cover) {
+		return nil, errcode.ErrGameName
+	}
+	games, err := s.games.ListByGroup(ctx, groupID)
+	if err != nil {
+		return nil, err
+	}
+	for _, old := range games {
+		if old.BGGID != nil && *old.BGGID == bggID {
+			if old.Cover == "" && cover != "" {
+				old.Cover = cover
+				if err = s.games.Save(ctx, groupID, old); err != nil {
+					return nil, err
+				}
+			}
+			return old, nil
+		}
+	}
+	for _, old := range games {
+		if old.SameName(localName) {
+			return nil, errcode.ErrConflict.WithMessage("架上已有同名桌游，请换一个本组名称")
+		}
+	}
+	id := bggID
+	g := &Game{ID: secure.NewID(), Name: localName, Original: original, BGGID: &id, Cover: cover}
+	if err = s.games.Save(ctx, groupID, g); err != nil {
+		return nil, err
+	}
+	return g, nil
+}
+
+// AttachCover stores an external cover on a game already on the shelf. The
+// local name stays as the group wrote it.
+func (s *service) AttachCover(ctx context.Context, groupID, target string, bggID int, original, cover string) (*Game, error) {
+	original = strings.TrimSpace(original)
+	cover = strings.TrimSpace(cover)
+	if bggID <= 0 || !validName(original) || !validCover(cover) || cover == "" {
+		return nil, errcode.ErrBGGSearch.WithMessage("这款桌游没有可用封面")
+	}
+	games, err := s.games.ListByGroup(ctx, groupID)
+	if err != nil {
+		return nil, err
+	}
+	var current *Game
+	for _, old := range games {
+		if old.BGGID != nil && *old.BGGID == bggID && old.ID != target {
+			return nil, errcode.ErrConflict.WithMessage("架上已有这款桌游")
+		}
+		if old.ID == target {
+			current = old
+		}
+	}
+	if current == nil {
+		return nil, errcode.ErrNotFound
+	}
+	id := bggID
+	current.BGGID = &id
+	current.Cover = cover
+	if current.Original == "" {
+		current.Original = original
+	}
+	if err = s.games.Save(ctx, groupID, current); err != nil {
+		return nil, err
+	}
+	return current, nil
+}
+
+// validCover accepts an empty cover or one https image address.
+func validCover(v string) bool {
+	return v == "" || (strings.HasPrefix(v, "https://") && utf8.RuneCountInString(v) <= 512)
 }

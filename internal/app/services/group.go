@@ -13,6 +13,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"unicode/utf8"
 
 	"github.com/superwhys/one-more-round/internal/app/dto"
 	"github.com/superwhys/one-more-round/internal/app/mapper"
@@ -26,13 +27,14 @@ import (
 
 // GroupApp handles groups, their players, games, invitations and membership.
 type GroupApp struct {
-	repos  ports.Repositories
-	photos ports.PhotoFiles
+	repos     ports.Repositories
+	photos    ports.PhotoFiles
+	catalogue ports.ExternalCatalogue
 }
 
 // NewGroupApp builds the group application service.
 func NewGroupApp(ctx *AppContext) *GroupApp {
-	return &GroupApp{repos: ctx.Repos, photos: ctx.Photos}
+	return &GroupApp{repos: ctx.Repos, photos: ctx.Photos, catalogue: ctx.Catalogue}
 }
 
 // List returns the groups the account belongs to.
@@ -141,15 +143,94 @@ func (a *GroupApp) AddGame(ctx context.Context, groupID, userID string, req *dto
 	return mapper.GameDomainToDTO(resolved), nil
 }
 
-// SearchExternalGames reports that the external catalogue is unavailable; the
-// manual catalogue stays usable.
-func (a *GroupApp) SearchExternalGames(ctx context.Context, groupID, userID string) error {
-	return a.repos.WithTransaction(ctx, func(repos ports.Repositories) error {
+const bggSource = "BoardGameGeek"
+const bggTerms = "https://boardgamegeek.com/xmlapi/termsofuse"
+
+// SearchExternalGames queries the external catalogue after confirming membership.
+// The remote call stays outside the database transaction.
+func (a *GroupApp) SearchExternalGames(ctx context.Context, groupID, userID, query string) (dto.ExternalSearch, error) {
+	if err := a.requireMember(ctx, groupID, userID); err != nil {
+		return dto.ExternalSearch{}, err
+	}
+	query = strings.TrimSpace(query)
+	if query == "" || utf8.RuneCountInString(query) > 80 {
+		return dto.ExternalSearch{}, errcode.ErrBGGQuery
+	}
+	if a.catalogue == nil {
+		return dto.ExternalSearch{}, errcode.ErrBGGUnavailable
+	}
+	hits, err := a.catalogue.SearchBoardGames(ctx, query)
+	if err != nil {
+		return dto.ExternalSearch{}, err
+	}
+	items := make([]dto.ExternalGame, 0, len(hits))
+	for _, hit := range hits {
+		items = append(items, dto.ExternalGame{BGGID: hit.ID, Name: hit.Name, Year: hit.Year, Thumbnail: hit.Thumbnail})
+	}
+	return dto.ExternalSearch{Items: items, Source: bggSource, SourceURL: bggTerms}, nil
+}
+
+// ImportExternalGame copies one external game into the group, keeping the
+// external name separate from the local alias.
+func (a *GroupApp) ImportExternalGame(ctx context.Context, groupID, userID string, req *dto.ImportGameReq) (dto.Game, error) {
+	if err := a.requireMember(ctx, groupID, userID); err != nil {
+		return dto.Game{}, err
+	}
+	if a.catalogue == nil {
+		return dto.Game{}, errcode.ErrBGGUnavailable
+	}
+	external, err := a.catalogue.LookupBoardGame(ctx, req.BGGID)
+	if err != nil {
+		return dto.Game{}, err
+	}
+	var saved *game.Game
+	if err = a.repos.WithTransaction(ctx, func(repos ports.Repositories) error {
 		if _, e := groupService(repos).RequireMember(ctx, groupID, userID); e != nil {
 			return e
 		}
-		return errcode.ErrBGGUnavailable
-	})
+		var e error
+		saved, e = gameService(repos).Import(ctx, groupID, external.ID, req.Name, external.Name, external.Thumbnail)
+		return e
+	}); err != nil {
+		return dto.Game{}, err
+	}
+	return mapper.GameDomainToDTO(saved), nil
+}
+
+// SyncCover copies an external cover onto a game already on the shelf.
+func (a *GroupApp) SyncCover(ctx context.Context, groupID, userID string, req *dto.SyncCoverReq) (dto.Game, error) {
+	if err := a.requireMember(ctx, groupID, userID); err != nil {
+		return dto.Game{}, err
+	}
+	if a.catalogue == nil {
+		return dto.Game{}, errcode.ErrBGGUnavailable
+	}
+	if req.BGGID <= 0 {
+		return dto.Game{}, errcode.ErrBGGQuery
+	}
+	external, err := a.catalogue.LookupBoardGame(ctx, req.BGGID)
+	if err != nil {
+		return dto.Game{}, err
+	}
+	var saved *game.Game
+	if err = a.repos.WithTransaction(ctx, func(repos ports.Repositories) error {
+		if _, e := groupService(repos).RequireMember(ctx, groupID, userID); e != nil {
+			return e
+		}
+		var e error
+		saved, e = gameService(repos).AttachCover(ctx, groupID, req.GameID, external.ID, external.Name, external.Thumbnail)
+		return e
+	}); err != nil {
+		return dto.Game{}, err
+	}
+	return mapper.GameDomainToDTO(saved), nil
+}
+
+// requireMember checks the current account without holding a transaction open
+// across a remote catalogue call.
+func (a *GroupApp) requireMember(ctx context.Context, groupID, userID string) error {
+	_, err := groupService(a.repos).RequireMember(ctx, groupID, userID)
+	return err
 }
 
 // Manage applies an owner or member action on the group.

@@ -170,6 +170,8 @@ var (
 // 外部依赖
 var (
 	ErrBGGUnavailable = New(CodeUnavailable, 503, "BGG 授权尚未配置，请使用本组桌游或手动添加")
+	ErrBGGSearch      = New(CodeUnavailable, 503, "暂时无法搜索更多桌游，请稍后重试或手动添加")
+	ErrBGGQuery       = ErrBadRequest.WithMessage("请输入要搜索的桌游名称")
 )
 
 // HTTP 协议层

@@ -84,7 +84,7 @@ func GameModelToDomain(m *models.Game) *game.Game {
 	if m == nil {
 		return nil
 	}
-	return &game.Game{ID: m.ID, Name: m.Name, Original: m.Original, BGGID: m.BGGID}
+	return &game.Game{ID: m.ID, Name: m.Name, Original: m.Original, BGGID: m.BGGID, Cover: m.Cover}
 }
 
 // GameDomainToModel converts the game entity into its row of group groupID.
@@ -92,5 +92,5 @@ func GameDomainToModel(groupID string, g *game.Game) *models.Game {
 	if g == nil {
 		return nil
 	}
-	return &models.Game{ID: g.ID, GroupID: groupID, Name: g.Name, Original: g.Original, BGGID: g.BGGID}
+	return &models.Game{ID: g.ID, GroupID: groupID, Name: g.Name, Original: g.Original, BGGID: g.BGGID, Cover: g.Cover}
 }
