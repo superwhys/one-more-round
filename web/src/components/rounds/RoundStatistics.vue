@@ -26,12 +26,14 @@ const playerName = (id: string) => props.snapshot.players.find(player => player.
       </button>
     </div>
     <div v-for="s in stats" :key="`${s.game}:${s.player}:${s.mode}`" class="j-stat">
-      <span>{{ gameName(s.game) }} · {{ playerName(s.player) }}</span
-      ><strong v-if="s.samples"
-        >{{ Math.round((s.wins / s.samples) * 100) }}%<small>
-          · {{ s.wins }} {{ s.mode === 'coop' ? '成功' : '胜' }} / {{ s.samples }} 局</small
-        ></strong
-      ><span v-else>暂无数据</span><small>{{ s.played }} 次参与</small>
+      <span class="j-stat-name">{{ gameName(s.game) }} · {{ playerName(s.player) }}</span>
+      <span class="j-stat-result">
+        <strong v-if="s.samples"
+          >{{ Math.round((s.wins / s.samples) * 100) }}%<small>
+            · {{ s.wins }} {{ s.mode === 'coop' ? '成功' : '胜' }} / {{ s.samples }} 局</small
+          ></strong
+        ><span v-else>暂无数据</span><small class="j-stat-played">{{ s.played }} 次参与</small>
+      </span>
     </div>
     <p v-if="!stats.length" class="d-note">这个模式暂无数据。</p>
   </section>
