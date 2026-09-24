@@ -5,6 +5,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/miebyte/goutils/ginutils"
+
 	"github.com/superwhys/one-more-round/api/common"
 	"github.com/superwhys/one-more-round/internal/app/dto"
 	"github.com/superwhys/one-more-round/internal/app/services"
@@ -49,7 +50,12 @@ func listNotificationsHandler(app *services.NotificationApp) gin.HandlerFunc {
 // @Router /v1/notifications/{id}/read [post]
 func readNotificationHandler(app *services.NotificationApp) gin.HandlerFunc {
 	return ginutils.RequestHandler(func(ctx *gin.Context, req *dto.ReadNotificationReq) {
-		if common.HandleRouterError(ctx, app.Read(ctx.Request.Context(), common.UserID(ctx), req.ID), "read notification failed", errcode.ErrSysInternal) {
+		if common.HandleRouterError(
+			ctx,
+			app.Read(ctx.Request.Context(), common.UserID(ctx), req.ID),
+			"read notification failed",
+			errcode.ErrSysInternal,
+		) {
 			return
 		}
 		ctx.JSON(http.StatusOK, dto.ResponseSuccess())

@@ -31,13 +31,17 @@ func (f *Files) Save(ctx context.Context, id string, r io.Reader) error {
 	if err != nil {
 		return err
 	}
-	if err = os.MkdirAll(f.Root, 0700); err != nil {
+	if err = os.MkdirAll(f.Root, 0o700); err != nil {
 		return err
 	}
 	if err = ctx.Err(); err != nil {
 		return err
 	}
-	file, err := os.OpenFile(filepath.Join(f.Root, photoName(id, false)), os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0600)
+	file, err := os.OpenFile(
+		filepath.Join(f.Root, photoName(id, false)),
+		os.O_CREATE|os.O_EXCL|os.O_WRONLY,
+		0o600,
+	)
 	if err != nil {
 		return err
 	}
@@ -76,7 +80,10 @@ func (f *Files) Remove(ctx context.Context, id string) error {
 		if err := ctx.Err(); err != nil {
 			return errors.Join(result, err)
 		}
-		if err := os.Remove(filepath.Join(f.Root, photoName(id, thumb))); err != nil && !os.IsNotExist(err) {
+		if err := os.Remove(
+			filepath.Join(f.Root, photoName(id, thumb)),
+		); err != nil &&
+			!os.IsNotExist(err) {
 			result = errors.Join(result, err)
 		}
 	}

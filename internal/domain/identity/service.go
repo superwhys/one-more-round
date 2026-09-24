@@ -16,7 +16,11 @@ import (
 type IService interface {
 	// SendCode stores a fresh verification code and returns the plaintext code
 	// together with the digest used to confirm that the mail was sent.
-	SendCode(ctx context.Context, email, invite, ip string, now time.Time) (code, digest string, err error)
+	SendCode(
+		ctx context.Context,
+		email, invite, ip string,
+		now time.Time,
+	) (code, digest string, err error)
 	// MarkCodeSent activates the stored code after the mail was delivered.
 	MarkCodeSent(ctx context.Context, email, digest string) error
 	// Login verifies the code and opens a session. A rejected login still has
@@ -24,7 +28,12 @@ type IService interface {
 	// from err, which means the transaction must roll back.
 	// groupRegistration is granted only after a group invitation is validated
 	// under lock in the same transaction that registers and joins the account.
-	Login(ctx context.Context, email, code string, groupRegistration bool, now time.Time) (user *User, token string, rejected, err error)
+	Login(
+		ctx context.Context,
+		email, code string,
+		groupRegistration bool,
+		now time.Time,
+	) (user *User, token string, rejected, err error)
 	// Authenticate resolves a session token into its account.
 	Authenticate(ctx context.Context, token string) (*User, error)
 	// Logout revokes the session of a token.
@@ -42,19 +51,35 @@ type service struct {
 }
 
 // NewService builds the identity service from its repositories.
-func NewService(users IUserRepository, codes IVerifyCodeRepository, rates IRateRepository, trials ITrialRepository, sessions ISessionRepository) IService {
+func NewService(
+	users IUserRepository,
+	codes IVerifyCodeRepository,
+	rates IRateRepository,
+	trials ITrialRepository,
+	sessions ISessionRepository,
+) IService {
 	return &service{users: users, codes: codes, rates: rates, trials: trials, sessions: sessions}
 }
 
 // SendCode stores a fresh verification code and returns the plaintext code
 // together with the digest used to confirm that the mail was sent.
-func (s *service) SendCode(ctx context.Context, email, invite, ip string, now time.Time) (string, string, error) {
+func (s *service) SendCode(
+	ctx context.Context,
+	email, invite, ip string,
+	now time.Time,
+) (string, string, error) {
 	n, err := rand.Int(rand.Reader, big.NewInt(1000000))
 	if err != nil {
 		return "", "", err
 	}
 	code := fmt.Sprintf("%06d", n.Int64())
-	c := &Challenge{Email: email, Hash: secure.Hash(email + code), Invite: secure.Hash(invite), Sent: now, Expires: now.Add(CodeTTL)}
+	c := &Challenge{
+		Email:   email,
+		Hash:    secure.Hash(email + code),
+		Invite:  secure.Hash(invite),
+		Sent:    now,
+		Expires: now.Add(CodeTTL),
+	}
 	old, err := s.codes.Get(ctx, email)
 	if err != nil {
 		return "", "", err
@@ -90,7 +115,12 @@ func (s *service) MarkCodeSent(ctx context.Context, email, digest string) error 
 // Login verifies the code and opens a session. A rejected login still has
 // committed side effects (the attempt counter), so it is reported apart from
 // err, which means the transaction must roll back.
-func (s *service) Login(ctx context.Context, email, code string, groupRegistration bool, now time.Time) (*User, string, error, error) {
+func (s *service) Login(
+	ctx context.Context,
+	email, code string,
+	groupRegistration bool,
+	now time.Time,
+) (*User, string, error, error) {
 	c, err := s.codes.Get(ctx, email)
 	if err != nil {
 		return nil, "", nil, err
@@ -121,7 +151,10 @@ func (s *service) Login(ctx context.Context, email, code string, groupRegistrati
 		return nil, "", nil, err
 	}
 	token := secure.NewID()
-	if err = s.sessions.Create(ctx, &Session{Hash: secure.Hash(token), UserID: user.ID, Expires: now.Add(SessionTTL)}); err != nil {
+	if err = s.sessions.Create(
+		ctx,
+		&Session{Hash: secure.Hash(token), UserID: user.ID, Expires: now.Add(SessionTTL)},
+	); err != nil {
 		return nil, "", nil, err
 	}
 	return user, token, nil, nil

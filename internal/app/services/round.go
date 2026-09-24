@@ -29,7 +29,10 @@ func NewRoundApp(ctx *AppContext) *RoundApp {
 }
 
 // ShareStatus returns whether the caller-managed round has an active link.
-func (a *RoundApp) ShareStatus(ctx context.Context, groupID, userID, roundID string) (dto.RoundShareStatus, error) {
+func (a *RoundApp) ShareStatus(
+	ctx context.Context,
+	groupID, userID, roundID string,
+) (dto.RoundShareStatus, error) {
 	var status dto.RoundShareStatus
 	err := a.repos.WithTransaction(ctx, func(repos ports.Repositories) error {
 		if _, err := requireShareManager(ctx, repos, groupID, userID, roundID); err != nil {
@@ -49,14 +52,18 @@ func (a *RoundApp) ShareStatus(ctx context.Context, groupID, userID, roundID str
 }
 
 // CreateShare creates or rotates a round's public bearer link.
-func (a *RoundApp) CreateShare(ctx context.Context, groupID, userID, roundID string) (dto.RoundShareToken, error) {
+func (a *RoundApp) CreateShare(
+	ctx context.Context,
+	groupID, userID, roundID string,
+) (dto.RoundShareToken, error) {
 	token := secure.NewID()
 	created := time.Now().UTC()
 	err := a.repos.WithTransaction(ctx, func(repos ports.Repositories) error {
 		if _, err := requireShareManager(ctx, repos, groupID, userID, roundID); err != nil {
 			return err
 		}
-		return repos.Round().SaveShare(ctx, &diary.Share{RoundID: roundID, GroupID: groupID, TokenHash: secure.Hash(token), CreatedBy: userID, CreatedAt: created})
+		return repos.Round().
+			SaveShare(ctx, &diary.Share{RoundID: roundID, GroupID: groupID, TokenHash: secure.Hash(token), CreatedBy: userID, CreatedAt: created})
 	})
 	if err != nil {
 		return dto.RoundShareToken{}, err
@@ -101,7 +108,10 @@ func (a *RoundApp) PublicRound(ctx context.Context, token string) (dto.PublicRou
 
 // PublicPhoto opens a photo only while the share is active and the photo still
 // belongs to the shared round.
-func (a *RoundApp) PublicPhoto(ctx context.Context, token, photoID string) (*ports.PhotoContent, error) {
+func (a *RoundApp) PublicPhoto(
+	ctx context.Context,
+	token, photoID string,
+) (*ports.PhotoContent, error) {
 	shared, err := a.PublicRound(ctx, token)
 	if err != nil || !slices.Contains(shared.Photos, photoID) {
 		return nil, errcode.ErrNotFound
@@ -113,7 +123,11 @@ func (a *RoundApp) PublicPhoto(ctx context.Context, token, photoID string) (*por
 	return content, err
 }
 
-func requireShareManager(ctx context.Context, repos ports.Repositories, groupID, userID, roundID string) (*diary.Round, error) {
+func requireShareManager(
+	ctx context.Context,
+	repos ports.Repositories,
+	groupID, userID, roundID string,
+) (*diary.Round, error) {
 	access, err := groupService(repos).RequireMember(ctx, groupID, userID)
 	if err != nil {
 		return nil, err
@@ -128,7 +142,11 @@ func requireShareManager(ctx context.Context, repos ports.Repositories, groupID,
 	return round, nil
 }
 
-func findRound(ctx context.Context, repos ports.Repositories, groupID, roundID string) (*diary.Round, error) {
+func findRound(
+	ctx context.Context,
+	repos ports.Repositories,
+	groupID, roundID string,
+) (*diary.Round, error) {
 	rounds, err := repos.Round().ListByGroup(ctx, groupID)
 	if err != nil {
 		return nil, err
@@ -155,7 +173,10 @@ func publicRoundDTO(round *diary.Round, snapshot *group.Snapshot) dto.PublicRoun
 	}
 	players := make([]dto.PublicPlayer, 0, len(round.Players))
 	for _, id := range round.Players {
-		players = append(players, dto.PublicPlayer{Name: playerNames[id], Score: round.Scores[id], Winner: round.Won(id)})
+		players = append(
+			players,
+			dto.PublicPlayer{Name: playerNames[id], Score: round.Scores[id], Winner: round.Won(id)},
+		)
 	}
 	teams := make([]dto.PublicTeam, 0, len(round.Teams))
 	for _, team := range round.Teams {
@@ -163,14 +184,43 @@ func publicRoundDTO(round *diary.Round, snapshot *group.Snapshot) dto.PublicRoun
 		for _, id := range team.Players {
 			names = append(names, playerNames[id])
 		}
-		teams = append(teams, dto.PublicTeam{Name: team.Name, Players: names, Score: team.Score, Winner: team.Winner})
+		teams = append(
+			teams,
+			dto.PublicTeam{Name: team.Name, Players: names, Score: team.Score, Winner: team.Winner},
+		)
 	}
-	return dto.PublicRound{GroupName: snapshot.Group.Name, GameName: gameName, Date: round.Date, Mode: round.Mode, Outcome: round.Outcome, Players: players, Teams: teams, TeamScore: round.TeamScore, Memory: round.Memory, Photos: round.Photos}
+	return dto.PublicRound{
+		GroupName: snapshot.Group.Name,
+		GameName:  gameName,
+		Date:      round.Date,
+		Mode:      round.Mode,
+		Outcome:   round.Outcome,
+		Players:   players,
+		Teams:     teams,
+		TeamScore: round.TeamScore,
+		Memory:    round.Memory,
+		Photos:    round.Photos,
+	}
 }
 
 // List returns the filtered timeline of the group with its statistics.
-func (a *RoundApp) List(ctx context.Context, groupID, userID string, req *dto.ListRoundsReq) (dto.Page, error) {
-	filter := diary.Filter{From: req.From, To: req.To, Game: req.Game, Player: req.Player, Query: req.Query, Mode: req.Mode, Outcome: req.Outcome, HasPhotos: req.HasPhotos, Offset: req.Offset, Limit: req.Limit}
+func (a *RoundApp) List(
+	ctx context.Context,
+	groupID, userID string,
+	req *dto.ListRoundsReq,
+) (dto.Page, error) {
+	filter := diary.Filter{
+		From:      req.From,
+		To:        req.To,
+		Game:      req.Game,
+		Player:    req.Player,
+		Query:     req.Query,
+		Mode:      req.Mode,
+		Outcome:   req.Outcome,
+		HasPhotos: req.HasPhotos,
+		Offset:    req.Offset,
+		Limit:     req.Limit,
+	}
 	if err := diary.ValidateFilter(filter); err != nil {
 		return dto.Page{}, err
 	}
@@ -236,7 +286,8 @@ func (a *RoundApp) RecycleBin(ctx context.Context, groupID, userID string) ([]dt
 			return e
 		}
 		var e error
-		rounds, e = repos.Round().ListDeletedByGroup(ctx, groupID, time.Now().UTC().Add(-RoundRecycleRetention))
+		rounds, e = repos.Round().
+			ListDeletedByGroup(ctx, groupID, time.Now().UTC().Add(-RoundRecycleRetention))
 		return e
 	})
 	if err != nil {
@@ -246,14 +297,19 @@ func (a *RoundApp) RecycleBin(ctx context.Context, groupID, userID string) ([]dt
 }
 
 // Restore returns one recoverable round to the timeline.
-func (a *RoundApp) Restore(ctx context.Context, userID string, req *dto.RestoreRoundReq) (dto.Round, error) {
+func (a *RoundApp) Restore(
+	ctx context.Context,
+	userID string,
+	req *dto.RestoreRoundReq,
+) (dto.Round, error) {
 	var restored *diary.Round
 	err := a.repos.WithTransaction(ctx, func(repos ports.Repositories) error {
 		access, e := groupService(repos).RequireMember(ctx, req.GroupID, userID)
 		if e != nil {
 			return e
 		}
-		rounds, e := repos.Round().ListDeletedByGroup(ctx, req.GroupID, time.Now().UTC().Add(-RoundRecycleRetention))
+		rounds, e := repos.Round().
+			ListDeletedByGroup(ctx, req.GroupID, time.Now().UTC().Add(-RoundRecycleRetention))
 		if e != nil {
 			return e
 		}
@@ -312,7 +368,11 @@ func (a *RoundApp) Get(ctx context.Context, groupID, userID, id string) (dto.Rou
 // Save validates a submitted round and stores it as a new record or an edit.
 // A repeated submission key with the same content returns the stored record; a
 // repeated key with different content is a conflict.
-func (a *RoundApp) Save(ctx context.Context, userID string, req *dto.SaveRoundReq) (dto.Round, error) {
+func (a *RoundApp) Save(
+	ctx context.Context,
+	userID string,
+	req *dto.SaveRoundReq,
+) (dto.Round, error) {
 	groupID, key := req.GroupID, req.IdempotencyKey
 	input := req.Round
 	normalizeRound(&input)
@@ -370,7 +430,10 @@ func (a *RoundApp) Save(ctx context.Context, userID string, req *dto.SaveRoundRe
 		round.Version = 1
 		var released []string
 		if req.RoundID != "" {
-			index := slices.IndexFunc(rounds, func(old *diary.Round) bool { return old.ID == req.RoundID })
+			index := slices.IndexFunc(
+				rounds,
+				func(old *diary.Round) bool { return old.ID == req.RoundID },
+			)
 			if index < 0 {
 				return errcode.ErrNotFound
 			}
@@ -419,7 +482,8 @@ func (a *RoundApp) Save(ctx context.Context, userID string, req *dto.SaveRoundRe
 			return e
 		}
 		if req.RoundID == "" {
-			if e = repos.Idempotency().Create(ctx, groupID, userID, key, fingerprint, round.ID); e != nil {
+			if e = repos.Idempotency().
+				Create(ctx, groupID, userID, key, fingerprint, round.ID); e != nil {
 				return e
 			}
 		}

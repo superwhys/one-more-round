@@ -29,7 +29,8 @@ func TestDisplayPhotoDimensionsAndMetadata(t *testing.T) {
 		t.Fatal(err)
 	}
 	cfg, format, err := image.DecodeConfig(bytes.NewReader(output))
-	if err != nil || format != "jpeg" || cfg.Width != 1600 || cfg.Height != 1600 || bytes.Contains(output, []byte("private-metadata-marker")) {
+	if err != nil || format != "jpeg" || cfg.Width != 1600 || cfg.Height != 1600 ||
+		bytes.Contains(output, []byte("private-metadata-marker")) {
 		t.Fatalf("unexpected display image: %v %s %v", cfg, format, err)
 	}
 	for _, dimensions := range [][2]uint32{{1601, 1}, {1, 1601}, {5000, 5000}} {
@@ -38,13 +39,25 @@ func TestDisplayPhotoDimensionsAndMetadata(t *testing.T) {
 		binary.BigEndian.PutUint32(data[16:20], dimensions[0])
 		binary.BigEndian.PutUint32(data[20:24], dimensions[1])
 		binary.BigEndian.PutUint32(data[29:33], crc32.ChecksumIEEE(data[12:29]))
-		if _, err := encodePhoto(context.Background(), bytes.NewReader(data)); !errors.Is(err, errcode.ErrPhotoDimensions) {
+		if _, err := encodePhoto(
+			context.Background(),
+			bytes.NewReader(data),
+		); !errors.Is(
+			err,
+			errcode.ErrPhotoDimensions,
+		) {
 			t.Fatalf("%v must be rejected before pixel decoding: %v", dimensions, err)
 		}
 	}
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
-	if _, err := encodePhoto(ctx, bytes.NewReader(input.Bytes())); !errors.Is(err, context.Canceled) {
+	if _, err := encodePhoto(
+		ctx,
+		bytes.NewReader(input.Bytes()),
+	); !errors.Is(
+		err,
+		context.Canceled,
+	) {
 		t.Fatalf("canceled processing: %v", err)
 	}
 }
@@ -95,7 +108,10 @@ func TestDisplayPhotoMemoryBudget(t *testing.T) {
 		sample()
 	}
 	delta := peak.Load() - baseline.HeapAlloc
-	t.Logf("three serial 1600x1600 16-bit PNGs, 2 MiB each: peak additional Go heap %.1f MiB", float64(delta)/(1024*1024))
+	t.Logf(
+		"three serial 1600x1600 16-bit PNGs, 2 MiB each: peak additional Go heap %.1f MiB",
+		float64(delta)/(1024*1024),
+	)
 	if delta > 100*1024*1024 {
 		t.Fatalf("photo processing exceeds 100 MiB heap budget: %d", delta)
 	}
@@ -122,7 +138,10 @@ func BenchmarkDisplayPhotoMemory(b *testing.B) {
 			b.ReportAllocs()
 			b.ResetTimer()
 			for range b.N {
-				if _, err := encodePhoto(context.Background(), bytes.NewReader(input.Bytes())); err != nil {
+				if _, err := encodePhoto(
+					context.Background(),
+					bytes.NewReader(input.Bytes()),
+				); err != nil {
 					b.Fatal(err)
 				}
 			}

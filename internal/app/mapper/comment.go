@@ -10,7 +10,13 @@ func CommentDomainToDTO(c *diary.Comment) dto.RoundComment {
 	if c == nil {
 		return dto.RoundComment{}
 	}
-	return dto.RoundComment{ID: c.ID, Author: c.Author, Body: c.Body, ParentID: c.ParentID, Created: c.Created}
+	return dto.RoundComment{
+		ID:       c.ID,
+		Author:   c.Author,
+		Body:     c.Body,
+		ParentID: c.ParentID,
+		Created:  c.Created,
+	}
 }
 
 // CommentDomainListToDTOList converts comment entities into API DTOs.

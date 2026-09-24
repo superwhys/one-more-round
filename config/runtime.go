@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/miebyte/goutils/mysqlutils"
+
 	smtp "github.com/superwhys/one-more-round/internal/infra/mail"
 	"github.com/superwhys/one-more-round/internal/infra/photos"
 )
@@ -45,10 +46,13 @@ func (c *Runtime) Validate() error {
 		c.MySQL.Charset = "utf8mb4"
 	}
 	u, e := url.Parse(c.Origin)
-	if e != nil || u.Host == "" || u.User != nil || u.RawQuery != "" || u.Fragment != "" || u.Path != "" || (u.Scheme != "http" && u.Scheme != "https") {
+	if e != nil || u.Host == "" || u.User != nil || u.RawQuery != "" || u.Fragment != "" ||
+		u.Path != "" ||
+		(u.Scheme != "http" && u.Scheme != "https") {
 		return errors.New("app.origin must be an http(s) origin without path")
 	}
-	if u.Scheme == "http" && u.Hostname() != "localhost" && u.Hostname() != "127.0.0.1" && u.Hostname() != "::1" {
+	if u.Scheme == "http" && u.Hostname() != "localhost" && u.Hostname() != "127.0.0.1" &&
+		u.Hostname() != "::1" {
 		return errors.New("production origin requires HTTPS")
 	}
 	if e = c.OSS.Validate(); e != nil {

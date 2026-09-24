@@ -66,7 +66,8 @@ func TestOSSLive(t *testing.T) {
 		_, drainErr := io.Copy(io.Discard, content.Body)
 		closeErr := content.Body.Close()
 		want := 900
-		if err != nil || drainErr != nil || closeErr != nil || format != "jpeg" || cfg.Width != want {
+		if err != nil || drainErr != nil || closeErr != nil || format != "jpeg" ||
+			cfg.Width != want {
 			t.Fatal("OSS image verification failed")
 		}
 	}

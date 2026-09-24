@@ -76,7 +76,13 @@ func InviteDomainToModel(groupID, hash string, inv *group.Invite) *models.Invite
 	if inv == nil {
 		return nil
 	}
-	return &models.Invite{ID: inv.ID, GroupID: groupID, Hash: hash, Expires: inv.Expires, Revoked: inv.Revoked}
+	return &models.Invite{
+		ID:      inv.ID,
+		GroupID: groupID,
+		Hash:    hash,
+		Expires: inv.Expires,
+		Revoked: inv.Revoked,
+	}
 }
 
 // GameModelToDomain converts a game row into the domain entity.
@@ -92,5 +98,12 @@ func GameDomainToModel(groupID string, g *game.Game) *models.Game {
 	if g == nil {
 		return nil
 	}
-	return &models.Game{ID: g.ID, GroupID: groupID, Name: g.Name, Original: g.Original, BGGID: g.BGGID, Cover: g.Cover}
+	return &models.Game{
+		ID:       g.ID,
+		GroupID:  groupID,
+		Name:     g.Name,
+		Original: g.Original,
+		BGGID:    g.BGGID,
+		Cover:    g.Cover,
+	}
 }

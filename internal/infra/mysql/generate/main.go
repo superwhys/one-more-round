@@ -1,8 +1,9 @@
 package main
 
 import (
-	"github.com/superwhys/one-more-round/internal/infra/mysql/models"
 	"gorm.io/gen"
+
+	"github.com/superwhys/one-more-round/internal/infra/mysql/models"
 )
 
 func main() {
@@ -11,10 +12,24 @@ func main() {
 		Mode:    gen.WithQueryInterface,
 	})
 	g.ApplyBasic(
-		models.User{}, models.Challenge{}, models.Rate{}, models.Trial{},
-		models.Session{}, models.Group{}, models.Member{}, models.Player{},
-		models.Game{}, models.Round{}, models.RoundShare{}, models.RoundComment{}, models.CommentIdempotency{}, models.Idempotency{}, models.Invite{},
-		models.Claim{}, models.Photo{}, models.Notification{},
+		models.User{},
+		models.Challenge{},
+		models.Rate{},
+		models.Trial{},
+		models.Session{},
+		models.Group{},
+		models.Member{},
+		models.Player{},
+		models.Game{},
+		models.Round{},
+		models.RoundShare{},
+		models.RoundComment{},
+		models.CommentIdempotency{},
+		models.Idempotency{},
+		models.Invite{},
+		models.Claim{},
+		models.Photo{},
+		models.Notification{},
 	)
 	g.Execute()
 }

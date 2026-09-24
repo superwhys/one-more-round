@@ -37,10 +37,22 @@ func (a *NotificationApp) List(ctx context.Context, userID string) (dto.Notifica
 				return err
 			}
 			for _, invite := range invites {
-				if invite.Revoked || !invite.Expires.After(now) || invite.Expires.Sub(now) > 24*time.Hour {
+				if invite.Revoked || !invite.Expires.After(now) ||
+					invite.Expires.Sub(now) > 24*time.Hour {
 					continue
 				}
-				if err = createNotification(ctx, repos, userID, current.ID, "invite_expiring", "小组邀请即将到期", "有一条邀请将在 24 小时内到期。", "/group", "invite-expiring:"+invite.ID, now); err != nil {
+				if err = createNotification(
+					ctx,
+					repos,
+					userID,
+					current.ID,
+					"invite_expiring",
+					"小组邀请即将到期",
+					"有一条邀请将在 24 小时内到期。",
+					"/group",
+					"invite-expiring:"+invite.ID,
+					now,
+				); err != nil {
 					return err
 				}
 			}
@@ -75,6 +87,12 @@ func (a *NotificationApp) Read(ctx context.Context, userID, id string) error {
 	})
 }
 
-func createNotification(ctx context.Context, repos ports.Repositories, userID, groupID, kind, title, body, link, dedupe string, now time.Time) error {
-	return repos.Notification().Create(ctx, &notification.Notification{ID: secure.NewID(), UserID: userID, GroupID: groupID, Kind: kind, Title: title, Body: body, Link: link, DedupeKey: secure.Hash(dedupe), Created: now})
+func createNotification(
+	ctx context.Context,
+	repos ports.Repositories,
+	userID, groupID, kind, title, body, link, dedupe string,
+	now time.Time,
+) error {
+	return repos.Notification().
+		Create(ctx, &notification.Notification{ID: secure.NewID(), UserID: userID, GroupID: groupID, Kind: kind, Title: title, Body: body, Link: link, DedupeKey: secure.Hash(dedupe), Created: now})
 }

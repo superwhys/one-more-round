@@ -12,7 +12,7 @@ type Game struct {
 // AddGameReq adds a game by its local name.
 type AddGameReq struct {
 	GroupID string `uri:"group"`
-	Name    string `json:"name" validate:"required"`
+	Name    string `            json:"name" validate:"required"`
 }
 
 // ExternalGame is one BoardGameGeek search hit. Year is omitted when unknown.
@@ -33,19 +33,19 @@ type ExternalSearch struct {
 // SearchExternalGamesReq searches the external catalogue for one group.
 type SearchExternalGamesReq struct {
 	GroupID string `uri:"group"`
-	Query   string `form:"q"`
+	Query   string `            form:"q"`
 }
 
 // SyncCoverReq attaches an external cover to a game already on the shelf.
 type SyncCoverReq struct {
 	GroupID string `uri:"group"`
 	GameID  string `uri:"game"`
-	BGGID   int    `json:"bgg_id"`
+	BGGID   int    `            json:"bgg_id"`
 }
 
 // ImportGameReq copies one external game into the group catalogue.
 type ImportGameReq struct {
 	GroupID string `uri:"group"`
-	BGGID   int    `json:"bgg_id" validate:"required,min=1"`
-	Name    string `json:"name"`
+	BGGID   int    `            json:"bgg_id" validate:"required,min=1"`
+	Name    string `            json:"name"`
 }

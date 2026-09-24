@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"github.com/miebyte/goutils/mysqlutils"
+
 	"github.com/superwhys/one-more-round/api"
 	"github.com/superwhys/one-more-round/config"
 	"github.com/superwhys/one-more-round/internal/app/dto"
@@ -36,17 +37,30 @@ func TestGroupInvitationBrowser(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err = s.groups.Manage(context.Background(), g.ID, owner.ID, &dto.ManageReq{Action: "revoke", Target: inv.ID}); err != nil {
+	if err = s.groups.Manage(
+		context.Background(),
+		g.ID,
+		owner.ID,
+		&dto.ManageReq{Action: "revoke", Target: inv.ID},
+	); err != nil {
 		t.Fatal(err)
 	}
 	inv, expired, err := s.groups.Invite(context.Background(), g.ID, owner.ID)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err = s.client.Gorm.Exec("UPDATE omr_invites SET expires=? WHERE id=?", time.Now().Add(-time.Hour), inv.ID).Error; err != nil {
+	if err = s.client.Gorm.Exec(
+		"UPDATE omr_invites SET expires=? WHERE id=?",
+		time.Now().Add(-time.Hour),
+		inv.ID,
+	).Error; err != nil {
 		t.Fatal(err)
 	}
-	other, err := s.groups.Create(context.Background(), owner.ID, &dto.CreateGroupReq{Name: "周末合作局", PlayerName: "组主"})
+	other, err := s.groups.Create(
+		context.Background(),
+		owner.ID,
+		&dto.CreateGroupReq{Name: "周末合作局", PlayerName: "组主"},
+	)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -61,16 +75,28 @@ func TestGroupInvitationBrowser(t *testing.T) {
 	mux := http.NewServeMux()
 	server := httptest.NewUnstartedServer(mux)
 	origin := "http://" + server.Listener.Addr().String()
-	backend := api.NewAPI("browser-test", &config.Runtime{Origin: origin}, s.auth, s.groups, s.rounds, s.photos, s.notifications, s.comments).SetupRouter()
+	backend := api.NewAPI("browser-test", &config.Runtime{Origin: origin}, s.auth, s.groups, s.rounds, s.photos, s.notifications, s.comments).
+		SetupRouter()
 	mux.Handle("/api/", http.StripPrefix("/api", backend))
 	mux.HandleFunc("/__test__/code", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Cache-Control", "no-store")
-		json.NewEncoder(w).Encode(map[string]string{"code": s.inbox.code(r.URL.Query().Get("email"))})
+		json.NewEncoder(w).
+			Encode(map[string]string{"code": s.inbox.code(r.URL.Query().Get("email"))})
 	})
 	mux.Handle("/", frontend)
 	server.Start()
 	defer server.Close()
-	fixture, err := json.Marshal(map[string]string{"origin": origin, "token": token, "revoked": revoked, "expired": expired, "second": second, "name": g.Name, "secondName": other.Name})
+	fixture, err := json.Marshal(
+		map[string]string{
+			"origin":     origin,
+			"token":      token,
+			"revoked":    revoked,
+			"expired":    expired,
+			"second":     second,
+			"name":       g.Name,
+			"secondName": other.Name,
+		},
+	)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -101,7 +127,7 @@ func TestInvitationStandaloneBinary(t *testing.T) {
 		t.Fatal(err)
 	}
 	binary = filepath.Join(dir, "one-more-round")
-	if err = os.WriteFile(binary, data, 0700); err != nil {
+	if err = os.WriteFile(binary, data, 0o700); err != nil {
 		t.Fatal(err)
 	}
 	listener, err := net.Listen("tcp", "127.0.0.1:0")
@@ -113,15 +139,26 @@ func TestInvitationStandaloneBinary(t *testing.T) {
 	origin := "http://" + address
 	conf, err := json.Marshal(map[string]any{"app": config.Runtime{
 		Origin: origin,
-		OSS:    photos.OSSConfig{Bucket: "test-bucket", Region: "cn-shenzhen", Endpoint: "https://oss-cn-shenzhen.aliyuncs.com", Prefix: "image/", AccessID: "test-id", AccessSecret: "test-secret"},
-		MySQL:  mysqlutils.MysqlConfig{Instance: os.Getenv("OMR_TEST_MYSQL"), Database: s.client.Gorm.Migrator().CurrentDatabase(), Username: "root"},
-		SMTP:   mail.Config{Host: "127.0.0.1", Port: 2525, From: "test@example.com"},
+		OSS: photos.OSSConfig{
+			Bucket:       "test-bucket",
+			Region:       "cn-shenzhen",
+			Endpoint:     "https://oss-cn-shenzhen.aliyuncs.com",
+			Prefix:       "image/",
+			AccessID:     "test-id",
+			AccessSecret: "test-secret",
+		},
+		MySQL: mysqlutils.MysqlConfig{
+			Instance: os.Getenv("OMR_TEST_MYSQL"),
+			Database: s.client.Gorm.Migrator().CurrentDatabase(),
+			Username: "root",
+		},
+		SMTP: mail.Config{Host: "127.0.0.1", Port: 2525, From: "test@example.com"},
 	}})
 	if err != nil {
 		t.Fatal(err)
 	}
 	configFile := filepath.Join(dir, "config.json")
-	if err = os.WriteFile(configFile, conf, 0600); err != nil {
+	if err = os.WriteFile(configFile, conf, 0o600); err != nil {
 		t.Fatal(err)
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
@@ -153,9 +190,15 @@ func TestInvitationStandaloneBinary(t *testing.T) {
 		path   string
 		status int
 	}{
-		{"/", 200}, {"/join", 200}, {"/login", 200}, {"/group", 200},
-		{"/api/v1/status", 200}, {"/api/v1/me", 401}, {"/api/v1/missing", 404},
-		{"/assets/missing.js", 404}, {"/uploads/missing.jpg", 404},
+		{"/", 200},
+		{"/join", 200},
+		{"/login", 200},
+		{"/group", 200},
+		{"/api/v1/status", 200},
+		{"/api/v1/me", 401},
+		{"/api/v1/missing", 404},
+		{"/assets/missing.js", 404},
+		{"/uploads/missing.jpg", 404},
 	} {
 		req, _ := http.NewRequest(http.MethodGet, origin+check.path, nil)
 		req.Header.Set("Accept", "text/html")

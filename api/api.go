@@ -41,11 +41,29 @@ type API struct {
 }
 
 // NewAPI wires the application services into the HTTP layer.
-func NewAPI(version string, conf *config.Runtime, authApp *services.AuthApp, groupApp *services.GroupApp, roundApp *services.RoundApp, photoApp *services.PhotoApp, notificationApp *services.NotificationApp, commentApp *services.CommentApp) *API {
+func NewAPI(
+	version string,
+	conf *config.Runtime,
+	authApp *services.AuthApp,
+	groupApp *services.GroupApp,
+	roundApp *services.RoundApp,
+	photoApp *services.PhotoApp,
+	notificationApp *services.NotificationApp,
+	commentApp *services.CommentApp,
+) *API {
 	// Rejected input must answer with a business code and an HTTP status rather
 	// than the default success envelope of the request binder.
 	common.ConfigureRequestFailures()
-	return &API{version: version, config: conf, authApp: authApp, groupApp: groupApp, roundApp: roundApp, photoApp: photoApp, notificationApp: notificationApp, commentApp: commentApp}
+	return &API{
+		version:         version,
+		config:          conf,
+		authApp:         authApp,
+		groupApp:        groupApp,
+		roundApp:        roundApp,
+		photoApp:        photoApp,
+		notificationApp: notificationApp,
+		commentApp:      commentApp,
+	}
 }
 
 // SetupRouter godoc
@@ -143,6 +161,9 @@ func (api *API) sessionOptions() router.SessionOptions {
 // @Router /v1/status [get]
 func statusHandler(version string) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		c.JSON(http.StatusOK, dto.ResponseWithData(Status{Name: "one-more-round", Version: version, Stage: stage}))
+		c.JSON(
+			http.StatusOK,
+			dto.ResponseWithData(Status{Name: "one-more-round", Version: version, Stage: stage}),
+		)
 	}
 }

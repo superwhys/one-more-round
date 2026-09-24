@@ -19,8 +19,16 @@ import (
 const tokenLength = 64
 
 var (
-	trialOutput = flags.String("trial-output", "", "write a one-use trial invitation to a private file and exit")
-	revokeTrial = flags.String("revoke-trial-file", "", "revoke a trial invitation stored in the specified private file and exit")
+	trialOutput = flags.String(
+		"trial-output",
+		"",
+		"write a one-use trial invitation to a private file and exit",
+	)
+	revokeTrial = flags.String(
+		"revoke-trial-file",
+		"",
+		"revoke a trial invitation stored in the specified private file and exit",
+	)
 )
 
 // Trials is the invitation persistence required by the trial commands.
@@ -37,7 +45,11 @@ func RunTrial(ctx context.Context, store Trials, origin string) (bool, error) {
 
 // runTrial dispatches on the requested command paths; revoking wins when both
 // flags are present.
-func runTrial(ctx context.Context, store Trials, origin, revokePath, outputPath string) (bool, error) {
+func runTrial(
+	ctx context.Context,
+	store Trials,
+	origin, revokePath, outputPath string,
+) (bool, error) {
 	switch {
 	case revokePath != "":
 		return true, RevokeTrial(ctx, store, revokePath)
@@ -51,12 +63,16 @@ func runTrial(ctx context.Context, store Trials, origin, revokePath, outputPath 
 // link to a new file that only the current user can read.
 func IssueTrial(ctx context.Context, store Trials, origin, path string) error {
 	token := secure.NewID()
-	file, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0600)
+	file, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o600)
 	if err != nil {
 		return err
 	}
 	defer file.Close()
-	if err = store.Create(ctx, secure.Hash(token), time.Now().UTC().Add(identity.TrialTTL)); err != nil {
+	if err = store.Create(
+		ctx,
+		secure.Hash(token),
+		time.Now().UTC().Add(identity.TrialTTL),
+	); err != nil {
 		return err
 	}
 	_, err = file.WriteString(origin + "/login#trial=" + token + "\n")

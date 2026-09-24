@@ -62,7 +62,8 @@ func ValidateFilter(f Filter) error {
 	if f.Mode != "" && f.Mode != "individual" && f.Mode != "team" && f.Mode != "coop" {
 		return errcode.ErrBadRequest
 	}
-	if f.Outcome != "" && f.Outcome != "win" && f.Outcome != "loss" && f.Outcome != "draw" && f.Outcome != "unknown" {
+	if f.Outcome != "" && f.Outcome != "win" && f.Outcome != "loss" && f.Outcome != "draw" &&
+		f.Outcome != "unknown" {
 		return errcode.ErrBadRequest
 	}
 	return nil
@@ -125,7 +126,9 @@ func List(rounds []*Round, f Filter) (*Page, error) {
 }
 
 func matches(r *Round, f Filter) bool {
-	if f.Game != "" && r.GameID != f.Game || f.Player != "" && !contains(r.Players, f.Player) || f.From != "" && r.Date < f.From || f.To != "" && r.Date > f.To {
+	if f.Game != "" && r.GameID != f.Game || f.Player != "" && !contains(r.Players, f.Player) ||
+		f.From != "" && r.Date < f.From ||
+		f.To != "" && r.Date > f.To {
 		return false
 	}
 	if f.Mode != "" && r.Mode != f.Mode || f.Outcome != "" && r.Outcome != f.Outcome {

@@ -27,15 +27,32 @@ func (m *memGames) ListByGroup(context.Context, string) ([]*Game, error) {
 func TestImportReusesExternalID(t *testing.T) {
 	repo := &memGames{}
 	svc := NewService(repo)
-	first, err := svc.Import(context.Background(), "g", 13, "卡坦岛", "Catan", "https://cf.geekdo-images.com/catan.jpg")
-	if err != nil || first.Name != "卡坦岛" || first.Original != "Catan" || first.BGGID == nil || *first.BGGID != 13 {
+	first, err := svc.Import(
+		context.Background(),
+		"g",
+		13,
+		"卡坦岛",
+		"Catan",
+		"https://cf.geekdo-images.com/catan.jpg",
+	)
+	if err != nil || first.Name != "卡坦岛" || first.Original != "Catan" || first.BGGID == nil ||
+		*first.BGGID != 13 {
 		t.Fatal(first, err)
 	}
 	again, err := svc.Import(context.Background(), "g", 13, "另一个名字", "Catan", "")
 	if err != nil || again.ID != first.ID || again.Name != "卡坦岛" {
 		t.Fatal(again, err)
 	}
-	if _, err = svc.Import(context.Background(), "g", 14, "卡坦岛", "Catan: Traveler", ""); !errcode.ErrConflict.Is(err) {
+	if _, err = svc.Import(
+		context.Background(),
+		"g",
+		14,
+		"卡坦岛",
+		"Catan: Traveler",
+		"",
+	); !errcode.ErrConflict.Is(
+		err,
+	) {
 		t.Fatal(err)
 	}
 }

@@ -47,7 +47,7 @@ type Snapshot struct {
 
 // CreateGroupReq creates a group.
 type CreateGroupReq struct {
-	Name       string `json:"name" validate:"required"`
+	Name       string `json:"name"        validate:"required"`
 	PlayerName string `json:"player_name" validate:"required"`
 }
 
@@ -71,15 +71,15 @@ type GroupPathReq struct {
 // AddPlayerReq creates a nickname profile.
 type AddPlayerReq struct {
 	GroupID string `uri:"group"`
-	Name    string `json:"name" validate:"required"`
+	Name    string `            json:"name" validate:"required"`
 }
 
 // ManageReq applies an action on the group.
 type ManageReq struct {
 	GroupID string `uri:"group"`
-	Action  string `json:"action" validate:"required"`
-	Target  string `json:"target"`
-	Value   string `json:"value"`
+	Action  string `            json:"action" validate:"required"`
+	Target  string `            json:"target"`
+	Value   string `            json:"value"`
 }
 
 // InviteResp carries the one-time invitation link.

@@ -3,6 +3,7 @@ package middleware
 import (
 	"github.com/gin-gonic/gin"
 	"github.com/miebyte/goutils/logging"
+
 	"github.com/superwhys/one-more-round/api/common"
 )
 

@@ -28,7 +28,15 @@ func ChallengeModelToDomain(m *models.Challenge) *identity.Challenge {
 	if m == nil {
 		return nil
 	}
-	return &identity.Challenge{Email: m.Email, Hash: m.Hash, Invite: m.InviteHash, Expires: m.Expires, Sent: m.Sent, Attempts: m.Attempts, Ready: m.Ready}
+	return &identity.Challenge{
+		Email:    m.Email,
+		Hash:     m.Hash,
+		Invite:   m.InviteHash,
+		Expires:  m.Expires,
+		Sent:     m.Sent,
+		Attempts: m.Attempts,
+		Ready:    m.Ready,
+	}
 }
 
 // SessionDomainToModel converts the session entity into its row.

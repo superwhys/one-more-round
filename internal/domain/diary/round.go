@@ -8,8 +8,10 @@ import (
 	"unicode/utf8"
 )
 
-var ErrInvalid = errors.New("请检查填写的内容")
-var scorePattern = regexp.MustCompile(`^-?(0|[1-9][0-9]{0,11})(\.[0-9]{1,4})?$`)
+var (
+	ErrInvalid   = errors.New("请检查填写的内容")
+	scorePattern = regexp.MustCompile(`^-?(0|[1-9][0-9]{0,11})(\.[0-9]{1,4})?$`)
+)
 
 type Team struct {
 	ID, Name string
@@ -121,7 +123,8 @@ func (r Round) Validate() error {
 		ids := map[string]bool{}
 		winning := 0
 		for _, t := range r.Teams {
-			if t.ID == "" || ids[t.ID] || t.Name == "" || len(t.Players) == 0 || !ValidScore(t.Score) {
+			if t.ID == "" || ids[t.ID] || t.Name == "" || len(t.Players) == 0 ||
+				!ValidScore(t.Score) {
 				return errors.New("每队需要名称、独立标识和至少一位玩家")
 			}
 			ids[t.ID] = true
@@ -143,6 +146,7 @@ func (r Round) Validate() error {
 	}
 	return nil
 }
+
 func (r Round) Won(player string) bool {
 	if !slices.Contains(r.Players, player) || r.Outcome != "win" {
 		return false

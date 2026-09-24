@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/miebyte/goutils/mysqlutils"
+
 	"github.com/superwhys/one-more-round/internal/app/ports"
 	"github.com/superwhys/one-more-round/internal/domain/game"
 	"github.com/superwhys/one-more-round/internal/domain/group"
@@ -28,10 +29,15 @@ func newRepos(t *testing.T) (*mysql.RepositoryFactory, *mysql.Client) {
 		t.Fatal(err)
 	}
 	name := "omr_test_" + newTestDatabaseName()
-	if _, err = root.ExecContext(ctx, "CREATE DATABASE "+name+" CHARACTER SET utf8mb4 COLLATE utf8mb4_bin"); err != nil {
+	if _, err = root.ExecContext(
+		ctx,
+		"CREATE DATABASE "+name+" CHARACTER SET utf8mb4 COLLATE utf8mb4_bin",
+	); err != nil {
 		t.Fatal(err)
 	}
-	client, err := mysql.Open(mysqlutils.MysqlConfig{Instance: addr, Database: name, Username: "root", PoolSize: 10})
+	client, err := mysql.Open(
+		mysqlutils.MysqlConfig{Instance: addr, Database: name, Username: "root", PoolSize: 10},
+	)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -60,7 +66,15 @@ func TestPersistenceNullableAndZeroValues(t *testing.T) {
 	g := &group.Group{ID: "group", Name: "空值测试", Owner: user.ID}
 	player := &group.Player{ID: "player", Name: "玩家"}
 	gameRecord := &game.Game{ID: "game", Name: "游戏"}
-	challenge := &identity.Challenge{Email: user.Email, Hash: "hash", Invite: "invite", Expires: now.Add(time.Hour), Sent: now, Attempts: 3, Ready: true}
+	challenge := &identity.Challenge{
+		Email:    user.Email,
+		Hash:     "hash",
+		Invite:   "invite",
+		Expires:  now.Add(time.Hour),
+		Sent:     now,
+		Attempts: 3,
+		Ready:    true,
+	}
 	if err := repos.WithTransaction(ctx, func(tx ports.Repositories) error {
 		if err := tx.User().Create(ctx, user); err != nil {
 			return err
@@ -86,7 +100,9 @@ func TestPersistenceNullableAndZeroValues(t *testing.T) {
 		if err != nil {
 			return err
 		}
-		if len(snapshot.Players) != 1 || snapshot.Players[0].Account != nil || len(snapshot.Games) != 1 || snapshot.Games[0].BGGID != nil {
+		if len(snapshot.Players) != 1 || snapshot.Players[0].Account != nil ||
+			len(snapshot.Games) != 1 ||
+			snapshot.Games[0].BGGID != nil {
 			t.Fatal("NULL fields did not survive insertion")
 		}
 		player.Account = &user.ID
@@ -105,7 +121,9 @@ func TestPersistenceNullableAndZeroValues(t *testing.T) {
 		if err != nil {
 			return err
 		}
-		if snapshot.Players[0].Account == nil || *snapshot.Players[0].Account != user.ID || snapshot.Games[0].BGGID == nil || *snapshot.Games[0].BGGID != 42 {
+		if snapshot.Players[0].Account == nil || *snapshot.Players[0].Account != user.ID ||
+			snapshot.Games[0].BGGID == nil ||
+			*snapshot.Games[0].BGGID != 42 {
 			t.Fatal("non-NULL updates were lost")
 		}
 		stored, err := tx.VerifyCode().Get(ctx, user.Email)
@@ -123,7 +141,11 @@ func TestPersistenceNullableAndZeroValues(t *testing.T) {
 		if err = tx.Game().Save(ctx, g.ID, gameRecord); err != nil {
 			return err
 		}
-		cleared := &identity.Challenge{Email: user.Email, Expires: challenge.Expires, Sent: challenge.Sent}
+		cleared := &identity.Challenge{
+			Email:   user.Email,
+			Expires: challenge.Expires,
+			Sent:    challenge.Sent,
+		}
 		return tx.VerifyCode().Save(ctx, cleared)
 	}); err != nil {
 		t.Fatal(err)
@@ -133,14 +155,16 @@ func TestPersistenceNullableAndZeroValues(t *testing.T) {
 		if err != nil {
 			return err
 		}
-		if snapshot.Players[0].Account != nil || snapshot.Games[0].BGGID != nil || snapshot.Games[0].Original != "" {
+		if snapshot.Players[0].Account != nil || snapshot.Games[0].BGGID != nil ||
+			snapshot.Games[0].Original != "" {
 			t.Fatal("NULL or empty-string update was skipped")
 		}
 		stored, err := tx.VerifyCode().Get(ctx, user.Email)
 		if err != nil {
 			return err
 		}
-		if stored.Ready || stored.Attempts != 0 || stored.Hash != "" || stored.Invite != "" || !stored.Sent.Equal(now) {
+		if stored.Ready || stored.Attempts != 0 || stored.Hash != "" || stored.Invite != "" ||
+			!stored.Sent.Equal(now) {
 			t.Fatal("zero-value update or timestamp round-trip failed")
 		}
 		return nil
@@ -158,7 +182,8 @@ func TestPersistenceRollbackAndCancellation(t *testing.T) {
 		if err := tx.User().Create(ctx, user); err != nil {
 			return err
 		}
-		if err := tx.Group().Create(ctx, &group.Group{ID: "rollback-group", Name: "回滚"}, user.ID); err != nil {
+		if err := tx.Group().
+			Create(ctx, &group.Group{ID: "rollback-group", Name: "回滚"}, user.ID); err != nil {
 			return err
 		}
 		return want
@@ -170,7 +195,11 @@ func TestPersistenceRollbackAndCancellation(t *testing.T) {
 		if _, err := tx.User().GetByEmail(ctx, user.Email); !errors.Is(err, errcode.ErrNotFound) {
 			t.Fatalf("user escaped rollback: %v", err)
 		}
-		if _, err := tx.Group().GetByID(ctx, "rollback-group"); !errors.Is(err, errcode.ErrNotFound) {
+		if _, err := tx.Group().
+			GetByID(ctx, "rollback-group"); !errors.Is(
+			err,
+			errcode.ErrNotFound,
+		) {
 			t.Fatalf("group escaped rollback: %v", err)
 		}
 		return nil
@@ -180,7 +209,13 @@ func TestPersistenceRollbackAndCancellation(t *testing.T) {
 	canceled, cancel := context.WithCancel(ctx)
 	cancel()
 	called := false
-	if err = repos.WithTransaction(canceled, func(ports.Repositories) error { called = true; return nil }); !errors.Is(err, context.Canceled) {
+	if err = repos.WithTransaction(
+		canceled,
+		func(ports.Repositories) error { called = true; return nil },
+	); !errors.Is(
+		err,
+		context.Canceled,
+	) {
 		t.Fatalf("canceled transaction error: %v", err)
 	}
 	if called {

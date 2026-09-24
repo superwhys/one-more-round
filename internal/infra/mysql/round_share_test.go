@@ -18,7 +18,11 @@ func TestRoundPublicShareLifecycleAndPrivacy(t *testing.T) {
 	owner, _ := s.signup(t, "share-owner@example.com")
 	member, _ := s.signup(t, "share-member@example.com")
 	outsider, _ := s.signup(t, "share-outsider@example.com")
-	group, err := s.groups.Create(ctx, owner.ID, &dto.CreateGroupReq{Name: "周五桌游组", PlayerName: "小林"})
+	group, err := s.groups.Create(
+		ctx,
+		owner.ID,
+		&dto.CreateGroupReq{Name: "周五桌游组", PlayerName: "小林"},
+	)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -38,17 +42,43 @@ func TestRoundPublicShareLifecycleAndPrivacy(t *testing.T) {
 		t.Fatal(err)
 	}
 	photo := s.uploadPhoto(t, group.ID, owner.ID)
-	round, err := s.rounds.Save(ctx, owner.ID, &dto.SaveRoundReq{GroupID: group.ID, IdempotencyKey: secure.NewID(), Round: dto.Round{
-		GameID: game.ID, Date: "2026-09-20", Mode: "coop", Outcome: "win", Players: []string{friend.ID}, Memory: "最后一轮刚好凑齐", Photos: []string{photo},
-	}})
+	round, err := s.rounds.Save(
+		ctx,
+		owner.ID,
+		&dto.SaveRoundReq{GroupID: group.ID, IdempotencyKey: secure.NewID(), Round: dto.Round{
+			GameID:  game.ID,
+			Date:    "2026-09-20",
+			Mode:    "coop",
+			Outcome: "win",
+			Players: []string{friend.ID},
+			Memory:  "最后一轮刚好凑齐",
+			Photos:  []string{photo},
+		}},
+	)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	if _, err = s.rounds.CreateShare(ctx, group.ID, member.ID, round.ID); !errors.Is(err, errcode.ErrForbidden) {
+	if _, err = s.rounds.CreateShare(
+		ctx,
+		group.ID,
+		member.ID,
+		round.ID,
+	); !errors.Is(
+		err,
+		errcode.ErrForbidden,
+	) {
 		t.Fatalf("member shared another member's round: %v", err)
 	}
-	if _, err = s.rounds.CreateShare(ctx, group.ID, outsider.ID, round.ID); !errors.Is(err, errcode.ErrForbidden) {
+	if _, err = s.rounds.CreateShare(
+		ctx,
+		group.ID,
+		outsider.ID,
+		round.ID,
+	); !errors.Is(
+		err,
+		errcode.ErrForbidden,
+	) {
 		t.Fatalf("outsider shared round: %v", err)
 	}
 	created, err := s.rounds.CreateShare(ctx, group.ID, owner.ID, round.ID)
@@ -60,7 +90,10 @@ func TestRoundPublicShareLifecycleAndPrivacy(t *testing.T) {
 		t.Fatalf("share status = %#v, %v", status, err)
 	}
 	public, err := s.rounds.PublicRound(ctx, created.Token)
-	if err != nil || public.GroupName != group.Name || public.GameName != game.Name || len(public.Players) != 1 || public.Players[0].Name != friend.Name || !public.Players[0].Winner {
+	if err != nil || public.GroupName != group.Name || public.GameName != game.Name ||
+		len(public.Players) != 1 ||
+		public.Players[0].Name != friend.Name ||
+		!public.Players[0].Winner {
 		t.Fatalf("public round = %#v, %v", public, err)
 	}
 	payload, err := json.Marshal(public)
@@ -77,7 +110,14 @@ func TestRoundPublicShareLifecycleAndPrivacy(t *testing.T) {
 		t.Fatal(err)
 	}
 	content.Body.Close()
-	if _, err = s.rounds.PublicPhoto(ctx, created.Token, secure.NewID()); !errors.Is(err, errcode.ErrNotFound) {
+	if _, err = s.rounds.PublicPhoto(
+		ctx,
+		created.Token,
+		secure.NewID(),
+	); !errors.Is(
+		err,
+		errcode.ErrNotFound,
+	) {
 		t.Fatalf("unrelated photo exposed: %v", err)
 	}
 
@@ -99,7 +139,11 @@ func TestRoundPublicShareLifecycleAndPrivacy(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err = s.rounds.Delete(ctx, owner.ID, &dto.DeleteRoundReq{GroupID: group.ID, RoundID: round.ID, Version: round.Version}); err != nil {
+	if err = s.rounds.Delete(
+		ctx,
+		owner.ID,
+		&dto.DeleteRoundReq{GroupID: group.ID, RoundID: round.ID, Version: round.Version},
+	); err != nil {
 		t.Fatal(err)
 	}
 	if _, err = s.rounds.PublicRound(ctx, active.Token); !errors.Is(err, errcode.ErrNotFound) {
@@ -109,7 +153,11 @@ func TestRoundPublicShareLifecycleAndPrivacy(t *testing.T) {
 	if err != nil || len(bin) != 1 {
 		t.Fatalf("recycle bin = %#v, %v", bin, err)
 	}
-	if _, err = s.rounds.Restore(ctx, owner.ID, &dto.RestoreRoundReq{GroupID: group.ID, RoundID: round.ID, Version: bin[0].Version}); err != nil {
+	if _, err = s.rounds.Restore(
+		ctx,
+		owner.ID,
+		&dto.RestoreRoundReq{GroupID: group.ID, RoundID: round.ID, Version: bin[0].Version},
+	); err != nil {
 		t.Fatal(err)
 	}
 	if _, err = s.rounds.PublicRound(ctx, active.Token); !errors.Is(err, errcode.ErrNotFound) {

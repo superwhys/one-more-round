@@ -31,7 +31,11 @@ type commentFingerprint struct {
 }
 
 // List returns a page of comments for a living round the caller can read.
-func (a *CommentApp) List(ctx context.Context, userID string, req *dto.ListRoundCommentsReq) (dto.Paginated[dto.RoundComment], error) {
+func (a *CommentApp) List(
+	ctx context.Context,
+	userID string,
+	req *dto.ListRoundCommentsReq,
+) (dto.Paginated[dto.RoundComment], error) {
 	if req.Limit < 1 || req.Limit > 100 || req.Offset < 0 {
 		return dto.Paginated[dto.RoundComment]{}, errcode.ErrPageRange
 	}
@@ -45,23 +49,37 @@ func (a *CommentApp) List(ctx context.Context, userID string, req *dto.ListRound
 			return e
 		}
 		var e error
-		items, total, e = repos.Comment().ListByRound(ctx, req.GroupID, req.RoundID, req.Offset, req.Limit)
+		items, total, e = repos.Comment().
+			ListByRound(ctx, req.GroupID, req.RoundID, req.Offset, req.Limit)
 		return e
 	})
 	if err != nil {
 		return dto.Paginated[dto.RoundComment]{}, err
 	}
-	return dto.Paginated[dto.RoundComment]{Total: total, Items: mapper.CommentDomainListToDTOList(items)}, nil
+	return dto.Paginated[dto.RoundComment]{
+		Total: total,
+		Items: mapper.CommentDomainListToDTOList(items),
+	}, nil
 }
 
 // Create stores a root comment or a one-level reply. A repeated submission key
 // with the same content returns the stored comment; a repeated key with
 // different content is a conflict.
-func (a *CommentApp) Create(ctx context.Context, userID string, req *dto.CreateRoundCommentReq) (dto.RoundComment, error) {
+func (a *CommentApp) Create(
+	ctx context.Context,
+	userID string,
+	req *dto.CreateRoundCommentReq,
+) (dto.RoundComment, error) {
 	if len(req.IdempotencyKey) < 16 || len(req.IdempotencyKey) > 128 {
 		return dto.RoundComment{}, errcode.ErrIdempotencyKey.WithMessage("缺少有效提交标识，请重新发表")
 	}
-	comment := &diary.Comment{GroupID: req.GroupID, RoundID: req.RoundID, Author: userID, Body: req.Body, ParentID: req.ParentID}
+	comment := &diary.Comment{
+		GroupID:  req.GroupID,
+		RoundID:  req.RoundID,
+		Author:   userID,
+		Body:     req.Body,
+		ParentID: req.ParentID,
+	}
 	if err := comment.Validate(); err != nil {
 		return dto.RoundComment{}, errcode.ErrBadRequest.WithMessage(err.Error())
 	}
@@ -80,7 +98,8 @@ func (a *CommentApp) Create(ctx context.Context, userID string, req *dto.CreateR
 			return e
 		}
 		// 同键先复用已有评论；内容变了视为冲突，评论被删则不能再用该键。
-		hash, previous, e := repos.CommentIdempotency().Get(ctx, req.GroupID, userID, req.RoundID, req.IdempotencyKey)
+		hash, previous, e := repos.CommentIdempotency().
+			Get(ctx, req.GroupID, userID, req.RoundID, req.IdempotencyKey)
 		if e == nil {
 			if hash != fingerprint {
 				return errcode.ErrIdempotencyBody
@@ -117,7 +136,8 @@ func (a *CommentApp) Create(ctx context.Context, userID string, req *dto.CreateR
 		if e = repos.Comment().Save(ctx, comment); e != nil {
 			return e
 		}
-		if e = repos.CommentIdempotency().Create(ctx, req.GroupID, userID, req.RoundID, req.IdempotencyKey, fingerprint, comment.ID); e != nil {
+		if e = repos.CommentIdempotency().
+			Create(ctx, req.GroupID, userID, req.RoundID, req.IdempotencyKey, fingerprint, comment.ID); e != nil {
 			return e
 		}
 		if e = notifyRoundComment(ctx, repos, userID, round, comment, parent); e != nil {
@@ -134,7 +154,11 @@ func (a *CommentApp) Create(ctx context.Context, userID string, req *dto.CreateR
 
 // Delete removes a comment the caller authored, or any comment when the caller
 // is the group owner. Deleting a root comment also removes its replies.
-func (a *CommentApp) Delete(ctx context.Context, userID string, req *dto.DeleteRoundCommentReq) error {
+func (a *CommentApp) Delete(
+	ctx context.Context,
+	userID string,
+	req *dto.DeleteRoundCommentReq,
+) error {
 	return a.repos.WithTransaction(ctx, func(repos ports.Repositories) error {
 		access, e := groupService(repos).RequireMember(ctx, req.GroupID, userID)
 		if e != nil {
@@ -155,17 +179,45 @@ func (a *CommentApp) Delete(ctx context.Context, userID string, req *dto.DeleteR
 }
 
 // notifyRoundComment tells the round author or the parent comment author about a new comment.
-func notifyRoundComment(ctx context.Context, repos ports.Repositories, userID string, round *diary.Round, comment, parent *diary.Comment) error {
+func notifyRoundComment(
+	ctx context.Context,
+	repos ports.Repositories,
+	userID string,
+	round *diary.Round,
+	comment, parent *diary.Comment,
+) error {
 	now := time.Now().UTC()
 	link := "/rounds/" + round.ID
 	if parent != nil {
 		if parent.Author == userID {
 			return nil
 		}
-		return createNotification(ctx, repos, parent.Author, round.GroupID, "round_comment_replied", "有人回复了你的评论", "小组成员回复了你在一局里的评论。", link, "round-comment-replied:"+comment.ID, now)
+		return createNotification(
+			ctx,
+			repos,
+			parent.Author,
+			round.GroupID,
+			"round_comment_replied",
+			"有人回复了你的评论",
+			"小组成员回复了你在一局里的评论。",
+			link,
+			"round-comment-replied:"+comment.ID,
+			now,
+		)
 	}
 	if round.Author == userID {
 		return nil
 	}
-	return createNotification(ctx, repos, round.Author, round.GroupID, "round_commented", "有人评论了你记录的对局", "小组成员在你记录的一局里留下了评论。", link, "round-commented:"+comment.ID, now)
+	return createNotification(
+		ctx,
+		repos,
+		round.Author,
+		round.GroupID,
+		"round_commented",
+		"有人评论了你记录的对局",
+		"小组成员在你记录的一局里留下了评论。",
+		link,
+		"round-commented:"+comment.ID,
+		now,
+	)
 }

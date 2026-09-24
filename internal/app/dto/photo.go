@@ -24,6 +24,6 @@ type UploadPhotoResp struct {
 // addressed by its path parameters, so a query cannot override them.
 type ReadPhotoReq struct {
 	GroupID string `uri:"group" form:"-"`
-	PhotoID string `uri:"id" form:"-"`
-	Size    string `form:"size"`
+	PhotoID string `uri:"id"    form:"-"`
+	Size    string `            form:"size"`
 }

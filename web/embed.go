@@ -49,8 +49,10 @@ func NewHandler() (http.Handler, error) {
 			return
 		}
 		segment, _, _ := strings.Cut(name, "/")
-		reserved := segment == "assets" || segment == "api" || segment == "uploads" || segment == "health_check"
-		if !reserved && path.Ext(name) == "" && strings.Contains(r.Header.Get("Accept"), "text/html") {
+		reserved := segment == "assets" || segment == "api" || segment == "uploads" ||
+			segment == "health_check"
+		if !reserved && path.Ext(name) == "" &&
+			strings.Contains(r.Header.Get("Accept"), "text/html") {
 			serveIndex(w, r, index)
 			return
 		}

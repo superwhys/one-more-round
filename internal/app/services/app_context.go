@@ -19,7 +19,13 @@ type AppContext struct {
 
 // identityService builds the identity domain service on top of a unit of work.
 func identityService(repos ports.Repositories) identity.IService {
-	return identity.NewService(repos.User(), repos.VerifyCode(), repos.Rate(), repos.Trial(), repos.Session())
+	return identity.NewService(
+		repos.User(),
+		repos.VerifyCode(),
+		repos.Rate(),
+		repos.Trial(),
+		repos.Session(),
+	)
 }
 
 // groupService builds the group domain service on top of a unit of work.

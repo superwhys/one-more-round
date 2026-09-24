@@ -78,7 +78,9 @@ func (a *AuthApp) Login(ctx context.Context, req *dto.LoginReq) (*dto.LoginResp,
 			invitedGroupID = invited.ID
 		}
 		var e error
-		user, token, rejected, e = identityService(repos).Login(ctx, email, req.Code, req.GroupToken != "", time.Now().UTC())
+		user, token, rejected, e = identityService(
+			repos,
+		).Login(ctx, email, req.Code, req.GroupToken != "", time.Now().UTC())
 		if e != nil || rejected != nil {
 			return e
 		}
@@ -90,7 +92,18 @@ func (a *AuthApp) Login(ctx context.Context, req *dto.LoginReq) (*dto.LoginResp,
 			}
 			groupID, e = groupService(repos).Join(ctx, user.ID, req.GroupToken, time.Now().UTC())
 			if e == nil && !alreadyMember && invitedOwner != user.ID {
-				e = createNotification(ctx, repos, invitedOwner, groupID, "member_joined", "有朋友加入了小组", "一位新成员通过邀请加入了你的小组。", "/group", "member-joined:"+groupID+":"+user.ID, time.Now().UTC())
+				e = createNotification(
+					ctx,
+					repos,
+					invitedOwner,
+					groupID,
+					"member_joined",
+					"有朋友加入了小组",
+					"一位新成员通过邀请加入了你的小组。",
+					"/group",
+					"member-joined:"+groupID+":"+user.ID,
+					time.Now().UTC(),
+				)
 			}
 		}
 		return e

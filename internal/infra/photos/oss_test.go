@@ -19,6 +19,7 @@ import (
 
 	"github.com/aliyun/alibabacloud-oss-go-sdk-v2/oss"
 	"github.com/aliyun/alibabacloud-oss-go-sdk-v2/oss/credentials"
+
 	"github.com/superwhys/one-more-round/internal/errcode"
 )
 
@@ -49,12 +50,15 @@ func TestOSSReencodeReadAndRemove(t *testing.T) {
 	store := testOSS(t, func(w http.ResponseWriter, r *http.Request) {
 		mu.Lock()
 		defer mu.Unlock()
-		if !strings.HasPrefix(r.URL.Path, "/test-bucket/image/"+testPhotoID) || r.Header.Get("Authorization") == "" {
+		if !strings.HasPrefix(r.URL.Path, "/test-bucket/image/"+testPhotoID) ||
+			r.Header.Get("Authorization") == "" {
 			t.Error("incorrect object prefix or unsigned request")
 		}
 		switch r.Method {
 		case http.MethodPut:
-			if r.Header.Get("x-oss-object-acl") != "private" || r.Header.Get("Content-Type") != "image/jpeg" || r.Header.Get("Cache-Control") != "private, no-store" {
+			if r.Header.Get("x-oss-object-acl") != "private" ||
+				r.Header.Get("Content-Type") != "image/jpeg" ||
+				r.Header.Get("Cache-Control") != "private, no-store" {
 				t.Error("missing private JPEG headers")
 			}
 			data, err := io.ReadAll(r.Body)
@@ -93,7 +97,8 @@ func TestOSSReencodeReadAndRemove(t *testing.T) {
 		_, drainErr := io.Copy(io.Discard, content.Body)
 		closeErr := content.Body.Close()
 		want := 900
-		if err != nil || drainErr != nil || closeErr != nil || format != "jpeg" || cfg.Width != want {
+		if err != nil || drainErr != nil || closeErr != nil || format != "jpeg" ||
+			cfg.Width != want {
 			t.Fatalf("unexpected image: %v %s %v", cfg, format, err)
 		}
 	}
@@ -115,10 +120,18 @@ func TestOSSFailureMappingAndDeletionAttempts(t *testing.T) {
 			deletes.Add(1)
 		}
 		w.WriteHeader(403)
-		io.WriteString(w, "<Error><Code>AccessDenied</Code><Message>secret-response-marker</Message><RequestId>test-request</RequestId></Error>")
+		io.WriteString(
+			w,
+			"<Error><Code>AccessDenied</Code><Message>secret-response-marker</Message><RequestId>test-request</RequestId></Error>",
+		)
 	})
 	ctx := context.Background()
-	if _, err := store.Read(ctx, testPhotoID, false); !errors.Is(err, errcode.ErrPhotoStorage) || errors.Is(err, fs.ErrNotExist) || strings.Contains(err.Error(), "secret-response-marker") {
+	if _, err := store.Read(
+		ctx,
+		testPhotoID,
+		false,
+	); !errors.Is(err, errcode.ErrPhotoStorage) || errors.Is(err, fs.ErrNotExist) ||
+		strings.Contains(err.Error(), "secret-response-marker") {
 		t.Fatalf("storage error was hidden or leaked: %v", err)
 	}
 	if err := store.Remove(ctx, testPhotoID); err == nil || deletes.Load() != 2 {
@@ -148,7 +161,14 @@ func TestOSSPartialUploadCanBeRemoved(t *testing.T) {
 		}
 	})
 	ctx := context.Background()
-	if err := store.Save(ctx, testPhotoID, bytes.NewReader(pngPhoto(t))); !errors.Is(err, errcode.ErrPhotoStorage) {
+	if err := store.Save(
+		ctx,
+		testPhotoID,
+		bytes.NewReader(pngPhoto(t)),
+	); !errors.Is(
+		err,
+		errcode.ErrPhotoStorage,
+	) {
 		t.Fatalf("partial upload reported success: %v", err)
 	}
 	mu.Lock()
@@ -168,26 +188,46 @@ func TestOSSPartialUploadCanBeRemoved(t *testing.T) {
 }
 
 func TestOSSRejectsInvalidUploadsBeforeNetwork(t *testing.T) {
-	store := testOSS(t, func(w http.ResponseWriter, r *http.Request) { t.Error("invalid upload reached OSS") })
+	store := testOSS(
+		t,
+		func(w http.ResponseWriter, r *http.Request) { t.Error("invalid upload reached OSS") },
+	)
 	oversized := append([]byte(nil), pngPhoto(t)...)
 	binary.BigEndian.PutUint32(oversized[16:20], 10000)
 	binary.BigEndian.PutUint32(oversized[20:24], 10000)
 	binary.BigEndian.PutUint32(oversized[29:33], crc32.ChecksumIEEE(oversized[12:29]))
 	for name, data := range map[string][]byte{"fake": []byte("fake.jpg"), "too-large": make([]byte, 2*1024*1024+1), "too-many-pixels": oversized} {
 		t.Run(name, func(t *testing.T) {
-			if err := store.Save(context.Background(), testPhotoID, bytes.NewReader(data)); err == nil {
+			if err := store.Save(
+				context.Background(),
+				testPhotoID,
+				bytes.NewReader(data),
+			); err == nil {
 				t.Fatal("invalid photo accepted")
 			}
 		})
 	}
-	if err := store.Save(context.Background(), "../escape", bytes.NewReader(pngPhoto(t))); err == nil {
+	if err := store.Save(
+		context.Background(),
+		"../escape",
+		bytes.NewReader(pngPhoto(t)),
+	); err == nil {
 		t.Fatal("invalid ID accepted")
 	}
 }
 
 func TestOSSConfigValidation(t *testing.T) {
-	valid := OSSConfig{Bucket: "test-bucket", Region: "cn-shenzhen", Endpoint: "https://test-bucket.oss-cn-shenzhen.aliyuncs.com", Prefix: "image", AccessID: "test-id", AccessSecret: "test-secret"}
-	if err := valid.Validate(); err != nil || valid.Endpoint != "https://oss-cn-shenzhen.aliyuncs.com" || valid.Prefix != "image/" {
+	valid := OSSConfig{
+		Bucket:       "test-bucket",
+		Region:       "cn-shenzhen",
+		Endpoint:     "https://test-bucket.oss-cn-shenzhen.aliyuncs.com",
+		Prefix:       "image",
+		AccessID:     "test-id",
+		AccessSecret: "test-secret",
+	}
+	if err := valid.Validate(); err != nil ||
+		valid.Endpoint != "https://oss-cn-shenzhen.aliyuncs.com" ||
+		valid.Prefix != "image/" {
 		t.Fatalf("normalization failed: %v", err)
 	}
 	for name, change := range map[string]func(*OSSConfig){

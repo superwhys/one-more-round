@@ -8,9 +8,10 @@ import (
 	_ "image/png"
 	"io"
 
+	_ "golang.org/x/image/webp"
+
 	"github.com/superwhys/one-more-round/internal/domain/photo"
 	"github.com/superwhys/one-more-round/internal/errcode"
-	_ "golang.org/x/image/webp"
 )
 
 // encodePhoto normalizes a client-sized image to one JPEG without metadata.

@@ -13,7 +13,14 @@ type memoryGroups struct{ snapshot *Snapshot }
 func (r *memoryGroups) ListByUser(context.Context, string) ([]*Group, error) {
 	return []*Group{r.snapshot.Group}, nil
 }
-func (r *memoryGroups) GetByID(context.Context, string) (*Group, error) { return r.snapshot.Group, nil }
+
+func (r *memoryGroups) GetByID(
+	context.Context,
+	string,
+) (*Group, error) {
+	return r.snapshot.Group, nil
+}
+
 func (r *memoryGroups) Create(_ context.Context, g *Group, ownerID string) error {
 	r.snapshot = &Snapshot{Group: g, Members: []*Member{{UserID: ownerID}}}
 	return nil
@@ -22,6 +29,7 @@ func (r *memoryGroups) Save(context.Context, *Group) error { return nil }
 func (r *memoryGroups) Snapshot(context.Context, string) (*Snapshot, error) {
 	return r.snapshot, nil
 }
+
 func (r *memoryGroups) AddMember(_ context.Context, _ string, userID string) error {
 	r.snapshot.Members = append(r.snapshot.Members, &Member{UserID: userID})
 	return nil
@@ -53,6 +61,7 @@ func (r *memoryClaims) Save(_ context.Context, _ string, claim *Claim) error {
 	r.snapshot.Claims = append(r.snapshot.Claims, claim)
 	return nil
 }
+
 func (r *memoryClaims) Delete(_ context.Context, _ string, userID string) error {
 	for i, current := range r.snapshot.Claims {
 		if current.UserID == userID {
@@ -80,7 +89,12 @@ func TestPlayerProfileOnboarding(t *testing.T) {
 		Players: []*Player{{ID: "history", Name: "老朋友"}},
 		Claims:  []*Claim{},
 	}
-	service := NewService(&memoryGroups{snapshot: snapshot}, &memoryPlayers{snapshot: snapshot}, &memoryClaims{snapshot: snapshot}, memoryInvites{})
+	service := NewService(
+		&memoryGroups{snapshot: snapshot},
+		&memoryPlayers{snapshot: snapshot},
+		&memoryClaims{snapshot: snapshot},
+		memoryInvites{},
+	)
 
 	owner, err := service.AddOwnerPlayer(ctx, "group", "owner", "小林")
 	if err != nil {
@@ -97,13 +111,28 @@ func TestPlayerProfileOnboarding(t *testing.T) {
 		t.Fatal(err)
 	}
 	if len(snapshot.Players) != 3 || len(snapshot.Claims) != 1 {
-		t.Fatalf("new profile and claim not created together: %#v %#v", snapshot.Players, snapshot.Claims)
+		t.Fatalf(
+			"new profile and claim not created together: %#v %#v",
+			snapshot.Players,
+			snapshot.Claims,
+		)
 	}
 	created := snapshot.Players[2]
 	if created.Account != nil || snapshot.Claims[0].PlayerID != created.ID {
-		t.Fatalf("new profile should stay unlinked until approval: %#v %#v", created, snapshot.Claims[0])
+		t.Fatalf(
+			"new profile should stay unlinked until approval: %#v %#v",
+			created,
+			snapshot.Claims[0],
+		)
 	}
-	if err = service.Manage(ctx, "group", "member", "claim-new", "", "重复档案"); err != errcode.ErrClaimPending {
+	if err = service.Manage(
+		ctx,
+		"group",
+		"member",
+		"claim-new",
+		"",
+		"重复档案",
+	); err != errcode.ErrClaimPending {
 		t.Fatalf("duplicate pending claim error = %v", err)
 	}
 	if len(snapshot.Players) != 3 {
@@ -116,7 +145,14 @@ func TestPlayerProfileOnboarding(t *testing.T) {
 	if created.Account == nil || *created.Account != "member" || len(snapshot.Claims) != 0 {
 		t.Fatalf("approved profile was not linked: %#v %#v", created, snapshot.Claims)
 	}
-	if err = service.Manage(ctx, "group", "member", "claim", "history", ""); err != errcode.ErrClaimSelf {
+	if err = service.Manage(
+		ctx,
+		"group",
+		"member",
+		"claim",
+		"history",
+		"",
+	); err != errcode.ErrClaimSelf {
 		t.Fatalf("linked member claimed another profile: %v", err)
 	}
 }

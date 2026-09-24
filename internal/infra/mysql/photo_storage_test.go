@@ -47,7 +47,11 @@ func (f *interruptedFiles) Remove(ctx context.Context, id string) error {
 	return f.PhotoFiles.Remove(ctx, id)
 }
 
-func (f *interruptedFiles) Read(ctx context.Context, id string, thumb bool) (*ports.PhotoContent, error) {
+func (f *interruptedFiles) Read(
+	ctx context.Context,
+	id string,
+	thumb bool,
+) (*ports.PhotoContent, error) {
 	if f.readErr != nil {
 		return nil, f.readErr
 	}
@@ -95,11 +99,24 @@ func TestPhotoFailedUploadAndCleanupRetry(t *testing.T) {
 		}
 		content.Body.Close()
 	}
-	if err := services.CleanPhotos(ctx, s.repos, files, services.PhotoCutoff(time.Now())); !errors.Is(err, errcode.ErrPhotoStorage) {
+	if err := services.CleanPhotos(
+		ctx,
+		s.repos,
+		files,
+		services.PhotoCutoff(time.Now()),
+	); !errors.Is(
+		err,
+		errcode.ErrPhotoStorage,
+	) {
 		t.Fatalf("cleanup failure hidden: %v", err)
 	}
 	files.remove = nil
-	if err := services.CleanPhotos(ctx, s.repos, files, services.PhotoCutoff(time.Now())); err != nil {
+	if err := services.CleanPhotos(
+		ctx,
+		s.repos,
+		files,
+		services.PhotoCutoff(time.Now()),
+	); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := s.repos.Photo().Get(ctx, g.ID, id); !errors.Is(err, errcode.ErrNotFound) {
@@ -132,10 +149,23 @@ func TestPhotoMembershipRevokedDuringUpload(t *testing.T) {
 	files := &interruptedFiles{PhotoFiles: &photos.Files{Root: s.photoRoot}}
 	files.afterSave = func(ctx context.Context, id string) error {
 		storedID = id
-		return s.groups.Manage(ctx, g.ID, owner.ID, &dto.ManageReq{Action: "remove", Target: member.ID})
+		return s.groups.Manage(
+			ctx,
+			g.ID,
+			owner.ID,
+			&dto.ManageReq{Action: "remove", Target: member.ID},
+		)
 	}
 	app := services.NewPhotoApp(&services.AppContext{Repos: s.repos, Photos: files})
-	if _, err := app.Upload(ctx, g.ID, member.ID, uploadData(t)); !errors.Is(err, errcode.ErrForbidden) {
+	if _, err := app.Upload(
+		ctx,
+		g.ID,
+		member.ID,
+		uploadData(t),
+	); !errors.Is(
+		err,
+		errcode.ErrForbidden,
+	) {
 		t.Fatalf("revoked member completed upload: %v", err)
 	}
 	if _, err := s.repos.Photo().Get(ctx, g.ID, storedID); !errors.Is(err, errcode.ErrNotFound) {
@@ -166,7 +196,15 @@ func TestPhotoCanceledUploadCompensates(t *testing.T) {
 		return nil
 	}
 	app := services.NewPhotoApp(&services.AppContext{Repos: s.repos, Photos: files})
-	if _, err := app.Upload(requestCtx, g.ID, u.ID, uploadData(t)); !errors.Is(err, context.Canceled) {
+	if _, err := app.Upload(
+		requestCtx,
+		g.ID,
+		u.ID,
+		uploadData(t),
+	); !errors.Is(
+		err,
+		context.Canceled,
+	) {
 		t.Fatalf("cancellation lost: %v", err)
 	}
 	if _, err := s.repos.Photo().Get(ctx, g.ID, storedID); !errors.Is(err, errcode.ErrNotFound) {
@@ -201,10 +239,33 @@ func TestPhotoCleanupClaimBlocksConcurrentAttachment(t *testing.T) {
 		}
 		ctx, cancel := context.WithTimeout(ctx, 2*time.Second)
 		defer cancel()
-		if err := s.photos.RequireAccess(ctx, g.ID, u.ID, id); !errors.Is(err, errcode.ErrNotFound) {
+		if err := s.photos.RequireAccess(
+			ctx,
+			g.ID,
+			u.ID,
+			id,
+		); !errors.Is(
+			err,
+			errcode.ErrNotFound,
+		) {
 			t.Errorf("claimed photo readable or transaction held during IO: %v", err)
 		}
-		_, err := s.rounds.Save(ctx, u.ID, &dto.SaveRoundReq{GroupID: g.ID, IdempotencyKey: secure.NewID(), Round: dto.Round{GameID: game.ID, Date: "2026-09-19", Mode: "coop", Outcome: "win", Players: []string{player.ID}, Photos: []string{id}}})
+		_, err := s.rounds.Save(
+			ctx,
+			u.ID,
+			&dto.SaveRoundReq{
+				GroupID:        g.ID,
+				IdempotencyKey: secure.NewID(),
+				Round: dto.Round{
+					GameID:  game.ID,
+					Date:    "2026-09-19",
+					Mode:    "coop",
+					Outcome: "win",
+					Players: []string{player.ID},
+					Photos:  []string{id},
+				},
+			},
+		)
 		if !errors.Is(err, errcode.ErrPhotoNotFound) {
 			t.Errorf("claimed photo attached: %v", err)
 		}
@@ -224,9 +285,21 @@ func TestPhotoStorageFailureIsNotNotFound(t *testing.T) {
 		t.Fatal(err)
 	}
 	id := s.uploadPhoto(t, g.ID, u.ID)
-	files := &interruptedFiles{PhotoFiles: &photos.Files{Root: s.photoRoot}, readErr: errcode.ErrPhotoStorage}
+	files := &interruptedFiles{
+		PhotoFiles: &photos.Files{Root: s.photoRoot},
+		readErr:    errcode.ErrPhotoStorage,
+	}
 	app := services.NewPhotoApp(&services.AppContext{Repos: s.repos, Photos: files})
-	if _, err := app.Read(ctx, g.ID, "non-member", id, false); !errors.Is(err, errcode.ErrForbidden) {
+	if _, err := app.Read(
+		ctx,
+		g.ID,
+		"non-member",
+		id,
+		false,
+	); !errors.Is(
+		err,
+		errcode.ErrForbidden,
+	) {
 		t.Fatalf("non-member reached image storage: %v", err)
 	}
 	if _, err := app.Read(ctx, g.ID, u.ID, id, false); !errors.Is(err, errcode.ErrPhotoStorage) {
@@ -263,15 +336,39 @@ func TestPhotoDetachPersistsRetentionAndAbandonedUploadCleanup(t *testing.T) {
 	if err = s.repos.Photo().Save(ctx, g.ID, p); err != nil {
 		t.Fatal(err)
 	}
-	round, err := s.rounds.Save(ctx, u.ID, &dto.SaveRoundReq{GroupID: g.ID, IdempotencyKey: secure.NewID(), Round: dto.Round{GameID: game.ID, Date: "2026-09-19", Mode: "coop", Outcome: "win", Players: []string{player.ID}, Photos: []string{id}}})
+	round, err := s.rounds.Save(
+		ctx,
+		u.ID,
+		&dto.SaveRoundReq{
+			GroupID:        g.ID,
+			IdempotencyKey: secure.NewID(),
+			Round: dto.Round{
+				GameID:  game.ID,
+				Date:    "2026-09-19",
+				Mode:    "coop",
+				Outcome: "win",
+				Players: []string{player.ID},
+				Photos:  []string{id},
+			},
+		},
+	)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err = s.rounds.Delete(ctx, u.ID, &dto.DeleteRoundReq{GroupID: g.ID, RoundID: round.ID, Version: round.Version}); err != nil {
+	if err = s.rounds.Delete(
+		ctx,
+		u.ID,
+		&dto.DeleteRoundReq{GroupID: g.ID, RoundID: round.ID, Version: round.Version},
+	); err != nil {
 		t.Fatal(err)
 	}
 	files := &photos.Files{Root: s.photoRoot}
-	if err = services.CleanPhotos(ctx, s.repos, files, services.PhotoCutoff(time.Now())); err != nil {
+	if err = services.CleanPhotos(
+		ctx,
+		s.repos,
+		files,
+		services.PhotoCutoff(time.Now()),
+	); err != nil {
 		t.Fatal(err)
 	}
 	p, err = s.repos.Photo().Get(ctx, g.ID, id)
@@ -291,7 +388,12 @@ func TestPhotoDetachPersistsRetentionAndAbandonedUploadCleanup(t *testing.T) {
 	if err = s.repos.Photo().Save(ctx, g.ID, p); err != nil {
 		t.Fatal(err)
 	}
-	if err = services.CleanPhotos(ctx, s.repos, files, services.PhotoCutoff(time.Now())); err != nil {
+	if err = services.CleanPhotos(
+		ctx,
+		s.repos,
+		files,
+		services.PhotoCutoff(time.Now()),
+	); err != nil {
 		t.Fatal(err)
 	}
 	if _, err = files.Read(ctx, id, false); !errors.Is(err, fs.ErrNotExist) {

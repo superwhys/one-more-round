@@ -48,12 +48,21 @@ type service struct {
 }
 
 // NewService builds the group service from its repositories.
-func NewService(groups IGroupRepository, players IPlayerRepository, claims IClaimRepository, invites IInviteRepository) IService {
+func NewService(
+	groups IGroupRepository,
+	players IPlayerRepository,
+	claims IClaimRepository,
+	invites IInviteRepository,
+) IService {
 	return &service{groups: groups, players: players, claims: claims, invites: invites}
 }
 
 // ValidName reports whether a user-provided name fits the column limit.
-func ValidName(v string) bool { return strings.TrimSpace(v) != "" && utf8.RuneCountInString(v) <= 255 }
+func ValidName(
+	v string,
+) bool {
+	return strings.TrimSpace(v) != "" && utf8.RuneCountInString(v) <= 255
+}
 
 // List returns the groups the account belongs to.
 func (s *service) List(ctx context.Context, userID string) ([]*Group, error) {
@@ -96,7 +105,10 @@ func (s *service) AddPlayer(ctx context.Context, groupID, userID, name string) (
 }
 
 // AddOwnerPlayer creates the group owner's own profile and links it immediately.
-func (s *service) AddOwnerPlayer(ctx context.Context, groupID, ownerID, name string) (*Player, error) {
+func (s *service) AddOwnerPlayer(
+	ctx context.Context,
+	groupID, ownerID, name string,
+) (*Player, error) {
 	v, err := s.RequireMember(ctx, groupID, ownerID)
 	if err != nil {
 		return nil, err
@@ -110,7 +122,13 @@ func (s *service) AddOwnerPlayer(ctx context.Context, groupID, ownerID, name str
 	return s.addPlayer(ctx, groupID, v, name, &ownerID)
 }
 
-func (s *service) addPlayer(ctx context.Context, groupID string, v *Snapshot, name string, account *string) (*Player, error) {
+func (s *service) addPlayer(
+	ctx context.Context,
+	groupID string,
+	v *Snapshot,
+	name string,
+	account *string,
+) (*Player, error) {
 	name = strings.TrimSpace(name)
 	if !ValidName(name) {
 		return nil, errcode.ErrPlayerName
@@ -129,7 +147,11 @@ func (s *service) addPlayer(ctx context.Context, groupID string, v *Snapshot, na
 
 // Invite creates a seven-day group invitation and returns the plaintext token
 // exactly once.
-func (s *service) Invite(ctx context.Context, groupID, userID string, now time.Time) (*Invite, string, error) {
+func (s *service) Invite(
+	ctx context.Context,
+	groupID, userID string,
+	now time.Time,
+) (*Invite, string, error) {
 	v, err := s.RequireMember(ctx, groupID, userID)
 	if err != nil {
 		return nil, "", err
@@ -234,7 +256,10 @@ func (s *service) Manage(ctx context.Context, groupID, userID, action, target, v
 		if claimPendingFor(v, userID) {
 			return errcode.ErrClaimPending
 		}
-		if !slices.ContainsFunc(v.Players, func(p *Player) bool { return p.ID == target && !p.Linked() }) {
+		if !slices.ContainsFunc(
+			v.Players,
+			func(p *Player) bool { return p.ID == target && !p.Linked() },
+		) {
 			return errcode.ErrClaimLinked
 		}
 		return s.claims.Save(ctx, groupID, &Claim{UserID: userID, PlayerID: target})
@@ -261,7 +286,10 @@ func (s *service) Manage(ctx context.Context, groupID, userID, action, target, v
 		if !slices.ContainsFunc(v.Members, func(m *Member) bool { return m.UserID == target }) {
 			return errcode.ErrForbidden
 		}
-		if slices.ContainsFunc(v.Players, func(p *Player) bool { return p.Linked() && *p.Account == target }) {
+		if slices.ContainsFunc(
+			v.Players,
+			func(p *Player) bool { return p.Linked() && *p.Account == target },
+		) {
 			return errcode.ErrClaimAccount
 		}
 		playerID := v.Claims[index].PlayerID
@@ -291,7 +319,10 @@ func (s *service) Manage(ctx context.Context, groupID, userID, action, target, v
 }
 
 func playerLinkedTo(v *Snapshot, userID string) bool {
-	return slices.ContainsFunc(v.Players, func(p *Player) bool { return p.Linked() && *p.Account == userID })
+	return slices.ContainsFunc(
+		v.Players,
+		func(p *Player) bool { return p.Linked() && *p.Account == userID },
+	)
 }
 
 func claimPendingFor(v *Snapshot, userID string) bool {

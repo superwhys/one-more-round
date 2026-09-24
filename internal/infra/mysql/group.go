@@ -5,13 +5,14 @@ import (
 	"errors"
 	"time"
 
+	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
+
 	"github.com/superwhys/one-more-round/internal/domain/game"
 	"github.com/superwhys/one-more-round/internal/domain/group"
 	"github.com/superwhys/one-more-round/internal/errcode"
 	"github.com/superwhys/one-more-round/internal/infra/mysql/mapper"
 	"github.com/superwhys/one-more-round/internal/infra/mysql/models"
-	"gorm.io/gorm"
-	"gorm.io/gorm/clause"
 )
 
 type groupRepository struct {
@@ -22,7 +23,12 @@ type groupRepository struct {
 func (r *groupRepository) ListByUser(ctx context.Context, userID string) ([]*group.Group, error) {
 	q := queryOf(r.db)
 	g, member := q.Group, q.Member
-	rows, err := g.WithContext(ctx).Select(g.ALL).Join(member, member.GroupID.EqCol(g.ID)).Where(member.UserID.Eq(userID)).Order(g.ID).Find()
+	rows, err := g.WithContext(ctx).
+		Select(g.ALL).
+		Join(member, member.GroupID.EqCol(g.ID)).
+		Where(member.UserID.Eq(userID)).
+		Order(g.ID).
+		Find()
 	if err != nil {
 		return nil, mapErr(err)
 	}
@@ -36,7 +42,10 @@ func (r *groupRepository) ListByUser(ctx context.Context, userID string) ([]*gro
 // GetByID returns the group under a write lock.
 func (r *groupRepository) GetByID(ctx context.Context, id string) (*group.Group, error) {
 	q := queryOf(r.db).Group
-	m, err := q.WithContext(ctx).Where(q.ID.Eq(id)).Clauses(clause.Locking{Strength: "UPDATE"}).Take()
+	m, err := q.WithContext(ctx).
+		Where(q.ID.Eq(id)).
+		Clauses(clause.Locking{Strength: "UPDATE"}).
+		Take()
 	if err != nil {
 		return nil, mapErr(err)
 	}
@@ -45,7 +54,10 @@ func (r *groupRepository) GetByID(ctx context.Context, id string) (*group.Group,
 
 // Create stores the group and its first member.
 func (r *groupRepository) Create(ctx context.Context, g *group.Group, ownerID string) error {
-	if err := queryOf(r.db).Group.WithContext(ctx).Create(mapper.GroupDomainToModel(g)); err != nil {
+	if err := queryOf(
+		r.db,
+	).Group.WithContext(ctx).
+		Create(mapper.GroupDomainToModel(g)); err != nil {
 		return mapErr(err)
 	}
 	return r.AddMember(ctx, g.ID, ownerID)
@@ -54,14 +66,21 @@ func (r *groupRepository) Create(ctx context.Context, g *group.Group, ownerID st
 // Save updates the group name and owner.
 func (r *groupRepository) Save(ctx context.Context, g *group.Group) error {
 	q := queryOf(r.db).Group
-	_, err := q.WithContext(ctx).Where(q.ID.Eq(g.ID)).UpdateSimple(q.Name.Value(g.Name), q.Owner.Value(g.Owner))
+	_, err := q.WithContext(ctx).
+		Where(q.ID.Eq(g.ID)).
+		UpdateSimple(q.Name.Value(g.Name), q.Owner.Value(g.Owner))
 	return mapErr(err)
 }
 
 // Snapshot reads the group with its members, players, games and claims; the
 // group row is locked so member changes cannot interleave with the read.
 func (r *groupRepository) Snapshot(ctx context.Context, id string) (*group.Snapshot, error) {
-	s := &group.Snapshot{Members: []*group.Member{}, Players: []*group.Player{}, Games: []*game.Game{}, Claims: []*group.Claim{}}
+	s := &group.Snapshot{
+		Members: []*group.Member{},
+		Players: []*group.Player{},
+		Games:   []*game.Game{},
+		Claims:  []*group.Claim{},
+	}
 	g, err := r.GetByID(ctx, id)
 	if err != nil {
 		return nil, err
@@ -69,14 +88,22 @@ func (r *groupRepository) Snapshot(ctx context.Context, id string) (*group.Snaps
 	s.Group = g
 	q := queryOf(r.db)
 	users, member := q.User, q.Member
-	rows, err := users.WithContext(ctx).Select(users.ALL).Join(member, member.UserID.EqCol(users.ID)).Where(member.GroupID.Eq(id)).Order(users.ID).Find()
+	rows, err := users.WithContext(ctx).
+		Select(users.ALL).
+		Join(member, member.UserID.EqCol(users.ID)).
+		Where(member.GroupID.Eq(id)).
+		Order(users.ID).
+		Find()
 	if err != nil {
 		return nil, mapErr(err)
 	}
 	for _, m := range rows {
 		s.Members = append(s.Members, mapper.MemberUserModelToDomain(m))
 	}
-	players, err := q.Player.WithContext(ctx).Where(q.Player.GroupID.Eq(id)).Order(q.Player.Name).Find()
+	players, err := q.Player.WithContext(ctx).
+		Where(q.Player.GroupID.Eq(id)).
+		Order(q.Player.Name).
+		Find()
 	if err != nil {
 		return nil, mapErr(err)
 	}
@@ -102,7 +129,13 @@ func (r *groupRepository) Snapshot(ctx context.Context, id string) (*group.Snaps
 
 // AddMember adds the account to the group, ignoring an existing membership.
 func (r *groupRepository) AddMember(ctx context.Context, groupID, userID string) error {
-	return mapErr(queryOf(r.db).Member.WithContext(ctx).Clauses(clause.Insert{Modifier: "IGNORE"}).Create(&models.Member{GroupID: groupID, UserID: userID}))
+	return mapErr(
+		queryOf(
+			r.db,
+		).Member.WithContext(ctx).
+			Clauses(clause.Insert{Modifier: "IGNORE"}).
+			Create(&models.Member{GroupID: groupID, UserID: userID}),
+	)
 }
 
 // RemoveMember removes the membership together with the account's claim.
@@ -128,7 +161,9 @@ func (r *playerRepository) Save(ctx context.Context, groupID string, p *group.Pl
 	}
 	if count > 0 {
 		// Update accepts a nil pointer and writes NULL when an account is unlinked.
-		_, err = q.WithContext(ctx).Where(q.ID.Eq(p.ID), q.GroupID.Eq(groupID)).Update(q.Account, p.Account)
+		_, err = q.WithContext(ctx).
+			Where(q.ID.Eq(p.ID), q.GroupID.Eq(groupID)).
+			Update(q.Account, p.Account)
 		return mapErr(err)
 	}
 	return mapErr(q.WithContext(ctx).Create(mapper.PlayerDomainToModel(groupID, p)))
@@ -141,9 +176,11 @@ type claimRepository struct {
 // Save stores the account's claim, replacing an earlier one.
 func (r *claimRepository) Save(ctx context.Context, groupID string, c *group.Claim) error {
 	q := queryOf(r.db).Claim
-	return mapErr(q.WithContext(ctx).Clauses(clause.OnConflict{DoUpdates: clause.AssignmentColumns([]string{
-		string(q.PlayerID.ColumnName()),
-	})}).Create(mapper.ClaimDomainToModel(groupID, c)))
+	return mapErr(
+		q.WithContext(ctx).Clauses(clause.OnConflict{DoUpdates: clause.AssignmentColumns([]string{
+			string(q.PlayerID.ColumnName()),
+		})}).Create(mapper.ClaimDomainToModel(groupID, c)),
+	)
 }
 
 // Delete removes the account's pending claim.
@@ -158,12 +195,25 @@ type inviteRepository struct {
 }
 
 // Create stores an invitation holding the token digest.
-func (r *inviteRepository) Create(ctx context.Context, groupID string, inv *group.Invite, hash string) error {
-	return mapErr(queryOf(r.db).Invite.WithContext(ctx).Create(mapper.InviteDomainToModel(groupID, hash, inv)))
+func (r *inviteRepository) Create(
+	ctx context.Context,
+	groupID string,
+	inv *group.Invite,
+	hash string,
+) error {
+	return mapErr(
+		queryOf(
+			r.db,
+		).Invite.WithContext(ctx).
+			Create(mapper.InviteDomainToModel(groupID, hash, inv)),
+	)
 }
 
 // ListByGroup returns the group's invitations, newest expiry first.
-func (r *inviteRepository) ListByGroup(ctx context.Context, groupID string) ([]*group.Invite, error) {
+func (r *inviteRepository) ListByGroup(
+	ctx context.Context,
+	groupID string,
+) ([]*group.Invite, error) {
 	q := queryOf(r.db).Invite
 	rows, err := q.WithContext(ctx).Where(q.GroupID.Eq(groupID)).Order(q.Expires.Desc()).Find()
 	if err != nil {
@@ -179,12 +229,18 @@ func (r *inviteRepository) ListByGroup(ctx context.Context, groupID string) ([]*
 // Revoke disables an unused invitation.
 func (r *inviteRepository) Revoke(ctx context.Context, groupID, id string) error {
 	q := queryOf(r.db).Invite
-	_, err := q.WithContext(ctx).Where(q.GroupID.Eq(groupID), q.ID.Eq(id)).UpdateSimple(q.Revoked.Value(true))
+	_, err := q.WithContext(ctx).
+		Where(q.GroupID.Eq(groupID), q.ID.Eq(id)).
+		UpdateSimple(q.Revoked.Value(true))
 	return mapErr(err)
 }
 
 // Resolve returns the group of a live, unrevoked invitation digest.
-func (r *inviteRepository) Resolve(ctx context.Context, hash string, now time.Time) (string, error) {
+func (r *inviteRepository) Resolve(
+	ctx context.Context,
+	hash string,
+	now time.Time,
+) (string, error) {
 	q := queryOf(r.db).Invite
 	m, err := q.WithContext(ctx).Where(q.Hash.Eq(hash)).Take()
 	if errors.Is(err, gorm.ErrRecordNotFound) {

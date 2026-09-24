@@ -67,14 +67,19 @@ func TestUploadAdmissionAndRelease(t *testing.T) {
 		entered, release, done := make(chan struct{}), make(chan struct{}), make(chan struct{})
 		engine := gin.New()
 		engine.Use(gin.RecoveryWithWriter(io.Discard))
-		engine.POST("/photos", uploadPhotoHandler(uploadFunc(func(context.Context, string, string, io.Reader) (string, error) {
-			close(entered)
-			<-release
-			if panicUpload {
-				panic("test panic")
-			}
-			return "photo", nil
-		})))
+		engine.POST(
+			"/photos",
+			uploadPhotoHandler(
+				uploadFunc(func(context.Context, string, string, io.Reader) (string, error) {
+					close(entered)
+					<-release
+					if panicUpload {
+						panic("test panic")
+					}
+					return "photo", nil
+				}),
+			),
+		)
 		var body bytes.Buffer
 		form := multipart.NewWriter(&body)
 		file, err := form.CreateFormFile("photo", "test.png")
@@ -97,7 +102,8 @@ func TestUploadAdmissionAndRelease(t *testing.T) {
 		engine.ServeHTTP(response, blocked)
 		close(release)
 		<-done
-		if response.Code != http.StatusServiceUnavailable || response.Header().Get("Retry-After") != "2" {
+		if response.Code != http.StatusServiceUnavailable ||
+			response.Header().Get("Retry-After") != "2" {
 			t.Fatalf("busy request: %d %s", response.Code, response.Body.String())
 		}
 		// Even a panic releases the slot. A subsequent malformed request is parsed.

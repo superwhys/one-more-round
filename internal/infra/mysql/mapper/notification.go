@@ -10,7 +10,18 @@ func NotificationModelToDomain(m *models.Notification) *notification.Notificatio
 	if m == nil {
 		return nil
 	}
-	return &notification.Notification{ID: m.ID, UserID: m.UserID, GroupID: m.GroupID, Kind: m.Kind, Title: m.Title, Body: m.Body, Link: m.Link, DedupeKey: m.DedupeKey, Created: m.Created, ReadAt: m.ReadAt}
+	return &notification.Notification{
+		ID:        m.ID,
+		UserID:    m.UserID,
+		GroupID:   m.GroupID,
+		Kind:      m.Kind,
+		Title:     m.Title,
+		Body:      m.Body,
+		Link:      m.Link,
+		DedupeKey: m.DedupeKey,
+		Created:   m.Created,
+		ReadAt:    m.ReadAt,
+	}
 }
 
 // NotificationDomainToModel converts a notification entity into its row.
@@ -18,5 +29,16 @@ func NotificationDomainToModel(n *notification.Notification) *models.Notificatio
 	if n == nil {
 		return nil
 	}
-	return &models.Notification{ID: n.ID, UserID: n.UserID, GroupID: n.GroupID, Kind: n.Kind, Title: n.Title, Body: n.Body, Link: n.Link, DedupeKey: n.DedupeKey, Created: n.Created, ReadAt: n.ReadAt}
+	return &models.Notification{
+		ID:        n.ID,
+		UserID:    n.UserID,
+		GroupID:   n.GroupID,
+		Kind:      n.Kind,
+		Title:     n.Title,
+		Body:      n.Body,
+		Link:      n.Link,
+		DedupeKey: n.DedupeKey,
+		Created:   n.Created,
+		ReadAt:    n.ReadAt,
+	}
 }

@@ -41,14 +41,14 @@ type SaveRoundReq struct {
 	Round
 	GroupID        string `uri:"group"`
 	RoundID        string `uri:"id"`
-	IdempotencyKey string `header:"Idempotency-Key"`
+	IdempotencyKey string `            header:"Idempotency-Key"`
 }
 
 // DeleteRoundReq deletes a round at the version the client last saw.
 type DeleteRoundReq struct {
 	GroupID string `uri:"group"`
 	RoundID string `uri:"id"`
-	Version int    `json:"version"`
+	Version int    `            json:"version"`
 }
 
 // ListRoundsReq filters the timeline; every field is optional and an empty
@@ -58,16 +58,16 @@ type DeleteRoundReq struct {
 // keeps empty as "no restriction".
 type ListRoundsReq struct {
 	GroupID   string `uri:"group" form:"-"`
-	From      string `form:"from"`
-	To        string `form:"to"`
-	Game      string `form:"game"`
-	Player    string `form:"player"`
-	Query     string `form:"q"`
-	Mode      string `form:"mode"`
-	Outcome   string `form:"outcome"`
-	HasPhotos *bool  `form:"-"`
-	Offset    int    `form:"offset"`
-	Limit     int    `form:"limit,default=30"`
+	From      string `            form:"from"`
+	To        string `            form:"to"`
+	Game      string `            form:"game"`
+	Player    string `            form:"player"`
+	Query     string `            form:"q"`
+	Mode      string `            form:"mode"`
+	Outcome   string `            form:"outcome"`
+	HasPhotos *bool  `            form:"-"`
+	Offset    int    `            form:"offset"`
+	Limit     int    `            form:"limit,default=30"`
 }
 
 // RoundPathReq targets one round of one group by their path parameters, with no
@@ -82,7 +82,7 @@ type RoundPathReq struct {
 // business error, which keeps the business code and the specific message.
 type RecapReq struct {
 	GroupID string `uri:"group" form:"-"`
-	Period  string `form:"period"`
+	Period  string `            form:"period"`
 }
 
 // Recap contains highlights derived from all rounds in the selected period.
@@ -105,7 +105,7 @@ type Recap struct {
 type RestoreRoundReq struct {
 	GroupID string `uri:"group"`
 	RoundID string `uri:"id"`
-	Version int    `json:"version"`
+	Version int    `            json:"version"`
 }
 
 // RoundShareStatus describes whether a round currently has a usable public link.
@@ -130,7 +130,7 @@ type PublicRoundReq struct {
 // PublicRoundPhotoReq reads one photo of a shared round with the bearer token.
 type PublicRoundPhotoReq struct {
 	Token   string `header:"X-Round-Share"`
-	PhotoID string `uri:"photo"`
+	PhotoID string `                       uri:"photo"`
 }
 
 // PublicPlayer is the nickname and result of one shared-round participant.

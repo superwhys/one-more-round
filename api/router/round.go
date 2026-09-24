@@ -6,6 +6,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/miebyte/goutils/ginutils"
+
 	"github.com/superwhys/one-more-round/api/common"
 	"github.com/superwhys/one-more-round/internal/app/dto"
 	"github.com/superwhys/one-more-round/internal/app/services"
@@ -52,8 +53,18 @@ func PublicRoundRouter(roundApp *services.RoundApp) roundRouterFn {
 // @Router /v1/groups/{group}/rounds/{id}/share [get]
 func roundShareStatusHandler(roundApp *services.RoundApp) gin.HandlerFunc {
 	return ginutils.RequestHandler(func(ctx *gin.Context, req *dto.RoundPathReq) {
-		status, err := roundApp.ShareStatus(ctx.Request.Context(), req.GroupID, common.UserID(ctx), req.RoundID)
-		if common.HandleRouterError(ctx, err, "get round share status failed", errcode.ErrRoundShareRead) {
+		status, err := roundApp.ShareStatus(
+			ctx.Request.Context(),
+			req.GroupID,
+			common.UserID(ctx),
+			req.RoundID,
+		)
+		if common.HandleRouterError(
+			ctx,
+			err,
+			"get round share status failed",
+			errcode.ErrRoundShareRead,
+		) {
 			return
 		}
 		ctx.JSON(http.StatusOK, dto.ResponseWithData(status))
@@ -71,7 +82,12 @@ func roundShareStatusHandler(roundApp *services.RoundApp) gin.HandlerFunc {
 // @Router /v1/groups/{group}/rounds/{id}/share [post]
 func createRoundShareHandler(roundApp *services.RoundApp) gin.HandlerFunc {
 	return ginutils.RequestHandler(func(ctx *gin.Context, req *dto.RoundPathReq) {
-		share, err := roundApp.CreateShare(ctx.Request.Context(), req.GroupID, common.UserID(ctx), req.RoundID)
+		share, err := roundApp.CreateShare(
+			ctx.Request.Context(),
+			req.GroupID,
+			common.UserID(ctx),
+			req.RoundID,
+		)
 		if common.HandleRouterError(ctx, err, "create round share failed", errcode.ErrRoundShare) {
 			return
 		}
@@ -90,7 +106,17 @@ func createRoundShareHandler(roundApp *services.RoundApp) gin.HandlerFunc {
 // @Router /v1/groups/{group}/rounds/{id}/share [delete]
 func revokeRoundShareHandler(roundApp *services.RoundApp) gin.HandlerFunc {
 	return ginutils.RequestHandler(func(ctx *gin.Context, req *dto.RoundPathReq) {
-		if err := roundApp.RevokeShare(ctx.Request.Context(), req.GroupID, common.UserID(ctx), req.RoundID); common.HandleRouterError(ctx, err, "revoke round share failed", errcode.ErrRoundShare) {
+		if err := roundApp.RevokeShare(
+			ctx.Request.Context(),
+			req.GroupID,
+			common.UserID(ctx),
+			req.RoundID,
+		); common.HandleRouterError(
+			ctx,
+			err,
+			"revoke round share failed",
+			errcode.ErrRoundShare,
+		) {
 			return
 		}
 		ctx.JSON(http.StatusOK, dto.ResponseSuccess())
@@ -107,7 +133,12 @@ func revokeRoundShareHandler(roundApp *services.RoundApp) gin.HandlerFunc {
 func publicRoundHandler(roundApp *services.RoundApp) gin.HandlerFunc {
 	return ginutils.RequestHandler(func(ctx *gin.Context, req *dto.PublicRoundReq) {
 		round, err := roundApp.PublicRound(ctx.Request.Context(), req.Token)
-		if common.HandleRouterError(ctx, err, "read public round failed", errcode.ErrRoundShareRead) {
+		if common.HandleRouterError(
+			ctx,
+			err,
+			"read public round failed",
+			errcode.ErrRoundShareRead,
+		) {
 			return
 		}
 		ctx.Header("Cache-Control", "private, no-store")
@@ -126,7 +157,12 @@ func publicRoundHandler(roundApp *services.RoundApp) gin.HandlerFunc {
 func publicRoundPhotoHandler(roundApp *services.RoundApp) gin.HandlerFunc {
 	return ginutils.RequestHandler(func(ctx *gin.Context, req *dto.PublicRoundPhotoReq) {
 		content, err := roundApp.PublicPhoto(ctx.Request.Context(), req.Token, req.PhotoID)
-		if common.HandleRouterError(ctx, err, "read public round photo failed", errcode.ErrPhotoRead) {
+		if common.HandleRouterError(
+			ctx,
+			err,
+			"read public round photo failed",
+			errcode.ErrPhotoRead,
+		) {
 			return
 		}
 		defer content.Body.Close()
@@ -194,7 +230,12 @@ func parseHasPhotos(raw string) (*bool, error) {
 // @Router /v1/groups/{group}/rounds/recap [get]
 func recapHandler(roundApp *services.RoundApp) gin.HandlerFunc {
 	return ginutils.RequestHandler(func(ctx *gin.Context, req *dto.RecapReq) {
-		result, err := roundApp.Recap(ctx.Request.Context(), req.GroupID, common.UserID(ctx), req.Period)
+		result, err := roundApp.Recap(
+			ctx.Request.Context(),
+			req.GroupID,
+			common.UserID(ctx),
+			req.Period,
+		)
 		if common.HandleRouterError(ctx, err, "recap failed", errcode.ErrRoundList) {
 			return
 		}
@@ -253,7 +294,12 @@ func restoreRoundHandler(roundApp *services.RoundApp) gin.HandlerFunc {
 // @Router /v1/groups/{group}/rounds/{id} [get]
 func getRoundHandler(roundApp *services.RoundApp) gin.HandlerFunc {
 	return ginutils.RequestHandler(func(ctx *gin.Context, req *dto.RoundPathReq) {
-		round, err := roundApp.Get(ctx.Request.Context(), req.GroupID, common.UserID(ctx), req.RoundID)
+		round, err := roundApp.Get(
+			ctx.Request.Context(),
+			req.GroupID,
+			common.UserID(ctx),
+			req.RoundID,
+		)
 		if common.HandleRouterError(ctx, err, "get round failed", errcode.ErrRoundGet) {
 			return
 		}

@@ -24,9 +24,19 @@ type IService interface {
 	// Rename sets a new local name for a game of the group.
 	Rename(ctx context.Context, groupID, target, name string) (*Game, error)
 	// Import stores an external game, reusing the same external id in the group.
-	Import(ctx context.Context, groupID string, bggID int, localName, original, cover string) (*Game, error)
+	Import(
+		ctx context.Context,
+		groupID string,
+		bggID int,
+		localName, original, cover string,
+	) (*Game, error)
 	// AttachCover links an existing game to an external entry and stores its cover.
-	AttachCover(ctx context.Context, groupID, target string, bggID int, original, cover string) (*Game, error)
+	AttachCover(
+		ctx context.Context,
+		groupID, target string,
+		bggID int,
+		original, cover string,
+	) (*Game, error)
 }
 
 var _ IService = (*service)(nil)
@@ -39,7 +49,11 @@ type service struct {
 func NewService(games IGameRepository) IService { return &service{games: games} }
 
 // validName reports whether a user-provided name fits the column limit.
-func validName(v string) bool { return strings.TrimSpace(v) != "" && utf8.RuneCountInString(v) <= 255 }
+func validName(
+	v string,
+) bool {
+	return strings.TrimSpace(v) != "" && utf8.RuneCountInString(v) <= 255
+}
 
 // Resolve returns the existing game with that local name, or creates it.
 func (s *service) Resolve(ctx context.Context, groupID, name string) (*Game, error) {
@@ -86,7 +100,12 @@ func (s *service) Rename(ctx context.Context, groupID, target, name string) (*Ga
 
 // Import stores an external game. The same external id is reused; a different
 // game that already uses the local name is left unchanged.
-func (s *service) Import(ctx context.Context, groupID string, bggID int, localName, original, cover string) (*Game, error) {
+func (s *service) Import(
+	ctx context.Context,
+	groupID string,
+	bggID int,
+	localName, original, cover string,
+) (*Game, error) {
 	original = strings.TrimSpace(original)
 	localName = strings.TrimSpace(localName)
 	cover = strings.TrimSpace(cover)
@@ -126,7 +145,12 @@ func (s *service) Import(ctx context.Context, groupID string, bggID int, localNa
 
 // AttachCover stores an external cover on a game already on the shelf. The
 // local name stays as the group wrote it.
-func (s *service) AttachCover(ctx context.Context, groupID, target string, bggID int, original, cover string) (*Game, error) {
+func (s *service) AttachCover(
+	ctx context.Context,
+	groupID, target string,
+	bggID int,
+	original, cover string,
+) (*Game, error) {
 	original = strings.TrimSpace(original)
 	cover = strings.TrimSpace(cover)
 	if bggID <= 0 || !validName(original) || !validCover(cover) || cover == "" {

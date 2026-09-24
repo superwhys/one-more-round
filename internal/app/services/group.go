@@ -50,7 +50,11 @@ func (a *GroupApp) List(ctx context.Context, userID string) ([]dto.Group, error)
 }
 
 // Create creates a group and the owner's linked player profile atomically.
-func (a *GroupApp) Create(ctx context.Context, userID string, req *dto.CreateGroupReq) (dto.Group, error) {
+func (a *GroupApp) Create(
+	ctx context.Context,
+	userID string,
+	req *dto.CreateGroupReq,
+) (dto.Group, error) {
 	var created *group.Group
 	if err := a.repos.WithTransaction(ctx, func(repos ports.Repositories) error {
 		var e error
@@ -100,10 +104,19 @@ func (a *GroupApp) Snapshot(ctx context.Context, groupID, userID string) (dto.Sn
 			return rank(recentGames, current.Games[i].ID) < rank(recentGames, current.Games[j].ID)
 		})
 		sort.SliceStable(current.Players, func(i, j int) bool {
-			return rank(recentPlayers, current.Players[i].ID) < rank(recentPlayers, current.Players[j].ID)
+			return rank(
+				recentPlayers,
+				current.Players[i].ID,
+			) < rank(
+				recentPlayers,
+				current.Players[j].ID,
+			)
 		})
 		if !current.IsOwner(userID) {
-			current.Claims = slices.DeleteFunc(current.Claims, func(c *group.Claim) bool { return c.UserID != userID })
+			current.Claims = slices.DeleteFunc(
+				current.Claims,
+				func(c *group.Claim) bool { return c.UserID != userID },
+			)
 		}
 		snapshot = current
 		return nil
@@ -114,7 +127,11 @@ func (a *GroupApp) Snapshot(ctx context.Context, groupID, userID string) (dto.Sn
 }
 
 // AddPlayer creates a nickname profile of the group.
-func (a *GroupApp) AddPlayer(ctx context.Context, groupID, userID string, req *dto.AddPlayerReq) (dto.Player, error) {
+func (a *GroupApp) AddPlayer(
+	ctx context.Context,
+	groupID, userID string,
+	req *dto.AddPlayerReq,
+) (dto.Player, error) {
 	var created *group.Player
 	if err := a.repos.WithTransaction(ctx, func(repos ports.Repositories) error {
 		var e error
@@ -128,7 +145,11 @@ func (a *GroupApp) AddPlayer(ctx context.Context, groupID, userID string, req *d
 
 // AddGame adds a game to the group catalogue, reusing the entry with the same
 // local name.
-func (a *GroupApp) AddGame(ctx context.Context, groupID, userID string, req *dto.AddGameReq) (dto.Game, error) {
+func (a *GroupApp) AddGame(
+	ctx context.Context,
+	groupID, userID string,
+	req *dto.AddGameReq,
+) (dto.Game, error) {
 	var resolved *game.Game
 	if err := a.repos.WithTransaction(ctx, func(repos ports.Repositories) error {
 		if _, e := groupService(repos).RequireMember(ctx, groupID, userID); e != nil {
@@ -143,12 +164,17 @@ func (a *GroupApp) AddGame(ctx context.Context, groupID, userID string, req *dto
 	return mapper.GameDomainToDTO(resolved), nil
 }
 
-const bggSource = "BoardGameGeek"
-const bggTerms = "https://boardgamegeek.com/xmlapi/termsofuse"
+const (
+	bggSource = "BoardGameGeek"
+	bggTerms  = "https://boardgamegeek.com/xmlapi/termsofuse"
+)
 
 // SearchExternalGames queries the external catalogue after confirming membership.
 // The remote call stays outside the database transaction.
-func (a *GroupApp) SearchExternalGames(ctx context.Context, groupID, userID, query string) (dto.ExternalSearch, error) {
+func (a *GroupApp) SearchExternalGames(
+	ctx context.Context,
+	groupID, userID, query string,
+) (dto.ExternalSearch, error) {
 	if err := a.requireMember(ctx, groupID, userID); err != nil {
 		return dto.ExternalSearch{}, err
 	}
@@ -165,14 +191,26 @@ func (a *GroupApp) SearchExternalGames(ctx context.Context, groupID, userID, que
 	}
 	items := make([]dto.ExternalGame, 0, len(hits))
 	for _, hit := range hits {
-		items = append(items, dto.ExternalGame{BGGID: hit.ID, Name: hit.Name, Year: hit.Year, Thumbnail: hit.Thumbnail})
+		items = append(
+			items,
+			dto.ExternalGame{
+				BGGID:     hit.ID,
+				Name:      hit.Name,
+				Year:      hit.Year,
+				Thumbnail: hit.Thumbnail,
+			},
+		)
 	}
 	return dto.ExternalSearch{Items: items, Source: bggSource, SourceURL: bggTerms}, nil
 }
 
 // ImportExternalGame copies one external game into the group, keeping the
 // external name separate from the local alias.
-func (a *GroupApp) ImportExternalGame(ctx context.Context, groupID, userID string, req *dto.ImportGameReq) (dto.Game, error) {
+func (a *GroupApp) ImportExternalGame(
+	ctx context.Context,
+	groupID, userID string,
+	req *dto.ImportGameReq,
+) (dto.Game, error) {
 	if err := a.requireMember(ctx, groupID, userID); err != nil {
 		return dto.Game{}, err
 	}
@@ -189,7 +227,9 @@ func (a *GroupApp) ImportExternalGame(ctx context.Context, groupID, userID strin
 			return e
 		}
 		var e error
-		saved, e = gameService(repos).Import(ctx, groupID, external.ID, req.Name, external.Name, external.Thumbnail)
+		saved, e = gameService(
+			repos,
+		).Import(ctx, groupID, external.ID, req.Name, external.Name, external.Thumbnail)
 		return e
 	}); err != nil {
 		return dto.Game{}, err
@@ -198,7 +238,11 @@ func (a *GroupApp) ImportExternalGame(ctx context.Context, groupID, userID strin
 }
 
 // SyncCover copies an external cover onto a game already on the shelf.
-func (a *GroupApp) SyncCover(ctx context.Context, groupID, userID string, req *dto.SyncCoverReq) (dto.Game, error) {
+func (a *GroupApp) SyncCover(
+	ctx context.Context,
+	groupID, userID string,
+	req *dto.SyncCoverReq,
+) (dto.Game, error) {
 	if err := a.requireMember(ctx, groupID, userID); err != nil {
 		return dto.Game{}, err
 	}
@@ -218,7 +262,9 @@ func (a *GroupApp) SyncCover(ctx context.Context, groupID, userID string, req *d
 			return e
 		}
 		var e error
-		saved, e = gameService(repos).AttachCover(ctx, groupID, req.GameID, external.ID, external.Name, external.Thumbnail)
+		saved, e = gameService(
+			repos,
+		).AttachCover(ctx, groupID, req.GameID, external.ID, external.Name, external.Thumbnail)
 		return e
 	}); err != nil {
 		return dto.Game{}, err
@@ -247,17 +293,52 @@ func (a *GroupApp) Manage(ctx context.Context, groupID, userID string, req *dto.
 		if err != nil {
 			return err
 		}
-		if err = groupService(repos).Manage(ctx, groupID, userID, req.Action, req.Target, req.Value); err != nil {
+		if err = groupService(
+			repos,
+		).Manage(ctx, groupID, userID, req.Action, req.Target, req.Value); err != nil {
 			return err
 		}
 		now := time.Now().UTC()
 		switch req.Action {
 		case "claim", "claim-new":
-			return createNotification(ctx, repos, current.Group.Owner, groupID, "claim_requested", "新的玩家关联申请", "有成员申请关联玩家档案，请前往小组页面处理。", "/group", "claim-requested:"+groupID+":"+userID+":"+secure.NewID(), now)
+			return createNotification(
+				ctx,
+				repos,
+				current.Group.Owner,
+				groupID,
+				"claim_requested",
+				"新的玩家关联申请",
+				"有成员申请关联玩家档案，请前往小组页面处理。",
+				"/group",
+				"claim-requested:"+groupID+":"+userID+":"+secure.NewID(),
+				now,
+			)
 		case "approve":
-			return createNotification(ctx, repos, req.Target, groupID, "claim_approved", "玩家关联已通过", "组主已确认你的玩家档案关联。", "/group", "claim-approved:"+groupID+":"+req.Target+":"+secure.NewID(), now)
+			return createNotification(
+				ctx,
+				repos,
+				req.Target,
+				groupID,
+				"claim_approved",
+				"玩家关联已通过",
+				"组主已确认你的玩家档案关联。",
+				"/group",
+				"claim-approved:"+groupID+":"+req.Target+":"+secure.NewID(),
+				now,
+			)
 		case "reject":
-			return createNotification(ctx, repos, req.Target, groupID, "claim_rejected", "玩家关联未通过", "组主未通过本次玩家档案关联，你可以重新申请。", "/group", "claim-rejected:"+groupID+":"+req.Target+":"+secure.NewID(), now)
+			return createNotification(
+				ctx,
+				repos,
+				req.Target,
+				groupID,
+				"claim_rejected",
+				"玩家关联未通过",
+				"组主未通过本次玩家档案关联，你可以重新申请。",
+				"/group",
+				"claim-rejected:"+groupID+":"+req.Target+":"+secure.NewID(),
+				now,
+			)
 		}
 		return nil
 	})
@@ -323,7 +404,18 @@ func (a *GroupApp) Join(ctx context.Context, userID string, req *dto.JoinReq) (s
 		if e != nil || alreadyMember || invited.Owner == userID {
 			return e
 		}
-		return createNotification(ctx, repos, invited.Owner, invited.ID, "member_joined", "有朋友加入了小组", "一位新成员通过邀请加入了你的小组。", "/group", "member-joined:"+invited.ID+":"+userID, now)
+		return createNotification(
+			ctx,
+			repos,
+			invited.Owner,
+			invited.ID,
+			"member_joined",
+			"有朋友加入了小组",
+			"一位新成员通过邀请加入了你的小组。",
+			"/group",
+			"member-joined:"+invited.ID+":"+userID,
+			now,
+		)
 	}); err != nil {
 		return "", err
 	}
@@ -346,7 +438,8 @@ func (a *GroupApp) Export(ctx context.Context, groupID, userID string) ([]byte, 
 		if rounds, e = repos.Round().ListByGroup(ctx, groupID); e != nil {
 			return e
 		}
-		deleted, e = repos.Round().ListDeletedByGroup(ctx, groupID, time.Now().UTC().Add(-RoundRecycleRetention))
+		deleted, e = repos.Round().
+			ListDeletedByGroup(ctx, groupID, time.Now().UTC().Add(-RoundRecycleRetention))
 		return e
 	})
 	if err != nil {
@@ -376,7 +469,19 @@ func (a *GroupApp) Export(ctx context.Context, groupID, userID string) ([]byte, 
 		return nil, e
 	}
 	writer := csv.NewWriter(csvFile)
-	_ = writer.Write([]string{"id", "date", "game", "mode", "outcome", "players", "minutes", "memory", "deleted_at"})
+	_ = writer.Write(
+		[]string{
+			"id",
+			"date",
+			"game",
+			"mode",
+			"outcome",
+			"players",
+			"minutes",
+			"memory",
+			"deleted_at",
+		},
+	)
 	gameNames, playerNames := map[string]string{}, map[string]string{}
 	for _, item := range snapshot.Games {
 		gameNames[item.ID] = item.Name
@@ -399,7 +504,19 @@ func (a *GroupApp) Export(ctx context.Context, groupID, userID string) ([]byte, 
 		if round.DeletedAt != nil {
 			deletedAt = round.DeletedAt.Format(time.RFC3339)
 		}
-		_ = writer.Write([]string{round.ID, round.Date, gameNames[round.GameID], round.Mode, round.Outcome, strings.Join(players, "、"), minutes, round.Memory, deletedAt})
+		_ = writer.Write(
+			[]string{
+				round.ID,
+				round.Date,
+				gameNames[round.GameID],
+				round.Mode,
+				round.Outcome,
+				strings.Join(players, "、"),
+				minutes,
+				round.Memory,
+				deletedAt,
+			},
+		)
 		for _, id := range round.Photos {
 			photoIDs[id] = true
 		}

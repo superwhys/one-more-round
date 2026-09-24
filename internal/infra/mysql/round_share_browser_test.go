@@ -27,7 +27,11 @@ func TestRoundShareBrowser(t *testing.T) {
 	s := setup(t)
 	ctx := context.Background()
 	owner, session := s.signup(t, "share-browser@example.com")
-	group, err := s.groups.Create(ctx, owner.ID, &dto.CreateGroupReq{Name: "周五桌游组", PlayerName: "小林"})
+	group, err := s.groups.Create(
+		ctx,
+		owner.ID,
+		&dto.CreateGroupReq{Name: "周五桌游组", PlayerName: "小林"},
+	)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -40,7 +44,23 @@ func TestRoundShareBrowser(t *testing.T) {
 		t.Fatal(err)
 	}
 	photo := s.uploadPhoto(t, group.ID, owner.ID)
-	round, err := s.rounds.Save(ctx, owner.ID, &dto.SaveRoundReq{GroupID: group.ID, IdempotencyKey: secure.NewID(), Round: dto.Round{GameID: game.ID, Date: "2026-09-20", Mode: "coop", Outcome: "win", Players: []string{player.ID}, Memory: "最后一轮刚好凑齐", Photos: []string{photo}}})
+	round, err := s.rounds.Save(
+		ctx,
+		owner.ID,
+		&dto.SaveRoundReq{
+			GroupID:        group.ID,
+			IdempotencyKey: secure.NewID(),
+			Round: dto.Round{
+				GameID:  game.ID,
+				Date:    "2026-09-20",
+				Mode:    "coop",
+				Outcome: "win",
+				Players: []string{player.ID},
+				Memory:  "最后一轮刚好凑齐",
+				Photos:  []string{photo},
+			},
+		},
+	)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -51,12 +71,23 @@ func TestRoundShareBrowser(t *testing.T) {
 	mux := http.NewServeMux()
 	server := httptest.NewUnstartedServer(mux)
 	origin := "http://" + server.Listener.Addr().String()
-	backend := api.NewAPI("share-browser-test", &config.Runtime{Origin: origin}, s.auth, s.groups, s.rounds, s.photos, s.notifications, s.comments).SetupRouter()
+	backend := api.NewAPI("share-browser-test", &config.Runtime{Origin: origin}, s.auth, s.groups, s.rounds, s.photos, s.notifications, s.comments).
+		SetupRouter()
 	mux.Handle("/api/", http.StripPrefix("/api", backend))
 	mux.Handle("/", frontend)
 	server.Start()
 	defer server.Close()
-	fixture, err := json.Marshal(map[string]string{"origin": origin, "session": session, "roundID": round.ID, "groupName": group.Name, "gameName": game.Name, "playerName": player.Name, "memory": round.Memory})
+	fixture, err := json.Marshal(
+		map[string]string{
+			"origin":     origin,
+			"session":    session,
+			"roundID":    round.ID,
+			"groupName":  group.Name,
+			"gameName":   game.Name,
+			"playerName": player.Name,
+			"memory":     round.Memory,
+		},
+	)
 	if err != nil {
 		t.Fatal(err)
 	}

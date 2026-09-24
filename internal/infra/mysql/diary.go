@@ -4,12 +4,13 @@ import (
 	"context"
 	"time"
 
+	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
+
 	"github.com/superwhys/one-more-round/internal/domain/diary"
 	"github.com/superwhys/one-more-round/internal/errcode"
 	"github.com/superwhys/one-more-round/internal/infra/mysql/mapper"
 	"github.com/superwhys/one-more-round/internal/infra/mysql/models"
-	"gorm.io/gorm"
-	"gorm.io/gorm/clause"
 )
 
 type roundRepository struct {
@@ -19,7 +20,10 @@ type roundRepository struct {
 // ListByGroup returns the group's rounds, newest first.
 func (r *roundRepository) ListByGroup(ctx context.Context, groupID string) ([]*diary.Round, error) {
 	q := queryOf(r.db).Round
-	rows, err := q.WithContext(ctx).Where(q.GroupID.Eq(groupID), q.DeletedAt.IsNull()).Order(q.Played.Desc(), q.ID.Desc()).Find()
+	rows, err := q.WithContext(ctx).
+		Where(q.GroupID.Eq(groupID), q.DeletedAt.IsNull()).
+		Order(q.Played.Desc(), q.ID.Desc()).
+		Find()
 	if err != nil {
 		return nil, mapErr(err)
 	}
@@ -35,16 +39,33 @@ func (r *roundRepository) ListByGroup(ctx context.Context, groupID string) ([]*d
 }
 
 // ListDeletedByGroup returns rounds still inside the recovery window.
-func (r *roundRepository) ListDeletedByGroup(ctx context.Context, groupID string, after time.Time) ([]*diary.Round, error) {
+func (r *roundRepository) ListDeletedByGroup(
+	ctx context.Context,
+	groupID string,
+	after time.Time,
+) ([]*diary.Round, error) {
 	q := queryOf(r.db).Round
-	rows, err := q.WithContext(ctx).Clauses(clause.Locking{Strength: "UPDATE"}).Where(q.GroupID.Eq(groupID), q.DeletedAt.Gte(after)).Order(q.DeletedAt.Desc()).Find()
+	rows, err := q.WithContext(ctx).
+		Clauses(clause.Locking{Strength: "UPDATE"}).
+		Where(q.GroupID.Eq(groupID), q.DeletedAt.Gte(after)).
+		Order(q.DeletedAt.Desc()).
+		Find()
 	return r.decode(rows, err)
 }
 
 // ListDeletedBefore returns a bounded cleanup batch across groups.
-func (r *roundRepository) ListDeletedBefore(ctx context.Context, before time.Time, limit int) ([]*diary.Round, error) {
+func (r *roundRepository) ListDeletedBefore(
+	ctx context.Context,
+	before time.Time,
+	limit int,
+) ([]*diary.Round, error) {
 	q := queryOf(r.db).Round
-	rows, err := q.WithContext(ctx).Clauses(clause.Locking{Strength: "UPDATE"}).Where(q.DeletedAt.Lt(before)).Order(q.DeletedAt).Limit(limit).Find()
+	rows, err := q.WithContext(ctx).
+		Clauses(clause.Locking{Strength: "UPDATE"}).
+		Where(q.DeletedAt.Lt(before)).
+		Order(q.DeletedAt).
+		Limit(limit).
+		Find()
 	return r.decode(rows, err)
 }
 
@@ -71,15 +92,25 @@ func (r *roundRepository) Save(ctx context.Context, groupID string, round *diary
 	}
 	row.GroupID = groupID
 	q := queryOf(r.db).Round
-	return mapErr(q.WithContext(ctx).Clauses(clause.OnConflict{DoUpdates: clause.AssignmentColumns([]string{
-		string(q.GameID.ColumnName()), string(q.Played.ColumnName()), string(q.Version.ColumnName()), string(q.Body.ColumnName()), string(q.DeletedAt.ColumnName()),
-	})}).Create(row))
+	return mapErr(
+		q.WithContext(ctx).Clauses(clause.OnConflict{DoUpdates: clause.AssignmentColumns([]string{
+			string(
+				q.GameID.ColumnName(),
+			),
+			string(q.Played.ColumnName()),
+			string(q.Version.ColumnName()),
+			string(q.Body.ColumnName()),
+			string(q.DeletedAt.ColumnName()),
+		})}).Create(row),
+	)
 }
 
 // Delete removes the round of the group.
 func (r *roundRepository) Delete(ctx context.Context, groupID, id string) error {
 	queries := queryOf(r.db)
-	if _, err := queries.RoundShare.WithContext(ctx).Where(queries.RoundShare.GroupID.Eq(groupID), queries.RoundShare.RoundID.Eq(id)).Delete(); err != nil {
+	if _, err := queries.RoundShare.WithContext(ctx).
+		Where(queries.RoundShare.GroupID.Eq(groupID), queries.RoundShare.RoundID.Eq(id)).
+		Delete(); err != nil {
 		return mapErr(err)
 	}
 	if err := (&commentRepository{db: r.db}).DeleteByRound(ctx, groupID, id); err != nil {
@@ -93,36 +124,76 @@ func (r *roundRepository) Delete(ctx context.Context, groupID, id string) error 
 // SaveShare creates or rotates the single public link of a round.
 func (r *roundRepository) SaveShare(ctx context.Context, share *diary.Share) error {
 	q := queryOf(r.db).RoundShare
-	row := &models.RoundShare{RoundID: share.RoundID, GroupID: share.GroupID, TokenHash: share.TokenHash, CreatedBy: share.CreatedBy, CreatedAt: share.CreatedAt, RevokedAt: share.RevokedAt}
-	return mapErr(q.WithContext(ctx).Clauses(clause.OnConflict{DoUpdates: clause.AssignmentColumns([]string{
-		string(q.GroupID.ColumnName()), string(q.TokenHash.ColumnName()), string(q.CreatedBy.ColumnName()), string(q.CreatedAt.ColumnName()), string(q.RevokedAt.ColumnName()),
-	})}).Create(row))
+	row := &models.RoundShare{
+		RoundID:   share.RoundID,
+		GroupID:   share.GroupID,
+		TokenHash: share.TokenHash,
+		CreatedBy: share.CreatedBy,
+		CreatedAt: share.CreatedAt,
+		RevokedAt: share.RevokedAt,
+	}
+	return mapErr(
+		q.WithContext(ctx).Clauses(clause.OnConflict{DoUpdates: clause.AssignmentColumns([]string{
+			string(
+				q.GroupID.ColumnName(),
+			),
+			string(q.TokenHash.ColumnName()),
+			string(q.CreatedBy.ColumnName()),
+			string(q.CreatedAt.ColumnName()),
+			string(q.RevokedAt.ColumnName()),
+		})}).Create(row),
+	)
 }
 
 // GetShare returns the link state of a round.
-func (r *roundRepository) GetShare(ctx context.Context, groupID, roundID string) (*diary.Share, error) {
+func (r *roundRepository) GetShare(
+	ctx context.Context,
+	groupID, roundID string,
+) (*diary.Share, error) {
 	q := queryOf(r.db).RoundShare
 	m, err := q.WithContext(ctx).Where(q.GroupID.Eq(groupID), q.RoundID.Eq(roundID)).Take()
 	if err != nil {
 		return nil, mapErr(err)
 	}
-	return &diary.Share{RoundID: m.RoundID, GroupID: m.GroupID, TokenHash: m.TokenHash, CreatedBy: m.CreatedBy, CreatedAt: m.CreatedAt, RevokedAt: m.RevokedAt}, nil
+	return &diary.Share{
+		RoundID:   m.RoundID,
+		GroupID:   m.GroupID,
+		TokenHash: m.TokenHash,
+		CreatedBy: m.CreatedBy,
+		CreatedAt: m.CreatedAt,
+		RevokedAt: m.RevokedAt,
+	}, nil
 }
 
 // ResolveShare returns the active link identified by a token digest.
-func (r *roundRepository) ResolveShare(ctx context.Context, tokenHash string) (*diary.Share, error) {
+func (r *roundRepository) ResolveShare(
+	ctx context.Context,
+	tokenHash string,
+) (*diary.Share, error) {
 	q := queryOf(r.db).RoundShare
 	m, err := q.WithContext(ctx).Where(q.TokenHash.Eq(tokenHash), q.RevokedAt.IsNull()).Take()
 	if err != nil {
 		return nil, mapErr(err)
 	}
-	return &diary.Share{RoundID: m.RoundID, GroupID: m.GroupID, TokenHash: m.TokenHash, CreatedBy: m.CreatedBy, CreatedAt: m.CreatedAt}, nil
+	return &diary.Share{
+		RoundID:   m.RoundID,
+		GroupID:   m.GroupID,
+		TokenHash: m.TokenHash,
+		CreatedBy: m.CreatedBy,
+		CreatedAt: m.CreatedAt,
+	}, nil
 }
 
 // RevokeShare disables the current public link of a round.
-func (r *roundRepository) RevokeShare(ctx context.Context, groupID, roundID string, at time.Time) error {
+func (r *roundRepository) RevokeShare(
+	ctx context.Context,
+	groupID, roundID string,
+	at time.Time,
+) error {
 	q := queryOf(r.db).RoundShare
-	result, err := q.WithContext(ctx).Where(q.GroupID.Eq(groupID), q.RoundID.Eq(roundID), q.RevokedAt.IsNull()).Update(q.RevokedAt, at)
+	result, err := q.WithContext(ctx).
+		Where(q.GroupID.Eq(groupID), q.RoundID.Eq(roundID), q.RevokedAt.IsNull()).
+		Update(q.RevokedAt, at)
 	if err != nil {
 		return mapErr(err)
 	}
@@ -137,9 +208,14 @@ type idempotencyRepository struct {
 }
 
 // Get returns the stored fingerprint and round of a submission key.
-func (r *idempotencyRepository) Get(ctx context.Context, groupID, userID, key string) (string, string, error) {
+func (r *idempotencyRepository) Get(
+	ctx context.Context,
+	groupID, userID, key string,
+) (string, string, error) {
 	q := queryOf(r.db).Idempotency
-	m, err := q.WithContext(ctx).Where(q.GroupID.Eq(groupID), q.UserID.Eq(userID), q.RequestKey.Eq(key)).Take()
+	m, err := q.WithContext(ctx).
+		Where(q.GroupID.Eq(groupID), q.UserID.Eq(userID), q.RequestKey.Eq(key)).
+		Take()
 	if err != nil {
 		return "", "", mapErr(err)
 	}
@@ -147,6 +223,14 @@ func (r *idempotencyRepository) Get(ctx context.Context, groupID, userID, key st
 }
 
 // Create stores the fingerprint of a submission key.
-func (r *idempotencyRepository) Create(ctx context.Context, groupID, userID, key, hash, roundID string) error {
-	return mapErr(queryOf(r.db).Idempotency.WithContext(ctx).Create(&models.Idempotency{GroupID: groupID, UserID: userID, RequestKey: key, Hash: hash, RoundID: roundID}))
+func (r *idempotencyRepository) Create(
+	ctx context.Context,
+	groupID, userID, key, hash, roundID string,
+) error {
+	return mapErr(
+		queryOf(
+			r.db,
+		).Idempotency.WithContext(ctx).
+			Create(&models.Idempotency{GroupID: groupID, UserID: userID, RequestKey: key, Hash: hash, RoundID: roundID}),
+	)
 }

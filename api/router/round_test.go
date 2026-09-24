@@ -54,7 +54,10 @@ func TestListRoundsRejectsInvalidHasPhotos(t *testing.T) {
 	engine.GET("/groups/:group/rounds", listRoundsHandler(nil))
 
 	response := httptest.NewRecorder()
-	engine.ServeHTTP(response, httptest.NewRequest(http.MethodGet, "/groups/g1/rounds?has_photos=maybe", nil))
+	engine.ServeHTTP(
+		response,
+		httptest.NewRequest(http.MethodGet, "/groups/g1/rounds?has_photos=maybe", nil),
+	)
 	var payload struct {
 		Message string `json:"message"`
 	}

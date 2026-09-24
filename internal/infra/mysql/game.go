@@ -3,10 +3,11 @@ package mysql
 import (
 	"context"
 
-	"github.com/superwhys/one-more-round/internal/domain/game"
-	"github.com/superwhys/one-more-round/internal/infra/mysql/mapper"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
+
+	"github.com/superwhys/one-more-round/internal/domain/game"
+	"github.com/superwhys/one-more-round/internal/infra/mysql/mapper"
 )
 
 type gameRepository struct {
@@ -16,9 +17,16 @@ type gameRepository struct {
 // Save inserts the game or updates its editable columns.
 func (r *gameRepository) Save(ctx context.Context, groupID string, g *game.Game) error {
 	q := queryOf(r.db).Game
-	return mapErr(q.WithContext(ctx).Clauses(clause.OnConflict{DoUpdates: clause.AssignmentColumns([]string{
-		string(q.Name.ColumnName()), string(q.Original.ColumnName()), string(q.BGGID.ColumnName()), string(q.Cover.ColumnName()),
-	})}).Create(mapper.GameDomainToModel(groupID, g)))
+	return mapErr(
+		q.WithContext(ctx).Clauses(clause.OnConflict{DoUpdates: clause.AssignmentColumns([]string{
+			string(
+				q.Name.ColumnName(),
+			),
+			string(q.Original.ColumnName()),
+			string(q.BGGID.ColumnName()),
+			string(q.Cover.ColumnName()),
+		})}).Create(mapper.GameDomainToModel(groupID, g)),
+	)
 }
 
 // ListByGroup returns the group's games ordered by local name.

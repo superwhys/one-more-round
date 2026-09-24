@@ -56,14 +56,15 @@ func TestIssueTrialWritesPrivateLink(t *testing.T) {
 	if len(store.created) != 1 || store.created[0] != secure.Hash(token) {
 		t.Fatalf("stored hashes = %v, want the hash of the written token", store.created)
 	}
-	if len(store.createdExpiry) != 1 || store.createdExpiry[0].Before(before.Add(identity.TrialTTL-time.Minute)) {
+	if len(store.createdExpiry) != 1 ||
+		store.createdExpiry[0].Before(before.Add(identity.TrialTTL-time.Minute)) {
 		t.Fatalf("stored expiry = %v, want roughly seven days", store.createdExpiry)
 	}
 	info, err := os.Stat(path)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if info.Mode().Perm() != 0600 {
+	if info.Mode().Perm() != 0o600 {
 		t.Fatalf("file mode = %v, want 0600", info.Mode().Perm())
 	}
 }
@@ -73,7 +74,7 @@ func TestIssueTrialWritesPrivateLink(t *testing.T) {
 func TestIssueTrialKeepsExistingFile(t *testing.T) {
 	store := &fakeTrials{}
 	path := filepath.Join(t.TempDir(), "trial-invitation.txt")
-	if err := os.WriteFile(path, []byte("keep\n"), 0600); err != nil {
+	if err := os.WriteFile(path, []byte("keep\n"), 0o600); err != nil {
 		t.Fatal(err)
 	}
 	if err := IssueTrial(context.Background(), store, "http://127.0.0.1:8080", path); err == nil {
@@ -94,7 +95,11 @@ func TestRevokeTrialConsumesInvitation(t *testing.T) {
 	store := &fakeTrials{}
 	path := filepath.Join(t.TempDir(), "trial-invitation.txt")
 	token := secure.NewID()
-	if err := os.WriteFile(path, []byte("http://127.0.0.1:8080/login#trial="+token+"\n"), 0600); err != nil {
+	if err := os.WriteFile(
+		path,
+		[]byte("http://127.0.0.1:8080/login#trial="+token+"\n"),
+		0o600,
+	); err != nil {
 		t.Fatal(err)
 	}
 	if err := RevokeTrial(context.Background(), store, path); err != nil {
@@ -118,7 +123,7 @@ func TestRevokeTrialRejectsInvalidFile(t *testing.T) {
 	} {
 		store := &fakeTrials{}
 		path := filepath.Join(t.TempDir(), "trial-invitation.txt")
-		if err := os.WriteFile(path, []byte(content), 0600); err != nil {
+		if err := os.WriteFile(path, []byte(content), 0o600); err != nil {
 			t.Fatal(err)
 		}
 		if err := RevokeTrial(context.Background(), store, path); err == nil {
@@ -128,7 +133,11 @@ func TestRevokeTrialRejectsInvalidFile(t *testing.T) {
 			t.Errorf("revoked %v from invalid file %q", store.revoked, content)
 		}
 	}
-	if err := RevokeTrial(context.Background(), &fakeTrials{}, filepath.Join(t.TempDir(), "missing.txt")); err == nil {
+	if err := RevokeTrial(
+		context.Background(),
+		&fakeTrials{},
+		filepath.Join(t.TempDir(), "missing.txt"),
+	); err == nil {
 		t.Error("accepted a missing invitation file")
 	}
 }
@@ -154,7 +163,7 @@ func TestRunTrialDispatch(t *testing.T) {
 		t.Fatal(err)
 	}
 	revokePath := filepath.Join(dir, "revoke.txt")
-	if err := os.WriteFile(revokePath, link, 0600); err != nil {
+	if err := os.WriteFile(revokePath, link, 0o600); err != nil {
 		t.Fatal(err)
 	}
 	handled, err = runTrial(ctx, store, "http://127.0.0.1:8080", revokePath, outputPath)

@@ -8,6 +8,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/miebyte/goutils/ginutils"
+
 	"github.com/superwhys/one-more-round/api/common"
 	"github.com/superwhys/one-more-round/internal/app/dto"
 	"github.com/superwhys/one-more-round/internal/app/services"
@@ -82,7 +83,13 @@ func exportGroupHandler(groupApp *services.GroupApp) gin.HandlerFunc {
 		if common.HandleRouterError(ctx, err, "export group failed", errcode.ErrSysInternal) {
 			return
 		}
-		ctx.Header("Content-Disposition", fmt.Sprintf(`attachment; filename="one-more-round-%s.zip"`, time.Now().Format("20060102")))
+		ctx.Header(
+			"Content-Disposition",
+			fmt.Sprintf(
+				`attachment; filename="one-more-round-%s.zip"`,
+				time.Now().Format("20060102"),
+			),
+		)
 		ctx.Data(http.StatusOK, "application/zip", data)
 	})
 }
@@ -177,7 +184,12 @@ func groupSnapshotHandler(groupApp *services.GroupApp) gin.HandlerFunc {
 // @Router /v1/groups/{group}/players [post]
 func addPlayerHandler(groupApp *services.GroupApp) gin.HandlerFunc {
 	return ginutils.RequestHandler(func(ctx *gin.Context, req *dto.AddPlayerReq) {
-		player, err := groupApp.AddPlayer(ctx.Request.Context(), req.GroupID, common.UserID(ctx), req)
+		player, err := groupApp.AddPlayer(
+			ctx.Request.Context(),
+			req.GroupID,
+			common.UserID(ctx),
+			req,
+		)
 		if common.HandleRouterError(ctx, err, "add player failed", errcode.ErrPlayerSave) {
 			return
 		}
@@ -218,8 +230,18 @@ func addGameHandler(groupApp *services.GroupApp) gin.HandlerFunc {
 // @Router /v1/groups/{group}/bgg/search [get]
 func searchExternalGamesHandler(groupApp *services.GroupApp) gin.HandlerFunc {
 	return ginutils.RequestHandler(func(ctx *gin.Context, req *dto.SearchExternalGamesReq) {
-		found, err := groupApp.SearchExternalGames(ctx.Request.Context(), req.GroupID, common.UserID(ctx), req.Query)
-		if common.HandleRouterError(ctx, err, "search external games failed", errcode.ErrBGGSearch) {
+		found, err := groupApp.SearchExternalGames(
+			ctx.Request.Context(),
+			req.GroupID,
+			common.UserID(ctx),
+			req.Query,
+		)
+		if common.HandleRouterError(
+			ctx,
+			err,
+			"search external games failed",
+			errcode.ErrBGGSearch,
+		) {
 			return
 		}
 		ctx.JSON(http.StatusOK, dto.ResponseWithData(found))
@@ -239,7 +261,12 @@ func searchExternalGamesHandler(groupApp *services.GroupApp) gin.HandlerFunc {
 // @Router /v1/groups/{group}/games/import [post]
 func importExternalGameHandler(groupApp *services.GroupApp) gin.HandlerFunc {
 	return ginutils.RequestHandler(func(ctx *gin.Context, req *dto.ImportGameReq) {
-		game, err := groupApp.ImportExternalGame(ctx.Request.Context(), req.GroupID, common.UserID(ctx), req)
+		game, err := groupApp.ImportExternalGame(
+			ctx.Request.Context(),
+			req.GroupID,
+			common.UserID(ctx),
+			req,
+		)
 		if common.HandleRouterError(ctx, err, "import external game failed", errcode.ErrGameSave) {
 			return
 		}
@@ -299,7 +326,11 @@ func listInvitesHandler(groupApp *services.GroupApp) gin.HandlerFunc {
 // @Router /v1/groups/{group}/invites [post]
 func createInviteHandler(groupApp *services.GroupApp, origin string) gin.HandlerFunc {
 	return ginutils.RequestHandler(func(ctx *gin.Context, req *dto.GroupPathReq) {
-		invite, token, err := groupApp.Invite(ctx.Request.Context(), req.GroupID, common.UserID(ctx))
+		invite, token, err := groupApp.Invite(
+			ctx.Request.Context(),
+			req.GroupID,
+			common.UserID(ctx),
+		)
 		if common.HandleRouterError(ctx, err, "create invite failed", errcode.ErrInviteCreate) {
 			return
 		}

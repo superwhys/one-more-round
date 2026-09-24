@@ -48,7 +48,7 @@ func TestLegacyOSSReadsUsePrimaryThenThumbnail(t *testing.T) {
 func TestLegacyLocalThumbnailFallbackAndRemoval(t *testing.T) {
 	store := &Files{Root: t.TempDir()}
 	path := filepath.Join(store.Root, photoName(testPhotoID, true))
-	if err := os.WriteFile(path, []byte("legacy-thumbnail"), 0600); err != nil {
+	if err := os.WriteFile(path, []byte("legacy-thumbnail"), 0o600); err != nil {
 		t.Fatal(err)
 	}
 	for _, thumb := range []bool{false, true} {

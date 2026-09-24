@@ -5,6 +5,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/miebyte/goutils/ginutils"
+
 	"github.com/superwhys/one-more-round/api/common"
 	"github.com/superwhys/one-more-round/internal/app/dto"
 	"github.com/superwhys/one-more-round/internal/app/services"
@@ -40,7 +41,12 @@ func CommentRouter(commentApp *services.CommentApp) commentRouterFn {
 func listRoundCommentsHandler(commentApp *services.CommentApp) gin.HandlerFunc {
 	return ginutils.RequestHandler(func(ctx *gin.Context, req *dto.ListRoundCommentsReq) {
 		page, err := commentApp.List(ctx.Request.Context(), common.UserID(ctx), req)
-		if common.HandleRouterError(ctx, err, "list round comments failed", errcode.ErrCommentList) {
+		if common.HandleRouterError(
+			ctx,
+			err,
+			"list round comments failed",
+			errcode.ErrCommentList,
+		) {
 			return
 		}
 		ctx.JSON(http.StatusOK, dto.ResponseWithData(page))
@@ -83,7 +89,16 @@ func createRoundCommentHandler(commentApp *services.CommentApp) gin.HandlerFunc 
 // @Router /v1/groups/{group}/rounds/{id}/comments/{comment} [delete]
 func deleteRoundCommentHandler(commentApp *services.CommentApp) gin.HandlerFunc {
 	return ginutils.RequestHandler(func(ctx *gin.Context, req *dto.DeleteRoundCommentReq) {
-		if err := commentApp.Delete(ctx.Request.Context(), common.UserID(ctx), req); common.HandleRouterError(ctx, err, "delete round comment failed", errcode.ErrCommentDelete) {
+		if err := commentApp.Delete(
+			ctx.Request.Context(),
+			common.UserID(ctx),
+			req,
+		); common.HandleRouterError(
+			ctx,
+			err,
+			"delete round comment failed",
+			errcode.ErrCommentDelete,
+		) {
 			return
 		}
 		ctx.JSON(http.StatusOK, dto.ResponseSuccess())

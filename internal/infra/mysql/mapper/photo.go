@@ -10,7 +10,14 @@ func PhotoModelToDomain(m *models.Photo) *photo.Photo {
 	if m == nil {
 		return nil
 	}
-	return &photo.Photo{ID: m.ID, GroupID: m.GroupID, Owner: m.Owner, RoundID: m.RoundID, Created: m.Created, State: photo.State(m.State)}
+	return &photo.Photo{
+		ID:      m.ID,
+		GroupID: m.GroupID,
+		Owner:   m.Owner,
+		RoundID: m.RoundID,
+		Created: m.Created,
+		State:   photo.State(m.State),
+	}
 }
 
 // PhotoDomainToModel converts the photo entity into its row of group groupID.
@@ -18,5 +25,12 @@ func PhotoDomainToModel(groupID string, p *photo.Photo) *models.Photo {
 	if p == nil {
 		return nil
 	}
-	return &models.Photo{ID: p.ID, GroupID: groupID, Owner: p.Owner, RoundID: p.RoundID, Created: p.Created, State: string(p.State)}
+	return &models.Photo{
+		ID:      p.ID,
+		GroupID: groupID,
+		Owner:   p.Owner,
+		RoundID: p.RoundID,
+		Created: p.Created,
+		State:   string(p.State),
+	}
 }

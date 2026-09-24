@@ -5,9 +5,10 @@ import (
 	"errors"
 
 	"github.com/miebyte/goutils/mysqlutils"
-	"github.com/superwhys/one-more-round/internal/infra/mysql/models"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
+
+	"github.com/superwhys/one-more-round/internal/infra/mysql/models"
 )
 
 // Client owns the MySQL connection. Gorm serves the repositories; Pool is the
@@ -19,7 +20,9 @@ type Client struct {
 
 // Open connects to MySQL and builds the GORM handle.
 func Open(cfg mysqlutils.MysqlConfig) (*Client, error) {
-	db, err := cfg.DialMysqlGormWithConfig(&gorm.Config{Logger: logger.Default.LogMode(logger.Silent)})
+	db, err := cfg.DialMysqlGormWithConfig(
+		&gorm.Config{Logger: logger.Default.LogMode(logger.Silent)},
+	)
 	if err != nil {
 		return nil, errors.New("无法连接 MySQL，请检查数据库配置")
 	}

@@ -9,6 +9,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/miebyte/goutils/ginutils"
 	"github.com/miebyte/goutils/logging"
+
 	"github.com/superwhys/one-more-round/api/common"
 	"github.com/superwhys/one-more-round/internal/app/dto"
 	"github.com/superwhys/one-more-round/internal/app/ports"
@@ -82,7 +83,12 @@ func uploadPhotoHandler(photoApp photoUploader) gin.HandlerFunc {
 			common.RespondError(ctx, errcode.ErrPhotoTooLarge)
 			return
 		}
-		id, err := photoApp.Upload(ctx.Request.Context(), ctx.Param("group"), common.UserID(ctx), file)
+		id, err := photoApp.Upload(
+			ctx.Request.Context(),
+			ctx.Param("group"),
+			common.UserID(ctx),
+			file,
+		)
 		if common.HandleRouterError(ctx, err, "upload photo failed", errcode.ErrPhotoSave) {
 			return
 		}
@@ -104,7 +110,13 @@ func uploadPhotoHandler(photoApp photoUploader) gin.HandlerFunc {
 func readPhotoHandler(photoApp photoReader) gin.HandlerFunc {
 	return ginutils.RequestHandler(func(ctx *gin.Context, req *dto.ReadPhotoReq) {
 		thumb := strings.EqualFold(req.Size, "thumb")
-		content, err := photoApp.Read(ctx.Request.Context(), req.GroupID, common.UserID(ctx), req.PhotoID, thumb)
+		content, err := photoApp.Read(
+			ctx.Request.Context(),
+			req.GroupID,
+			common.UserID(ctx),
+			req.PhotoID,
+			thumb,
+		)
 		if common.HandleRouterError(ctx, err, "read photo failed", errcode.ErrPhotoRead) {
 			return
 		}
@@ -117,7 +129,12 @@ func readPhotoHandler(photoApp photoReader) gin.HandlerFunc {
 			if !ctx.Writer.Written() {
 				ctx.Header("Content-Length", "")
 				ctx.Header("Content-Type", "")
-				common.HandleRouterError(ctx, ctx.Errors.Last().Err, "read photo stream failed", errcode.ErrPhotoRead)
+				common.HandleRouterError(
+					ctx,
+					ctx.Errors.Last().Err,
+					"read photo stream failed",
+					errcode.ErrPhotoRead,
+				)
 			} else if ctx.Request.Context().Err() == nil {
 				// Headers/body are already committed: never append a JSON error
 				// to an incomplete image. Gin has aborted further handlers.

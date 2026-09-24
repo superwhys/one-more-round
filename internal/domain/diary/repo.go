@@ -30,7 +30,11 @@ type IRoundRepository interface {
 // ICommentRepository reads and writes the comments of a round.
 type ICommentRepository interface {
 	// ListByRound returns the round's comments, oldest first, with the total count.
-	ListByRound(ctx context.Context, groupID, roundID string, offset, limit int) ([]*Comment, int, error)
+	ListByRound(
+		ctx context.Context,
+		groupID, roundID string,
+		offset, limit int,
+	) ([]*Comment, int, error)
 	// Get returns one comment of the round.
 	Get(ctx context.Context, groupID, roundID, id string) (*Comment, error)
 	// Save inserts a comment.
@@ -45,7 +49,10 @@ type ICommentRepository interface {
 // so a retried request reuses the comment it already created.
 type ICommentIdempotencyRepository interface {
 	// Get returns the stored fingerprint and comment of a submission key.
-	Get(ctx context.Context, groupID, userID, roundID, key string) (hash, commentID string, err error)
+	Get(
+		ctx context.Context,
+		groupID, userID, roundID, key string,
+	) (hash, commentID string, err error)
 	// Create stores the fingerprint of a submission key.
 	Create(ctx context.Context, groupID, userID, roundID, key, hash, commentID string) error
 }

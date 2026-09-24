@@ -26,7 +26,11 @@ func NewPhotoApp(ctx *AppContext) *PhotoApp {
 
 // Upload tracks the ID before writing any objects. Pending uploads cannot be
 // read or attached, and failed compensation remains discoverable by cleanup.
-func (a *PhotoApp) Upload(ctx context.Context, groupID, userID string, r io.Reader) (string, error) {
+func (a *PhotoApp) Upload(
+	ctx context.Context,
+	groupID, userID string,
+	r io.Reader,
+) (string, error) {
 	ctx, cancel := context.WithTimeout(ctx, 45*time.Second)
 	defer cancel()
 	id := secure.NewID()
@@ -35,7 +39,11 @@ func (a *PhotoApp) Upload(ctx context.Context, groupID, userID string, r io.Read
 			return err
 		}
 		return repos.Photo().Save(ctx, groupID, &photo.Photo{
-			ID: id, GroupID: groupID, Owner: userID, Created: time.Now().UTC(), State: photo.StateUploading,
+			ID:      id,
+			GroupID: groupID,
+			Owner:   userID,
+			Created: time.Now().UTC(),
+			State:   photo.StateUploading,
 		})
 	}); err != nil {
 		return "", err
@@ -63,7 +71,11 @@ func (a *PhotoApp) Upload(ctx context.Context, groupID, userID string, r io.Read
 }
 
 // Read opens a stored image after checking member access. The caller closes it.
-func (a *PhotoApp) Read(ctx context.Context, groupID, userID, id string, thumb bool) (*ports.PhotoContent, error) {
+func (a *PhotoApp) Read(
+	ctx context.Context,
+	groupID, userID, id string,
+	thumb bool,
+) (*ports.PhotoContent, error) {
 	if err := a.RequireAccess(ctx, groupID, userID, id); err != nil {
 		return nil, err
 	}

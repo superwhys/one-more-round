@@ -71,7 +71,16 @@ func main() {
 	notificationApp := services.NewNotificationApp(appCtx)
 	commentApp := services.NewCommentApp(appCtx)
 
-	backend := api.NewAPI(buildinfo.Version, &runtime, authApp, groupApp, roundApp, photoApp, notificationApp, commentApp)
+	backend := api.NewAPI(
+		buildinfo.Version,
+		&runtime,
+		authApp,
+		groupApp,
+		roundApp,
+		photoApp,
+		notificationApp,
+		commentApp,
+	)
 	frontend, err := web.NewHandler()
 	logging.PanicError(err)
 

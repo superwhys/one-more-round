@@ -16,7 +16,16 @@ import (
 // TestStatusResponseEnvelope checks that a success response carries business code
 // zero and the running build version.
 func TestStatusResponseEnvelope(t *testing.T) {
-	handler := NewAPI("test-version", &config.Runtime{Origin: "http://localhost:8080"}, nil, nil, nil, nil, nil, nil).SetupRouter()
+	handler := NewAPI(
+		"test-version",
+		&config.Runtime{Origin: "http://localhost:8080"},
+		nil,
+		nil,
+		nil,
+		nil,
+		nil,
+		nil,
+	).SetupRouter()
 	rec := httptest.NewRecorder()
 	handler.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/v1/status", nil))
 	if rec.Code != http.StatusOK {
@@ -40,7 +49,16 @@ func TestStatusResponseEnvelope(t *testing.T) {
 // TestFailureKeepsBusinessCodeAndStatus checks that a rejected request reports
 // the business code while the HTTP status carries the protocol semantics.
 func TestFailureKeepsBusinessCodeAndStatus(t *testing.T) {
-	handler := NewAPI("test", &config.Runtime{Origin: "http://localhost:8080"}, nil, nil, nil, nil, nil, nil).SetupRouter()
+	handler := NewAPI(
+		"test",
+		&config.Runtime{Origin: "http://localhost:8080"},
+		nil,
+		nil,
+		nil,
+		nil,
+		nil,
+		nil,
+	).SetupRouter()
 	rec := httptest.NewRecorder()
 	handler.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/v1/unknown", nil))
 	if rec.Code != http.StatusNotFound {
@@ -61,11 +79,24 @@ func TestFailureKeepsBusinessCodeAndStatus(t *testing.T) {
 // binding or validation answers with the business code and status of this API
 // instead of the default success envelope of the request binder.
 func TestRejectedInputKeepsBusinessCodeAndStatus(t *testing.T) {
-	handler := NewAPI("test", &config.Runtime{Origin: "http://localhost:8080"}, nil, nil, nil, nil, nil, nil).SetupRouter()
+	handler := NewAPI(
+		"test",
+		&config.Runtime{Origin: "http://localhost:8080"},
+		nil,
+		nil,
+		nil,
+		nil,
+		nil,
+		nil,
+	).SetupRouter()
 	rec := httptest.NewRecorder()
 	// The invitation preview takes no session, so a missing token fails during
 	// validation before any service is called.
-	request := httptest.NewRequest(http.MethodPost, "/v1/auth/group-invite", strings.NewReader("{}"))
+	request := httptest.NewRequest(
+		http.MethodPost,
+		"/v1/auth/group-invite",
+		strings.NewReader("{}"),
+	)
 	request.Header.Set("Content-Type", "application/json")
 	request.Header.Set("Origin", "http://localhost:8080")
 	handler.ServeHTTP(rec, request)
@@ -77,8 +108,14 @@ func TestRejectedInputKeepsBusinessCodeAndStatus(t *testing.T) {
 	if err := json.Unmarshal(rec.Body.Bytes(), &payload); err != nil {
 		t.Fatal(err)
 	}
-	if rec.Code != http.StatusBadRequest || payload.Code != errcode.CodeBadRequest || payload.Message != errcode.ErrBadRequest.Message {
-		t.Fatalf("rejected input: status=%d code=%d message=%q", rec.Code, payload.Code, payload.Message)
+	if rec.Code != http.StatusBadRequest || payload.Code != errcode.CodeBadRequest ||
+		payload.Message != errcode.ErrBadRequest.Message {
+		t.Fatalf(
+			"rejected input: status=%d code=%d message=%q",
+			rec.Code,
+			payload.Code,
+			payload.Message,
+		)
 	}
 }
 

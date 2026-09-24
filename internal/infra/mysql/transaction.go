@@ -6,6 +6,8 @@ import (
 	"errors"
 
 	driver "github.com/go-sql-driver/mysql"
+	"gorm.io/gorm"
+
 	"github.com/superwhys/one-more-round/internal/app/ports"
 	"github.com/superwhys/one-more-round/internal/domain/diary"
 	"github.com/superwhys/one-more-round/internal/domain/game"
@@ -15,7 +17,6 @@ import (
 	"github.com/superwhys/one-more-round/internal/domain/photo"
 	"github.com/superwhys/one-more-round/internal/errcode"
 	"github.com/superwhys/one-more-round/internal/infra/mysql/query"
-	"gorm.io/gorm"
 )
 
 // RepositoryFactory builds repositories bound to one database handle. The root
@@ -34,7 +35,10 @@ func NewRepositoryFactory(db *gorm.DB) *RepositoryFactory {
 
 // WithTransaction runs fn in a read-committed transaction and hands it the
 // repositories bound to that transaction.
-func (f *RepositoryFactory) WithTransaction(ctx context.Context, fn func(ports.Repositories) error) error {
+func (f *RepositoryFactory) WithTransaction(
+	ctx context.Context,
+	fn func(ports.Repositories) error,
+) error {
 	return mapErr(f.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		return fn(&RepositoryFactory{db: tx})
 	}, &sql.TxOptions{Isolation: sql.LevelReadCommitted}))

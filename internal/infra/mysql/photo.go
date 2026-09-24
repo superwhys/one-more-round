@@ -4,10 +4,11 @@ import (
 	"context"
 	"time"
 
-	"github.com/superwhys/one-more-round/internal/domain/photo"
-	"github.com/superwhys/one-more-round/internal/infra/mysql/mapper"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
+
+	"github.com/superwhys/one-more-round/internal/domain/photo"
+	"github.com/superwhys/one-more-round/internal/infra/mysql/mapper"
 )
 
 type photoRepository struct {
@@ -17,9 +18,15 @@ type photoRepository struct {
 // Save inserts the photo metadata, replacing its round binding.
 func (r *photoRepository) Save(ctx context.Context, groupID string, p *photo.Photo) error {
 	q := queryOf(r.db).Photo
-	return mapErr(q.WithContext(ctx).Clauses(clause.OnConflict{DoUpdates: clause.AssignmentColumns([]string{
-		string(q.RoundID.ColumnName()), string(q.Created.ColumnName()), string(q.State.ColumnName()),
-	})}).Create(mapper.PhotoDomainToModel(groupID, p)))
+	return mapErr(
+		q.WithContext(ctx).Clauses(clause.OnConflict{DoUpdates: clause.AssignmentColumns([]string{
+			string(
+				q.RoundID.ColumnName(),
+			),
+			string(q.Created.ColumnName()),
+			string(q.State.ColumnName()),
+		})}).Create(mapper.PhotoDomainToModel(groupID, p)),
+	)
 }
 
 // Get returns the metadata of one photo of the group.
@@ -33,7 +40,11 @@ func (r *photoRepository) Get(ctx context.Context, groupID, id string) (*photo.P
 }
 
 // ListCleanup includes failed deletions even when their retention cutoff changed.
-func (r *photoRepository) ListCleanup(ctx context.Context, before time.Time, limit int) ([]*photo.Photo, error) {
+func (r *photoRepository) ListCleanup(
+	ctx context.Context,
+	before time.Time,
+	limit int,
+) ([]*photo.Photo, error) {
 	q := queryOf(r.db).Photo
 	rows, err := q.WithContext(ctx).Where(q.RoundID.Eq("")).
 		Where(q.WithContext(ctx).Where(q.Created.Lt(before)).Or(q.State.Eq(string(photo.StateDeleting)))).
@@ -51,6 +62,8 @@ func (r *photoRepository) ListCleanup(ctx context.Context, before time.Time, lim
 // DeletePending is idempotent, including concurrent cleanup workers.
 func (r *photoRepository) DeletePending(ctx context.Context, groupID, id string) error {
 	q := queryOf(r.db).Photo
-	_, err := q.WithContext(ctx).Where(q.GroupID.Eq(groupID), q.ID.Eq(id), q.RoundID.Eq(""), q.State.Eq(string(photo.StateDeleting))).Delete()
+	_, err := q.WithContext(ctx).
+		Where(q.GroupID.Eq(groupID), q.ID.Eq(id), q.RoundID.Eq(""), q.State.Eq(string(photo.StateDeleting))).
+		Delete()
 	return mapErr(err)
 }

@@ -14,6 +14,7 @@ import (
 
 	"github.com/aliyun/alibabacloud-oss-go-sdk-v2/oss"
 	"github.com/aliyun/alibabacloud-oss-go-sdk-v2/oss/credentials"
+
 	"github.com/superwhys/one-more-round/internal/app/ports"
 	"github.com/superwhys/one-more-round/internal/errcode"
 )
@@ -36,17 +37,22 @@ func (c *OSSConfig) Validate() error {
 		return errors.New("app.oss.region is required")
 	}
 	u, err := url.Parse(c.Endpoint)
-	if err != nil || u.Scheme != "https" || u.Host == "" || u.User != nil || u.Path != "" || u.RawQuery != "" || u.Fragment != "" || u.Port() != "" {
+	if err != nil || u.Scheme != "https" || u.Host == "" || u.User != nil || u.Path != "" ||
+		u.RawQuery != "" ||
+		u.Fragment != "" ||
+		u.Port() != "" {
 		return errors.New("app.oss.endpoint must be an HTTPS endpoint without a path")
 	}
 	// Accept the bucket domain copied from the console, but give the SDK the
 	// service endpoint so it does not prepend the bucket name twice.
 	u.Host = strings.TrimPrefix(u.Host, c.Bucket+".")
-	if u.Host != "oss-"+c.Region+".aliyuncs.com" && u.Host != "oss-"+c.Region+"-internal.aliyuncs.com" {
+	if u.Host != "oss-"+c.Region+".aliyuncs.com" &&
+		u.Host != "oss-"+c.Region+"-internal.aliyuncs.com" {
 		return errors.New("app.oss.endpoint must match the configured region")
 	}
 	c.Endpoint = u.String()
-	if c.Prefix == "" || strings.HasPrefix(c.Prefix, "/") || strings.ContainsAny(c.Prefix, "*?\\\r\n") {
+	if c.Prefix == "" || strings.HasPrefix(c.Prefix, "/") ||
+		strings.ContainsAny(c.Prefix, "*?\\\r\n") {
 		return errors.New("app.oss.prefix must be an object directory without wildcards")
 	}
 	for _, part := range strings.Split(strings.TrimSuffix(c.Prefix, "/"), "/") {
@@ -115,7 +121,10 @@ func (s *OSS) Read(ctx context.Context, id string, _ bool) (*ports.PhotoContent,
 		Bucket: new(s.bucket), Key: new(s.prefix + photoName(id, false)),
 	})
 	// Fall back only on a confirmed missing object, never on a network error.
-	if serviceErr, ok := errors.AsType[*oss.ServiceError](err); ok && serviceErr.Code == "NoSuchKey" {
+	if serviceErr, ok := errors.AsType[*oss.ServiceError](
+		err,
+	); ok &&
+		serviceErr.Code == "NoSuchKey" {
 		result, err = s.client.GetObject(ctx, &oss.GetObjectRequest{
 			Bucket: new(s.bucket), Key: new(s.prefix + photoName(id, true)),
 		})
@@ -128,7 +137,10 @@ func (s *OSS) Read(ctx context.Context, id string, _ bool) (*ports.PhotoContent,
 		}
 		return nil, ossError(err)
 	}
-	return &ports.PhotoContent{Body: &ossPhotoBody{ReadCloser: result.Body, cancel: cancel}, Size: result.ContentLength}, nil
+	return &ports.PhotoContent{
+		Body: &ossPhotoBody{ReadCloser: result.Body, cancel: cancel},
+		Size: result.ContentLength,
+	}, nil
 }
 
 // Keep the request deadline alive while the caller streams the response. Close
@@ -180,7 +192,12 @@ func ossError(err error) error {
 
 	serviceErr, isServiceError := errors.AsType[*oss.ServiceError](err)
 	if isServiceError {
-		return fmt.Errorf("%w (OSS code %s, request %s)", errcode.ErrPhotoStorage, serviceErr.Code, serviceErr.RequestID)
+		return fmt.Errorf(
+			"%w (OSS code %s, request %s)",
+			errcode.ErrPhotoStorage,
+			serviceErr.Code,
+			serviceErr.RequestID,
+		)
 	}
 	return errcode.ErrPhotoStorage
 }

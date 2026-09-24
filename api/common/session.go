@@ -8,6 +8,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/miebyte/goutils/ginutils"
 	"github.com/miebyte/goutils/logging"
+
 	"github.com/superwhys/one-more-round/internal/app/dto"
 	"github.com/superwhys/one-more-round/internal/errcode"
 )
@@ -20,7 +21,18 @@ const userKey = "authenticated_user"
 
 // SetSessionCookie writes the session cookie; a negative maxAge clears it.
 func SetSessionCookie(c *gin.Context, token string, maxAge int, secure bool) {
-	http.SetCookie(c.Writer, &http.Cookie{Name: SessionCookie, Value: token, Path: "/", MaxAge: maxAge, HttpOnly: true, Secure: secure, SameSite: http.SameSiteStrictMode})
+	http.SetCookie(
+		c.Writer,
+		&http.Cookie{
+			Name:     SessionCookie,
+			Value:    token,
+			Path:     "/",
+			MaxAge:   maxAge,
+			HttpOnly: true,
+			Secure:   secure,
+			SameSite: http.SameSiteStrictMode,
+		},
+	)
 }
 
 // ClearSessionCookie removes the session cookie.

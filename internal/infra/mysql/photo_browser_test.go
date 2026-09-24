@@ -26,7 +26,11 @@ func TestPhotoLimitsBrowser(t *testing.T) {
 	s := setup(t)
 	ctx := context.Background()
 	user, session := s.signup(t, "photo-browser@example.com")
-	group, err := s.groups.Create(ctx, user.ID, &dto.CreateGroupReq{Name: "照片限制验收", PlayerName: "小林"})
+	group, err := s.groups.Create(
+		ctx,
+		user.ID,
+		&dto.CreateGroupReq{Name: "照片限制验收", PlayerName: "小林"},
+	)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -45,12 +49,23 @@ func TestPhotoLimitsBrowser(t *testing.T) {
 	mux := http.NewServeMux()
 	server := httptest.NewUnstartedServer(mux)
 	origin := "http://" + server.Listener.Addr().String()
-	backend := api.NewAPI("photo-browser-test", &config.Runtime{Origin: origin}, s.auth, s.groups, s.rounds, s.photos, s.notifications, s.comments).SetupRouter()
+	backend := api.NewAPI("photo-browser-test", &config.Runtime{Origin: origin}, s.auth, s.groups, s.rounds, s.photos, s.notifications, s.comments).
+		SetupRouter()
 	mux.Handle("/api/", http.StripPrefix("/api", backend))
 	mux.Handle("/", frontend)
 	server.Start()
 	defer server.Close()
-	fixture, err := json.Marshal(map[string]any{"origin": origin, "session": session, "groupID": group.ID, "userID": user.ID, "gameID": game.ID, "gameName": game.Name, "photo": photo})
+	fixture, err := json.Marshal(
+		map[string]any{
+			"origin":   origin,
+			"session":  session,
+			"groupID":  group.ID,
+			"userID":   user.ID,
+			"gameID":   game.ID,
+			"gameName": game.Name,
+			"photo":    photo,
+		},
+	)
 	if err != nil {
 		t.Fatal(err)
 	}

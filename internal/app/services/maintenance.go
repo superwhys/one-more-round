@@ -28,7 +28,12 @@ func PhotoCutoff(now time.Time) time.Time { return now.Add(-PhotoRetention) }
 
 // CleanPhotos claims expired uploads under the same group lock as round saving.
 // Objects are deleted outside the transaction, with metadata retained for retry.
-func CleanPhotos(ctx context.Context, repos ports.Repositories, files ports.PhotoFiles, cutoff time.Time) error {
+func CleanPhotos(
+	ctx context.Context,
+	repos ports.Repositories,
+	files ports.PhotoFiles,
+	cutoff time.Time,
+) error {
 	items, err := repos.Photo().ListCleanup(ctx, cutoff, PhotoCleanupBatch)
 	if err != nil {
 		return err
@@ -67,7 +72,12 @@ func CleanPhotos(ctx context.Context, repos ports.Repositories, files ports.Phot
 	return result
 }
 
-func deletePhotoFiles(ctx context.Context, repos ports.Repositories, files ports.PhotoFiles, groupID, id string) error {
+func deletePhotoFiles(
+	ctx context.Context,
+	repos ports.Repositories,
+	files ports.PhotoFiles,
+	groupID, id string,
+) error {
 	if err := files.Remove(ctx, id); err != nil {
 		return err
 	}

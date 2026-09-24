@@ -16,6 +16,7 @@ import (
 	"unicode/utf8"
 
 	"github.com/miebyte/goutils/logging"
+
 	"github.com/superwhys/one-more-round/internal/app/ports"
 	"github.com/superwhys/one-more-round/internal/errcode"
 )
@@ -135,7 +136,12 @@ func (c *Client) LookupBoardGame(ctx context.Context, id int) (ports.ExternalGam
 	if item.ID != id || name == "" {
 		return ports.ExternalGame{}, errcode.ErrNotFound.WithMessage("没有找到这款桌游，可以手动添加")
 	}
-	game := ports.ExternalGame{ID: item.ID, Name: name, Year: yearOf(item.Year), Thumbnail: coverURL(item)}
+	game := ports.ExternalGame{
+		ID:        item.ID,
+		Name:      name,
+		Year:      yearOf(item.Year),
+		Thumbnail: coverURL(item),
+	}
 	c.storeThing(game)
 	return game, nil
 }
@@ -192,7 +198,11 @@ func (c *Client) attachCovers(ctx context.Context, hits []ports.ExternalGame) {
 	for i, hit := range hits {
 		ids[i] = strconv.Itoa(hit.ID)
 	}
-	body, err := c.get(ctx, c.thingURL, url.Values{"id": {strings.Join(ids, ",")}, "type": {"boardgame"}})
+	body, err := c.get(
+		ctx,
+		c.thingURL,
+		url.Values{"id": {strings.Join(ids, ",")}, "type": {"boardgame"}},
+	)
 	if err != nil {
 		logging.Errorc(ctx, "bgg covers unavailable")
 		return
