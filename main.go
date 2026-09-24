@@ -39,8 +39,8 @@ var (
 func main() {
 	flags.Parse()
 
-	runtime := config.Runtime{Listen: listen()}
-	logging.PanicError(runtimeConfig(&runtime))
+	runtime := &config.Runtime{Listen: listen()}
+	logging.PanicError(runtimeConfig(runtime))
 	logging.PanicError(runtime.Validate())
 
 	client, err := mysql.Open(runtime.MySQL)
@@ -73,7 +73,7 @@ func main() {
 
 	backend := api.NewAPI(
 		buildinfo.Version,
-		&runtime,
+		runtime,
 		authApp,
 		groupApp,
 		roundApp,
