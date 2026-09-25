@@ -128,11 +128,12 @@ onMounted(load)
 }
 .wishlist-add .d-field {
   flex: 1;
+  margin: 0;
 }
 .wishlist-grid {
   display: grid;
   gap: 14px;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 380px), 1fr));
 }
 .wishlist-card {
   display: flex;
@@ -183,6 +184,11 @@ onMounted(load)
   .wishlist-add .d-field,
   .wishlist-add .d-button {
     width: 100%;
+  }
+}
+@media (max-width: 360px) {
+  .wishlist-actions .d-button {
+    padding-inline: 12px;
   }
 }
 </style>
