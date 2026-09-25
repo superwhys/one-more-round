@@ -27,6 +27,18 @@ definitions:
     required:
     - name
     type: object
+  dto.BindEmailReq:
+    properties:
+      code:
+        maxLength: 16
+        type: string
+      email:
+        maxLength: 254
+        type: string
+    required:
+    - code
+    - email
+    type: object
   dto.Claim:
     properties:
       player_id:
@@ -514,6 +526,37 @@ definitions:
       id:
         type: string
     type: object
+  dto.WechatLoginReq:
+    properties:
+      code:
+        maxLength: 512
+        type: string
+      email:
+        maxLength: 254
+        type: string
+      email_code:
+        maxLength: 16
+        type: string
+      group_token:
+        maxLength: 128
+        type: string
+      invite:
+        maxLength: 128
+        type: string
+    required:
+    - code
+    type: object
+  dto.WechatLoginResp:
+    properties:
+      email:
+        type: string
+      group_id:
+        type: string
+      id:
+        type: string
+      token:
+        type: string
+    type: object
   dto.Wishlist:
     properties:
       game_ids:
@@ -710,6 +753,14 @@ definitions:
         $ref: '#/definitions/dto.User'
       message: {}
     type: object
+  ginutils.Ret-dto_WechatLoginResp:
+    properties:
+      code:
+        type: integer
+      data:
+        $ref: '#/definitions/dto.WechatLoginResp'
+      message: {}
+    type: object
   ginutils.Ret-dto_Wishlist:
     properties:
       code:
@@ -813,6 +864,52 @@ paths:
       security:
       - SessionCookie: []
       summary: 退出登录
+      tags:
+      - Auth
+  /v1/auth/wx-bind-email:
+    post:
+      consumes:
+      - application/json
+      description: 返回新 Bearer 会话并撤销当前会话；不同账号不合并，已有邮箱不替换
+      parameters:
+      - description: 邮箱绑定请求
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.BindEmailReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/ginutils.Ret-dto_WechatLoginResp'
+      security:
+      - BearerAuth: []
+      summary: 给微信账号绑定经过验证码验证的邮箱
+      tags:
+      - Auth
+  /v1/auth/wx-login:
+    post:
+      consumes:
+      - application/json
+      description: wx.login code 由后端兑换，返回不透明 Bearer 会话；首次注册需有效邀请，已有邮箱须验证验证码
+      parameters:
+      - description: 微信登录请求
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.WechatLoginReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/ginutils.Ret-dto_WechatLoginResp'
+      summary: 微信小程序登录并可首次绑定已有邮箱
       tags:
       - Auth
   /v1/groups:
@@ -1811,6 +1908,10 @@ paths:
       tags:
       - Status
 securityDefinitions:
+  BearerAuth:
+    in: header
+    name: Authorization
+    type: apiKey
   SessionCookie:
     in: cookie
     name: omr_session

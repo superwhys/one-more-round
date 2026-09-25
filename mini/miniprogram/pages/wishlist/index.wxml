@@ -1,0 +1,57 @@
+<view class="page">
+  <view class="eyebrow">NEXT TIME AT OUR TABLE</view>
+  <view class="title">下次想玩<text class="accent">。</text></view>
+  <view class="subtitle">把想一起打开的游戏记在这里，下次聚会就有答案。</view>
+  <view wx:if="{{loading}}" class="empty">正在打开想玩清单…</view>
+  <view wx:if="{{error}}" class="error">{{error}}<button class="link" bindtap="load">重新加载</button></view>
+  <view wx:if="{{!loading && snapshot}}">
+    <view wx:if="{{availableGames.length}}" class="card add-card">
+      <view class="label">从本组桌游架挑一款</view>
+      <picker
+        mode="selector"
+        range="{{availableGames}}"
+        range-key="name"
+        value="{{selectedIndex < 0 ? 0 : selectedIndex}}"
+        bindchange="selectGame"
+        disabled="{{busy}}"
+      >
+        <view class="input picker-value"
+          ><text class="picker-label">{{selectedName || '选择桌游'}}</text><text class="picker-arrow">⌄</text></view
+        >
+      </picker>
+      <button class="primary" bindtap="add" loading="{{busy}}" disabled="{{busy || selectedIndex < 0}}">
+        加入想玩清单
+      </button>
+    </view>
+    <view wx:if="{{!snapshot.games.length}}" class="empty">
+      <view>本组还没有桌游，先添加一款吧。</view>
+      <button class="secondary" bindtap="openShelf">去桌游架</button>
+    </view>
+    <view wx:for="{{wishedGames}}" wx:key="id" class="card wish-card">
+      <image
+        wx:if="{{item.cover}}"
+        class="wish-cover"
+        src="{{item.cover}}"
+        mode="aspectFit"
+        data-id="{{item.id}}"
+        bindtap="openGame"
+        lazy-load
+      />
+      <view wx:else class="wish-cover wish-placeholder" data-id="{{item.id}}" bindtap="openGame">局</view>
+      <view class="wish-body">
+        <view class="wish-name" data-id="{{item.id}}" bindtap="openGame">{{item.name}} ↗</view>
+        <view wx:if="{{item.original && item.original !== item.name}}" class="muted wish-original"
+          >{{item.original}}</view
+        >
+        <view class="wish-actions">
+          <button class="primary" data-id="{{item.id}}" bindtap="record">记一局</button>
+          <button class="secondary" data-id="{{item.id}}" bindtap="remove" disabled="{{busy}}">移出清单</button>
+        </view>
+      </view>
+    </view>
+    <view wx:if="{{snapshot.games.length && !wishedGames.length && !error}}" class="empty">
+      <view class="section-title">下次玩什么？</view>
+      <view>从桌游架挑一款，大家都能看到这份想玩清单。</view>
+    </view>
+  </view>
+</view>

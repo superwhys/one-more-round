@@ -1,0 +1,320 @@
+<view class="page editor">
+  <view wx:if="{{loading}}" class="empty">正在准备这一局…</view>
+  <view wx:elif="{{savedID}}" class="card success">
+    <text class="success-mark">✓</text><text class="eyebrow">ANOTHER GOOD MEMORY</text>
+    <view class="title">这一局，记下了。</view><view class="subtitle">已保存到小组日记，朋友们也能回顾。</view>
+    <button class="primary" bindtap="viewSaved">查看记录</button
+    ><button class="secondary" bindtap="again">再记一局</button>
+    <navigator class="link" url="/pages/review/index" open-type="reLaunch">回到时间线</navigator>
+  </view>
+  <block wx:else>
+    <view class="eyebrow">A LITTLE NOTE, A GOOD MEMORY</view>
+    <view class="title">{{editing ? '再补充一点回忆。' : '刚刚，又玩了一局。'}}</view>
+    <view class="subtitle">记下结果，也留住这一刻。</view>
+    <view wx:if="{{restored}}" class="notice"
+      >已恢复本账号在这个小组的草稿。<button class="link" disabled="{{saving}}" bindtap="discardDraft">
+        放弃草稿
+      </button></view
+    >
+    <view wx:if="{{notice}}" class="notice">{{notice}}</view>
+    <view class="card context"
+      ><view class="muted">记录到小组</view><view class="section-title">{{groupName}}</view>
+      <view class="field"
+        ><text class="label">对局日期</text
+        ><picker mode="date" value="{{form.date}}" data-field="date" bindchange="inputField" disabled="{{saving}}"
+          ><view class="input">{{form.date}}　⌄</view></picker
+        ></view
+      >
+    </view>
+    <view class="card">
+      <view class="section-title"><text class="step">01</text>玩了什么</view
+      ><view class="muted">从本组桌游里选一款，或记下新的游戏。</view>
+      <view class="field"
+        ><text class="label">本局桌游</text
+        ><input
+          class="input"
+          value="{{gameSearch}}"
+          placeholder="搜索本组桌游或输入名称"
+          maxlength="255"
+          bindinput="searchGame"
+          disabled="{{saving || adding}}"
+      /></view>
+      <scroll-view scroll-y class="game-options" style="{{games.length > 3 ? 'height: 320rpx' : ''}}"
+        ><button
+          wx:for="{{games}}"
+          wx:key="id"
+          class="game-option {{form.game_id === item.id ? 'selected' : ''}}"
+          data-id="{{item.id}}"
+          bindtap="chooseGame"
+          disabled="{{saving}}"
+        >
+          <view>{{item.name}}<text wx:if="{{form.game_id === item.id}}">　✓</text></view
+          ><view wx:if="{{item.original}}" class="muted">{{item.original}}</view>
+        </button></scroll-view
+      >
+      <view wx:if="{{!games.length}}" class="muted">本组还没有这款桌游。</view>
+      <view wx:if="{{gameSearch && !form.game_id}}" class="stack catalog-actions"
+        ><button
+          class="secondary"
+          data-kind="games"
+          bindtap="addItem"
+          loading="{{adding}}"
+          disabled="{{saving || adding}}"
+        >
+          手动添加这款桌游</button
+        ><button class="link" bindtap="searchExternal" disabled="{{saving || adding}}">
+          搜索更多桌游（BGG）
+        </button></view
+      >
+      <view wx:if="{{external}}" class="external"
+        ><view wx:if="{{!external.items.length}}" class="muted">没有找到，可以换原文名称或手动添加。</view
+        ><view wx:for="{{external.items}}" wx:key="bgg_id" class="external-item"
+          ><view>{{item.name}} <text class="muted">{{item.year || ''}}</text></view
+          ><button class="secondary small" data-id="{{item.bgg_id}}" data-name="{{item.name}}" bindtap="chooseExternal">
+            选择
+          </button></view
+        ><view class="muted">资料来自 {{external.source}}</view></view
+      >
+      <view wx:if="{{externalID}}" class="field"
+        ><text class="label">在本组显示的名称</text
+        ><input class="input" value="{{externalName}}" bindinput="inputExternalName" maxlength="255" /><button
+          class="primary"
+          bindtap="importExternal"
+          disabled="{{adding}}"
+          loading="{{adding}}"
+        >
+          放上游戏架并选中
+        </button></view
+      >
+    </view>
+    <view class="card">
+      <view class="row between"
+        ><view class="section-title"><text class="step">02</text>和谁一起</view
+        ><text class="muted">已选 {{form.players.length}} 人</text></view
+      >
+      <view class="chips"
+        ><button
+          wx:for="{{players}}"
+          wx:key="id"
+          class="chip {{item.selected ? 'selected' : ''}}"
+          data-id="{{item.id}}"
+          bindtap="togglePlayer"
+          disabled="{{saving}}"
+        >
+          <text class="player-name">{{item.name}}</text
+          ><text class="selection-mark">{{item.selected ? '✓' : '＋'}}</text>
+        </button></view
+      >
+      <view class="field"
+        ><text class="label">添加昵称玩家</text
+        ><input
+          class="input"
+          value="{{playerName}}"
+          placeholder="朋友不注册也能参与"
+          maxlength="255"
+          bindinput="inputPlayer"
+          disabled="{{saving}}"
+        /><button
+          class="secondary"
+          data-kind="players"
+          bindtap="addItem"
+          disabled="{{saving || adding || !playerName}}"
+        >
+          添加玩家
+        </button></view
+      >
+    </view>
+    <view class="card">
+      <view class="section-title"><text class="step">03</text>怎么记结果</view>
+      <view class="segments"
+        ><button
+          class="{{form.mode === 'individual' ? 'active' : ''}}"
+          data-mode="individual"
+          bindtap="changeMode"
+          disabled="{{saving}}"
+        >
+          个人竞技</button
+        ><button
+          class="{{form.mode === 'team' ? 'active' : ''}}"
+          data-mode="team"
+          bindtap="changeMode"
+          disabled="{{saving}}"
+        >
+          组队竞技</button
+        ><button
+          class="{{form.mode === 'coop' ? 'active' : ''}}"
+          data-mode="coop"
+          bindtap="changeMode"
+          disabled="{{saving}}"
+        >
+          合作
+        </button></view
+      >
+      <view class="field"
+        ><text class="label">本局结果</text
+        ><picker
+          range="{{outcomes}}"
+          range-key="label"
+          value="{{outcomeIndex}}"
+          bindchange="changeOutcome"
+          disabled="{{saving}}"
+          ><view class="input">{{outcomes[outcomeIndex].label}}　⌄</view></picker
+        ></view
+      >
+      <block wx:if="{{form.mode === 'individual'}}">
+        <view wx:for="{{participants}}" wx:key="id" class="score-row"
+          ><view class="row between score-heading"
+            ><text class="participant-name">{{item.name}}</text
+            ><button
+              wx:if="{{form.outcome === 'win'}}"
+              class="chip {{item.winner ? 'selected' : ''}}"
+              data-id="{{item.id}}"
+              bindtap="toggleWinner"
+              disabled="{{saving}}"
+            >
+              {{item.winner ? '✓ 获胜' : '设为获胜'}}
+            </button></view
+          ><view class="field"
+            ><text class="label">分数（选填）</text
+            ><input
+              class="input"
+              type="text"
+              value="{{item.score}}"
+              placeholder="未填写，支持负数与小数"
+              data-id="{{item.id}}"
+              bindinput="inputScore"
+              disabled="{{saving}}" /></view
+        ></view>
+      </block>
+      <block wx:if="{{form.mode === 'team'}}">
+        <view wx:for="{{participants}}" wx:key="id" class="field"
+          ><text class="label">{{item.name}} 的队伍</text
+          ><picker
+            range="{{teamNames}}"
+            value="{{item.teamIndex}}"
+            data-id="{{item.id}}"
+            bindchange="assignTeam"
+            disabled="{{saving}}"
+            ><view class="input">{{teamNames[item.teamIndex]}}　⌄</view></picker
+          ></view
+        >
+        <view wx:for="{{form.teams}}" wx:key="id" class="team-card"
+          ><view class="field"
+            ><text class="label">队伍名称</text
+            ><input
+              class="input"
+              value="{{item.name}}"
+              data-field="name"
+              data-index="{{index}}"
+              bindinput="inputTeam"
+              disabled="{{saving}}" /></view
+          ><button
+            wx:if="{{form.outcome === 'win'}}"
+            class="chip {{item.winner ? 'selected' : ''}}"
+            data-index="{{index}}"
+            bindtap="toggleTeamWinner"
+            disabled="{{saving}}"
+          >
+            {{item.winner ? '✓ 本队获胜' : '设为获胜队伍'}}</button
+          ><view class="field"
+            ><text class="label">队伍分数（选填）</text
+            ><input
+              class="input"
+              type="text"
+              value="{{item.score}}"
+              data-field="score"
+              data-index="{{index}}"
+              bindinput="inputTeam"
+              disabled="{{saving}}" /></view
+          ><button
+            wx:if="{{form.teams.length > 2}}"
+            class="link"
+            data-index="{{index}}"
+            bindtap="removeTeam"
+            disabled="{{saving}}"
+          >
+            移除队伍并重新分配队员
+          </button></view
+        >
+        <button class="secondary" bindtap="addTeam" disabled="{{saving}}">＋ 添加队伍</button>
+      </block>
+      <view wx:if="{{form.mode === 'coop'}}" class="field"
+        ><text class="label">团队分数（选填）</text
+        ><input
+          class="input"
+          type="text"
+          value="{{form.team_score}}"
+          data-field="team_score"
+          bindinput="inputField"
+          disabled="{{saving}}"
+      /></view>
+      <view class="muted score-note">支持负数和最多 4 位小数；留空与零不同，不从分数推断结果。</view>
+    </view>
+    <view class="card extra"
+      ><button class="extra-toggle" bindtap="toggleMore">
+        <text class="extra-label">{{more ? '收起' : '＋ 添加'}}回忆、照片和更多信息</text
+        ><text class="extra-arrow">⌄</text>
+      </button>
+      <view wx:if="{{more}}"
+        ><view class="field"
+          ><text class="label">一句话回忆</text
+          ><textarea
+            class="textarea"
+            value="{{form.memory}}"
+            data-field="memory"
+            bindinput="inputField"
+            maxlength="-1"
+            placeholder="这局有什么值得记住？"
+            disabled="{{saving}}"
+          /><text class="muted">{{memoryCount}} / 500 字</text></view
+        ><view class="field"
+          ><text class="label">时长（分钟，选填）</text
+          ><input class="input" type="number" value="{{minutesInput}}" bindinput="inputMinutes" disabled="{{saving}}"
+        /></view>
+        <view class="label">照片 · 最多 3 张，每张原文件不超过 2 MiB</view
+        ><view class="photos"
+          ><view wx:for="{{photos}}" wx:key="id" class="photo"
+            ><image wx:if="{{item.path}}" src="{{item.path}}" mode="aspectFill" /><view
+              wx:else
+              class="photo-placeholder"
+              >照片加载中</view
+            ><button class="link" data-id="{{item.id}}" bindtap="removePhoto" disabled="{{saving || uploading}}">
+              移除
+            </button></view
+          ></view
+        >
+        <view wx:for="{{uploads}}" wx:key="key" class="upload"
+          ><view>{{item.state === 'uploading' ? '正在压缩并上传照片…' : item.error}}</view
+          ><view wx:if="{{item.state === 'failed'}}" class="row"
+            ><button class="link" data-key="{{item.key}}" bindtap="retryUpload" disabled="{{uploading || saving}}">
+              重试</button
+            ><button class="link" data-key="{{item.key}}" bindtap="removePhoto" disabled="{{uploading || saving}}">
+              移除
+            </button></view
+          ></view
+        >
+        <button
+          wx:if="{{form.photos.length + uploads.length < 3}}"
+          class="secondary"
+          bindtap="choosePhotos"
+          disabled="{{uploading || saving}}"
+        >
+          ＋ 选择照片</button
+        ><view wx:if="{{uploads.length}}" class="muted">失败照片不会关联到记录，可以先保存其他内容。</view>
+      </view>
+    </view>
+    <button wx:if="{{loadFailed}}" class="secondary" bindtap="retryLoad">重新加载表单</button>
+    <view wx:if="{{error}}" class="error">{{error}}</view
+    ><button wx:if="{{conflict}}" class="secondary" bindtap="reloadConflict">加载服务器最新版本</button>
+    <view class="save-area"
+      ><button
+        class="primary"
+        bindtap="save"
+        disabled="{{saving || uploading || adding || loading}}"
+        loading="{{saving}}"
+      >
+        {{saving ? '正在保存…' : uploading ? '照片上传中…' : '保存这局'}}</button
+      ><view class="muted">填写内容自动保留在当前设备</view></view
+    >
+  </block>
+</view>

@@ -34,6 +34,10 @@ type IService interface {
 		groupRegistration bool,
 		now time.Time,
 	) (user *User, token string, rejected, err error)
+	// WechatLogin registers or binds an application-scoped WeChat identity.
+	WechatLogin(ctx context.Context, input WechatLoginInput, now time.Time) (user *User, token string, rejected, err error)
+	// BindEmail adds an email to a WeChat account without merging accounts.
+	BindEmail(ctx context.Context, userID, email, code string, now time.Time) (user *User, token string, rejected, err error)
 	// Authenticate resolves a session token into its account.
 	Authenticate(ctx context.Context, token string) (*User, error)
 	// Logout revokes the session of a token.
@@ -121,16 +125,9 @@ func (s *service) Login(
 	groupRegistration bool,
 	now time.Time,
 ) (*User, string, error, error) {
-	c, err := s.codes.Get(ctx, email)
-	if err != nil {
-		return nil, "", nil, err
-	}
-	if !c.Ready || c.Expired(now) || c.AttemptsExhausted() {
-		return nil, "", errcode.ErrChallengeInvalid, nil
-	}
-	c.Attempts++
-	if !c.Matches(email, code) {
-		return nil, "", errcode.ErrChallengeMismatch, s.codes.Save(ctx, c)
+	c, rejected, err := s.verifyEmail(ctx, email, code, now)
+	if rejected != nil || err != nil {
+		return nil, "", rejected, err
 	}
 	user, err := s.users.GetByEmail(ctx, email)
 	if errors.Is(err, errcode.ErrNotFound) {
@@ -150,14 +147,8 @@ func (s *service) Login(
 	if err = s.codes.Save(ctx, c); err != nil {
 		return nil, "", nil, err
 	}
-	token := secure.NewID()
-	if err = s.sessions.Create(
-		ctx,
-		&Session{Hash: secure.Hash(token), UserID: user.ID, Expires: now.Add(SessionTTL)},
-	); err != nil {
-		return nil, "", nil, err
-	}
-	return user, token, nil, nil
+	token, err := s.openSession(ctx, user.ID, now)
+	return user, token, nil, err
 }
 
 // Authenticate resolves a session token into its account.

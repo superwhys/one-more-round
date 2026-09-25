@@ -1,0 +1,24 @@
+<view class="page"
+  ><view class="title">我的账号。</view><view wx:if="{{error}}" class="error">{{error}}</view>
+  <view class="card"
+    ><view class="subtitle">微信已连接</view><view class="muted">{{user.email || '尚未绑定邮箱'}}</view></view
+  >
+  <view wx:if="{{user && !user.email}}" class="card"
+    ><view class="subtitle">绑定邮箱</view
+    ><view class="muted"
+      >绑定后可以在网页使用邮箱登录同一账号。已有独立账号暂不能合并；已有邮箱账号请退出后，从登录页选择“我已有邮箱账号”。</view
+    >
+    <label class="field"
+      ><text class="label">邮箱</text
+      ><input class="input" value="{{email}}" data-field="email" bindinput="input" /></label
+    ><button class="secondary" disabled="{{busy || countdown > 0 || !email}}" bindtap="sendCode">
+      {{countdown > 0 ? countdown + ' 秒后重发' : '发送验证码'}}</button
+    ><label class="field"
+      ><text class="label">验证码</text
+      ><input class="input" type="number" maxlength="6" value="{{code}}" data-field="code" bindinput="input" /></label
+    ><button class="primary" loading="{{busy}}" disabled="{{busy || !email || !code}}" bindtap="bind">
+      绑定邮箱
+    </button></view
+  >
+  <button class="danger" bindtap="logout">退出登录</button>
+</view>

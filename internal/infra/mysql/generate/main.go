@@ -13,6 +13,7 @@ func main() {
 	})
 	g.ApplyBasic(
 		models.User{},
+		models.WechatAccount{},
 		models.Challenge{},
 		models.Rate{},
 		models.Trial{},

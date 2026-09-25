@@ -37,6 +37,7 @@ func Use(db *gorm.DB, opts ...gen.DOOption) *Query {
 		Session:            newSession(db, opts...),
 		Trial:              newTrial(db, opts...),
 		User:               newUser(db, opts...),
+		WechatAccount:      newWechatAccount(db, opts...),
 	}
 }
 
@@ -62,6 +63,7 @@ type Query struct {
 	Session            session
 	Trial              trial
 	User               user
+	WechatAccount      wechatAccount
 }
 
 func (q *Query) Available() bool { return q.db != nil }
@@ -90,6 +92,7 @@ func (q *Query) clone(db *gorm.DB) *Query {
 		Session:            q.Session.clone(db),
 		Trial:              q.Trial.clone(db),
 		User:               q.User.clone(db),
+		WechatAccount:      q.WechatAccount.clone(db),
 	}
 }
 
@@ -123,6 +126,7 @@ func (q *Query) ReplaceDB(db *gorm.DB) *Query {
 		Session:            q.Session.replaceDB(db),
 		Trial:              q.Trial.replaceDB(db),
 		User:               q.User.replaceDB(db),
+		WechatAccount:      q.WechatAccount.replaceDB(db),
 	}
 }
 
@@ -146,6 +150,7 @@ type queryCtx struct {
 	Session            ISessionDo
 	Trial              ITrialDo
 	User               IUserDo
+	WechatAccount      IWechatAccountDo
 }
 
 func (q *Query) WithContext(ctx context.Context) *queryCtx {
@@ -169,6 +174,7 @@ func (q *Query) WithContext(ctx context.Context) *queryCtx {
 		Session:            q.Session.WithContext(ctx),
 		Trial:              q.Trial.WithContext(ctx),
 		User:               q.User.WithContext(ctx),
+		WechatAccount:      q.WechatAccount.WithContext(ctx),
 	}
 }
 

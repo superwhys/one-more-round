@@ -1,0 +1,40 @@
+.player-row,
+.member-row {
+  padding: 24rpx 0;
+  border-bottom: 1rpx solid #e9e3d5;
+}
+
+.player-name {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.player-status {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+.group-page .row {
+  align-items: center;
+}
+.group-shortcuts {
+  display: grid;
+  grid-template-columns: 1.5fr 1fr 0.7fr;
+  gap: 12rpx;
+  margin-top: 24rpx;
+}
+.group-shortcuts.two-actions {
+  grid-template-columns: 1.5fr 0.7fr;
+}
+.group-page .group-shortcuts button {
+  min-width: 0;
+  padding: 14rpx 6rpx;
+  font-size: 24rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 16rpx;
+}
+.member-row > .row {
+  margin-top: 12rpx;
+}

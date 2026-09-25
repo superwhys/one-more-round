@@ -9,6 +9,16 @@ import (
 type IUserRepository interface {
 	// GetByEmail returns the account of the address, or errcode.ErrNotFound.
 	GetByEmail(ctx context.Context, email string) (*User, error)
+	// GetByID locks and returns an account for identity updates.
+	GetByID(ctx context.Context, id string) (*User, error)
+	// GetByWechat locks this identity, including when it is not bound yet.
+	GetByWechat(ctx context.Context, appID, openIDHash string) (*User, error)
+	// BindWechat binds an identity without replacing an existing owner.
+	BindWechat(ctx context.Context, appID, openIDHash, userID string) error
+	// HasWechat reports whether this account has a WeChat login identity.
+	HasWechat(ctx context.Context, userID string) (bool, error)
+	// BindEmail sets a previously empty email; database uniqueness is required.
+	BindEmail(ctx context.Context, userID, email string) error
 	// Create inserts the account.
 	Create(ctx context.Context, u *User) error
 	// GetBySessionToken returns the account of a live session digest.

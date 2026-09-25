@@ -27,7 +27,7 @@ func MemberUserModelToDomain(m *models.User) *group.Member {
 	if m == nil {
 		return nil
 	}
-	return &group.Member{UserID: m.ID, Email: m.Email}
+	return &group.Member{UserID: m.ID, Email: UserModelToDomain(m).Email}
 }
 
 // PlayerModelToDomain converts a player row into the domain entity.

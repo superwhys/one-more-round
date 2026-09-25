@@ -1,0 +1,40 @@
+<import src="./history.wxml" />
+<view class="page">
+  <view wx:if="{{loading}}" class="muted loading">正在整理这款桌游的故事…</view>
+  <view wx:if="{{error}}" class="error">{{error}}<button class="link" bindtap="reload">重新加载</button></view>
+  <view wx:if="{{current}}">
+    <view class="eyebrow">STORIES AT OUR TABLE</view>
+    <view class="title">{{current.name}}<text class="accent">。</text></view>
+    <view class="muted">输赢是一时，相聚值得记很久。</view>
+    <view class="card game-profile">
+      <image wx:if="{{current.cover}}" class="profile-cover" src="{{current.cover}}" mode="aspectFit" />
+      <view wx:else class="profile-cover profile-placeholder"><text>局</text><text>暂无封面</text></view>
+      <view class="profile-info"
+        ><view class="profile-heading">桌游资料</view><view class="muted">本组名称</view><view>{{current.name}}</view
+        ><block wx:if="{{current.original}}"
+          ><view class="muted info-label">BGG 原名</view><view>{{current.original}}</view></block
+        ><view wx:if="{{current.bgg_id}}" class="link" bindtap="copyBGG">来源：BoardGameGeek ↗</view
+        ><view wx:else class="muted info-label">本组手动添加</view></view
+      >
+    </view>
+    <button class="primary" bindtap="record">＋ 再玩一局</button>
+    <template is="history-overview" data="{{page}}" />
+    <view class="card rename-card"
+      ><view class="label">本组中文名称</view
+      ><input class="input" value="{{name}}" bindinput="onName" placeholder="{{current.name}}" maxlength="255" /><view
+        wx:if="{{saveError}}"
+        class="error"
+        >{{saveError}}</view
+      ><button class="secondary" bindtap="rename" loading="{{busy}}" disabled="{{busy}}">保存名称</button></view
+    >
+    <template is="history-statistics" data="{{modes,statMode,stats}}" />
+    <template
+      is="history-list"
+      data="{{page,cards,filters,filterOpen,hasFilters,fixedGame,fixedPlayer,gameOptions,playerOptions,modeOptions,outcomeOptions,photoOptions,filterLabels,filterIndices,loading,error}}"
+    />
+  </view>
+  <view wx:if="{{!current && !loading && !error}}" class="empty"
+    ><view class="section-title">这款桌游不存在或已合并。</view
+    ><button class="secondary" bindtap="openShelf">回到桌游架</button></view
+  >
+</view>

@@ -1,0 +1,19 @@
+<view class="page"
+  ><view class="title">回收站。</view><view class="muted">删除的对局保留 7 天，到期后会永久清理。</view
+  ><view wx:if="{{error}}" class="error">{{error}}<button class="link" bindtap="load">重试</button></view
+  ><view wx:for="{{items}}" wx:key="id" class="card"
+    ><view class="subtitle">{{item.name}}</view><view class="muted">{{item.date}}</view
+    ><view class="action-space"
+      ><button
+        wx:if="{{item.canRestore}}"
+        class="secondary"
+        disabled="{{busy}}"
+        data-id="{{item.id}}"
+        bindtap="restore"
+      >
+        恢复到时间线</button
+      ><view wx:else class="muted">仅记录人或组主可恢复</view></view
+    ></view
+  ><view wx:if="{{loading}}" class="empty">正在加载…</view
+  ><view wx:elif="{{!items.length && !error}}" class="empty">没有等待恢复的对局。</view></view
+>

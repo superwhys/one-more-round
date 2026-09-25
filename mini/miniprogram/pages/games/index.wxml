@@ -1,0 +1,138 @@
+<view class="tab-page">
+  <scroll-view
+    scroll-y
+    class="tab-content"
+    refresher-enabled
+    refresher-triggered="{{refreshing}}"
+    bindrefresherrefresh="refresh"
+  >
+    <view class="page shelf-page">
+      <view class="eyebrow">FAVORITES ON OUR TABLE</view>
+      <view class="title">我们的桌游架<text class="accent">。</text></view>
+      <view class="subtitle">每一盒打开的，都是一起玩的理由。</view>
+      <view class="row shelf-actions">
+        <button class="primary" bindtap="openAdd">＋ 添加桌游</button>
+        <button class="secondary" bindtap="openWishlist">想玩清单</button>
+      </view>
+      <view class="card shelf-toolbar">
+        <view class="shelf-count"><text>{{games.length}}</text> 款桌游，在我们的架上</view>
+        <input
+          class="input"
+          value="{{search}}"
+          bindinput="onSearch"
+          placeholder="搜索本组桌游或中文别名"
+          confirm-type="search"
+        />
+        <view class="shelf-external-action">
+          <button class="link external-link" bindtap="openExternal" disabled="{{busy}}">搜索更多桌游 ↗</button>
+        </view>
+      </view>
+      <view wx:if="{{loading}}" class="empty">正在整理桌游架…</view>
+      <view wx:if="{{error}}" class="error">{{error}}<button class="link" bindtap="load">重新加载</button></view>
+      <view wx:if="{{!loading}}" class="shelf-caption"
+        >{{search ? '找到 ' + filteredGames.length + ' 款桌游' : '熟悉的老朋友，下一局的新故事。'}}</view
+      >
+      <view class="shelf-grid">
+        <view wx:for="{{filteredGames}}" wx:key="id" class="shelf-card" data-id="{{item.id}}" bindtap="openGame">
+          <view class="shelf-art">
+            <image wx:if="{{item.cover}}" class="shelf-cover" src="{{item.cover}}" mode="aspectFit" lazy-load />
+            <view wx:else class="shelf-cover placeholder {{item.tone}}">
+              <text class="cover-caption">ONE MORE ROUND</text>
+              <text class="cover-letter">{{item.letter}}</text>
+            </view>
+            <button
+              wx:if="{{!item.cover}}"
+              size="mini"
+              class="cover-sync"
+              data-id="{{item.id}}"
+              catchtap="syncCover"
+              disabled="{{busy}}"
+            >
+              {{item.bgg_id ? '重试封面' : '关联 BGG'}}
+            </button>
+          </view>
+          <view class="game-name">{{item.name}}</view>
+          <view wx:if="{{item.original && item.original !== item.name}}" class="original">{{item.original}}</view>
+          <view class="game-activity"
+            >{{activityLoaded ? (item.count ? item.count + ' 局相聚' : '等待第一局') : (loading ? '正在整理记录…' :
+            '记录暂未加载')}} <text>↗</text></view
+          >
+          <view wx:if="{{item.lastDate}}" class="last-date">最近 {{item.lastDate}}</view>
+        </view>
+      </view>
+      <view wx:if="{{!loading && !error && !filteredGames.length}}" class="empty">
+        <view class="section-title">{{search ? '架上还没找到这款桌游' : '给桌游架添上第一盒'}}</view>
+        <view>可以搜索更多桌游，也可以直接用名称添加。</view>
+        <button class="primary" bindtap="openAdd">手动添加</button>
+      </view>
+    </view>
+  </scroll-view>
+  <view class="record-bar"><button class="primary record-button" bindtap="openRecord">＋ 记一局</button></view>
+</view>
+
+<view wx:if="{{addOpen}}" class="modal-mask" bindtap="closeAdd">
+  <view class="modal" catchtap="stopPropagation">
+    <view class="between modal-header"
+      ><view class="section-title">{{importId ? '导入桌游' : '添加一款桌游'}}</view
+      ><button size="mini" class="modal-close" bindtap="closeAdd" disabled="{{busy}}">×</button></view
+    >
+    <view wx:if="{{original}}" class="muted">BGG 原名：{{original}}</view>
+    <view class="field"
+      ><view class="label">本组使用的名称</view
+      ><input class="input" value="{{name}}" bindinput="onName" maxlength="255" placeholder="例如：卡卡颂"
+    /></view>
+    <view wx:if="{{error}}" class="error">{{error}}</view>
+    <button class="primary" bindtap="saveGame" loading="{{busy}}" disabled="{{busy}}">
+      {{importId ? '确认导入' : '直接用此名称添加'}}
+    </button>
+    <button wx:if="{{!importId}}" class="secondary" bindtap="searchFromAdd" disabled="{{busy}}">
+      去 BGG 搜索资料与封面
+    </button>
+    <view class="muted modal-note">外部检索不可用时，仍可手动添加并正常记局。</view>
+  </view>
+</view>
+
+<view wx:if="{{externalOpen}}" class="modal-mask" bindtap="closeExternal">
+  <view class="modal" catchtap="stopPropagation">
+    <view class="between modal-header"
+      ><view class="section-title">{{linkingId ? '关联 BGG 资料' : '搜索更多桌游'}}</view
+      ><button size="mini" class="modal-close" bindtap="closeExternal" disabled="{{busy}}">×</button></view
+    >
+    <input
+      class="input"
+      value="{{externalQuery}}"
+      bindinput="onExternalQuery"
+      bindconfirm="searchExternal"
+      placeholder="试试中文或原文名称"
+      confirm-type="search"
+    />
+    <button class="secondary" bindtap="searchExternal" loading="{{searching}}" disabled="{{searching || busy}}">
+      搜索 BoardGameGeek
+    </button>
+    <view wx:if="{{externalError}}" class="error">{{externalError}}</view>
+    <scroll-view scroll-y class="external-results">
+      <view wx:for="{{externalItems}}" wx:key="bgg_id" class="external-item">
+        <image wx:if="{{item.thumbnail}}" class="external-cover" src="{{item.thumbnail}}" mode="aspectFit" />
+        <view class="external-description"
+          ><view>{{item.name}}</view><text class="muted">{{item.year || '年份未知'}}</text></view
+        >
+        <button
+          size="mini"
+          class="secondary compact"
+          data-id="{{item.bgg_id}}"
+          bindtap="chooseExternal"
+          disabled="{{busy}}"
+        >
+          选择
+        </button>
+      </view>
+      <view wx:if="{{externalSearched && !externalItems.length}}" class="empty"
+        >没有找到结果，试试原文名称，或手动添加。</view
+      >
+    </scroll-view>
+    <button wx:if="{{!linkingId}}" class="link" bindtap="manualFromExternal" disabled="{{busy}}">
+      不用外部资料，手动添加
+    </button>
+    <view class="bgg-credit" bindtap="copySource">资料来源：BoardGameGeek · 点击复制来源地址</view>
+  </view>
+</view>

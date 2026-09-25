@@ -1,0 +1,148 @@
+<view class="page round-detail">
+  <view wx:if="{{loading}}" class="empty">正在翻开这段回忆…</view>
+  <view wx:if="{{error}}" class="error">{{error}}<button class="secondary" bindtap="load">重新加载</button></view>
+  <block wx:if="{{detail}}">
+    <view class="eyebrow">{{detail.group}} {{public ? '分享的桌边回忆' : '· A DAY TO REMEMBER'}}</view
+    ><view class="title">{{detail.game}}</view><view class="subtitle">{{detail.date}} · {{detail.mode}}</view>
+    <view class="card">
+      <view class="result">{{detail.result}}</view>
+      <view class="chips"
+        ><view
+          wx:for="{{detail.players}}"
+          wx:key="id"
+          class="chip {{item.winner ? 'selected' : ''}}"
+          data-id="{{item.id}}"
+          bindtap="openPlayer"
+          >{{item.name}}<text wx:if="{{item.score !== null}}">　{{item.score}} 分</text></view
+        ></view
+      >
+      <view wx:for="{{detail.teams}}" wx:key="name" class="team"
+        ><view class="team-name">{{item.name}} <text wx:if="{{item.winner}}">· 获胜</text></view
+        ><view class="muted"
+          >{{item.names}}<text wx:if="{{item.score !== null}}"> · {{item.score}} 分</text></view
+        ></view
+      >
+      <view wx:if="{{detail.teamScore !== null}}" class="team-score">团队分数：{{detail.teamScore}}</view>
+      <view wx:if="{{detail.memory}}" class="memory">{{detail.memory}}</view>
+      <view class="photos"
+        ><view wx:for="{{photos}}" wx:key="id" class="photo"
+          ><image
+            wx:if="{{item.path}}"
+            src="{{item.path}}"
+            mode="widthFix"
+            data-path="{{item.path}}"
+            bindtap="previewPhoto"
+          /><view wx:else class="photo-placeholder">照片暂未加载</view></view
+        ></view
+      >
+      <view wx:if="{{photoError}}" class="error"
+        >{{photoError}}<button class="link" bindtap="retryPhotos">重试照片</button></view
+      >
+      <view wx:if="{{detail.minutes}}" class="muted duration">{{detail.minutes}} 分钟</view>
+      <view wx:if="{{!public}}" class="audit muted"
+        ><view>记录人：{{detail.author}}</view><view>最近修改：{{detail.updated}}</view></view
+      >
+      <button wx:if="{{!public}}" class="link game-link" bindtap="openGame">查看这款桌游的故事 →</button>
+      <view wx:if="{{!public}}" class="actions"
+        ><button class="primary" bindtap="again">再记一局</button
+        ><button wx:if="{{editable}}" class="secondary" bindtap="edit">编辑记录</button
+        ><button wx:if="{{editable}}" class="secondary" bindtap="openShare">分享这局</button
+        ><button wx:if="{{editable}}" class="link danger" bindtap="remove" disabled="{{busy}}">删除这局</button></view
+      >
+    </view>
+    <view wx:if="{{!public}}" class="card comments">
+      <view class="section-title">桌边闲话</view>
+      <view wx:if="{{commentsLoading}}" class="muted">正在加载评论…</view
+      ><view wx:if="{{commentsError}}" class="error"
+        >{{commentsError}}<button class="link" bindtap="retryComments">重新加载评论</button></view
+      >
+      <view wx:if="{{!comments.length && !commentsLoading}}" class="empty">还没有评论，写一句给这局。</view>
+      <view wx:for="{{comments}}" wx:key="id" class="comment"
+        ><view class="comment-header"
+          ><text class="comment-name">{{item.name}}</text><text class="comment-time">{{item.time}}</text></view
+        ><view class="comment-body">{{item.body}}</view
+        ><view class="row"
+          ><button class="link" data-id="{{item.id}}" data-name="{{item.name}}" bindtap="reply">回复</button
+          ><button
+            wx:if="{{item.removable}}"
+            class="link"
+            data-id="{{item.id}}"
+            bindtap="removeComment"
+            disabled="{{busy}}"
+          >
+            删除
+          </button></view
+        >
+        <view wx:for="{{item.replies}}" wx:for-item="reply" wx:key="id" class="reply"
+          ><view class="comment-header"
+            ><text class="comment-name">{{reply.name}}</text><text class="comment-time">{{reply.time}}</text></view
+          ><view class="comment-body">{{reply.body}}</view
+          ><button
+            wx:if="{{reply.removable}}"
+            class="link"
+            data-id="{{reply.id}}"
+            bindtap="removeComment"
+            disabled="{{busy}}"
+          >
+            删除
+          </button></view
+        >
+      </view>
+      <button wx:if="{{commentsMore}}" class="secondary" bindtap="moreComments" disabled="{{commentsLoading}}">
+        加载更多评论
+      </button>
+      <view wx:if="{{replyID}}" class="replying row between"
+        ><text class="reply-target">回复 {{replyName}}</text
+        ><button class="link" bindtap="cancelReply">取消</button></view
+      >
+      <view class="field"
+        ><text class="label">{{replyID ? '写一句回复' : '写一句给这局'}}</text
+        ><textarea
+          class="textarea"
+          value="{{comment}}"
+          bindinput="inputComment"
+          maxlength="-1"
+          placeholder="留下一句桌边闲话"
+          disabled="{{busy}}"
+        /><text class="muted">{{commentCount}} / 500 字</text></view
+      ><button
+        class="primary"
+        bindtap="submitComment"
+        disabled="{{busy || !comment || commentCount > 500}}"
+        loading="{{busy}}"
+      >
+        {{replyID ? '发送回复' : '发表评论'}}
+      </button>
+    </view>
+    <view wx:if="{{public}}" class="public-footer"
+      ><view>又一局</view><text class="muted">记下每一局的输赢与相聚。</text></view
+    >
+  </block>
+  <view wx:if="{{shareOpen}}" class="share-backdrop">
+    <view class="share-panel">
+      <view class="share-header">
+        <view class="section-title">把这一局分享出去</view>
+        <button class="link" bindtap="closeShare">关闭</button>
+      </view>
+      <scroll-view scroll-y class="share-scroll">
+        <view class="share-content">
+          <view class="muted">获得分享的人无需登录，可看到小组名、游戏、日期、玩家昵称、结果、回忆和照片。</view>
+          <view wx:if="{{shareActive && !shareToken}}" class="notice"
+            >当前已有公开分享。重新生成后，旧分享会立即失效。</view
+          >
+          <view class="share-actions">
+            <button class="primary" bindtap="generateShare" loading="{{shareBusy}}" disabled="{{shareBusy}}">
+              {{shareActive ? '重新生成公开分享' : '生成公开分享'}}
+            </button>
+            <button wx:if="{{shareToken}}" class="secondary" open-type="share">发给微信好友</button>
+            <button wx:if="{{shareToken}}" class="secondary" bindtap="copyShare">复制网页分享链接</button>
+            <button wx:if="{{shareActive}}" class="link danger" bindtap="revokeShare" disabled="{{shareBusy}}">
+              撤销公开分享
+            </button>
+          </view>
+          <view wx:if="{{shareError}}" class="error">{{shareError}}</view>
+        </view>
+      </scroll-view>
+    </view>
+  </view>
+</view>

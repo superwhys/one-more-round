@@ -31,6 +31,7 @@ func AuthRouter(authApp *services.AuthApp, opts SessionOptions) authRouterFn {
 	return func(router gin.IRouter) {
 		router.POST("/code", sendCodeHandler(authApp))
 		router.POST("/login", loginHandler(authApp, opts))
+		router.POST("/wx-login", wechatLoginHandler(authApp))
 		router.POST("/logout", logoutHandler(authApp, opts))
 	}
 }
@@ -112,4 +113,50 @@ func meHandler() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		ctx.JSON(http.StatusOK, dto.ResponseWithData(common.CurrentUser(ctx)))
 	}
+}
+
+// wechatLoginHandler 微信小程序登录
+// @Summary 微信小程序登录并可首次绑定已有邮箱
+// @Description wx.login code 由后端兑换，返回不透明 Bearer 会话；首次注册需有效邀请，已有邮箱须验证验证码
+// @Tags Auth
+// @Accept json
+// @Produce json
+// @Param request body dto.WechatLoginReq true "微信登录请求"
+// @Success 200 {object} ginutils.Ret[dto.WechatLoginResp]
+// @Router /v1/auth/wx-login [post]
+func wechatLoginHandler(authApp *services.AuthApp) gin.HandlerFunc {
+	return ginutils.RequestHandler(func(ctx *gin.Context, req *dto.WechatLoginReq) {
+		result, err := authApp.WechatLogin(ctx.Request.Context(), req)
+		if common.HandleRouterError(ctx, err, "wechat login failed", errcode.ErrLogin) {
+			return
+		}
+		ctx.JSON(http.StatusOK, dto.ResponseWithData(result))
+	})
+}
+
+// WechatAccountRouter registers binding behind the authenticated API group.
+func WechatAccountRouter(authApp *services.AuthApp) authRouterFn {
+	return func(router gin.IRouter) {
+		router.POST("/auth/wx-bind-email", bindWechatEmailHandler(authApp))
+	}
+}
+
+// bindWechatEmailHandler 微信账号绑定邮箱
+// @Summary 给微信账号绑定经过验证码验证的邮箱
+// @Description 返回新 Bearer 会话并撤销当前会话；不同账号不合并，已有邮箱不替换
+// @Tags Auth
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param request body dto.BindEmailReq true "邮箱绑定请求"
+// @Success 200 {object} ginutils.Ret[dto.WechatLoginResp]
+// @Router /v1/auth/wx-bind-email [post]
+func bindWechatEmailHandler(authApp *services.AuthApp) gin.HandlerFunc {
+	return ginutils.RequestHandler(func(ctx *gin.Context, req *dto.BindEmailReq) {
+		result, err := authApp.BindWechatEmail(ctx.Request.Context(), common.UserID(ctx), common.SessionToken(ctx), req)
+		if common.HandleRouterError(ctx, err, "wechat email binding failed", errcode.ErrLogin) {
+			return
+		}
+		ctx.JSON(http.StatusOK, dto.ResponseWithData(result))
+	})
 }

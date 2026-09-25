@@ -1,0 +1,101 @@
+.photo-album picker .input {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+.eyebrow {
+  font-size: 20rpx;
+  letter-spacing: 2rpx;
+  color: #a97553;
+  margin: 20rpx 0;
+}
+.date-fields {
+  display: flex;
+  gap: 18rpx;
+}
+.date-fields .field {
+  flex: 1;
+  min-width: 0;
+}
+.date-fields .input {
+  padding-left: 16rpx;
+  font-size: 25rpx;
+}
+.count {
+  margin: 30rpx 0;
+}
+.day {
+  margin: 36rpx 0;
+}
+.day-heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16rpx;
+  margin-bottom: 20rpx;
+  font-size: 27rpx;
+}
+.day-heading .muted {
+  font-size: 21rpx;
+}
+.album-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18rpx;
+}
+.album-photo {
+  min-width: 0;
+  overflow: hidden;
+  border: 1rpx solid #e4ded1;
+  border-radius: 18rpx;
+  background: #fffaf1;
+}
+.album-photo image,
+.photo-placeholder {
+  display: block;
+  width: 100%;
+  height: 232rpx;
+}
+.photo-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #eee8dc;
+  color: #908575;
+  font-size: 24rpx;
+}
+.caption {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+  padding: 18rpx;
+  color: #606b54;
+  font-size: 24rpx;
+}
+.caption-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.caption-arrow {
+  flex-shrink: 0;
+}
+.end {
+  text-align: center;
+  padding: 36rpx 0;
+  font-size: 22rpx;
+}
+.photo-album .empty button {
+  margin-top: 24rpx;
+}
+@media (max-width: 360px) {
+  .date-fields {
+    flex-direction: column;
+    gap: 0;
+  }
+  .date-fields .field {
+    margin: 12rpx 0;
+  }
+}

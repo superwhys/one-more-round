@@ -1,0 +1,79 @@
+<view class="page recap-page">
+  <view class="eyebrow">MEMORIES IN NUMBERS</view><view class="title">这一段相聚。</view
+  ><view class="subtitle">把散落的每一局，拼成值得回看的时光。</view>
+  <view class="card"
+    ><view class="segments"
+      ><button class="{{kind === 'month' ? 'active' : ''}}" data-kind="month" bindtap="switchKind">月度回顾</button
+      ><button class="{{kind === 'year' ? 'active' : ''}}" data-kind="year" bindtap="switchKind">年度回顾</button></view
+    ><view class="period-fields"
+      ><view class="field"
+        ><text class="label">年份</text
+        ><input
+          class="input"
+          type="number"
+          value="{{year}}"
+          maxlength="4"
+          bindinput="inputYear"
+          placeholder="例如 2026" /></view
+      ><view wx:if="{{kind === 'month'}}" class="field"
+        ><text class="label">月份</text
+        ><picker range="{{months}}" value="{{month}}" bindchange="changeMonth"
+          ><view class="input">{{months[month]}}　⌄</view></picker
+        ></view
+      ></view
+    ><button class="primary" bindtap="load" disabled="{{loading}}">查看回顾</button></view
+  >
+  <view wx:if="{{loading}}" class="empty">正在拼起这一段时光…</view
+  ><view wx:if="{{error}}" class="error">{{error}}<button class="secondary" bindtap="retry">重试</button></view>
+  <block wx:if="{{recap}}">
+    <view class="stat-grid"
+      ><view class="stat"><text class="stat-value">{{recap.rounds}}</text><text class="muted">一起玩过的局</text></view
+      ><view class="stat"><text class="stat-value">{{recap.games}}</text><text class="muted">款桌游</text></view
+      ><view class="stat"
+        ><text class="stat-value">{{recap.players}}</text><text class="muted">位同桌朋友</text></view
+      ></view
+    >
+    <view class="card highlights"
+      ><view class="section-title">{{recap.period}} 的桌边故事</view
+      ><view class="highlight"
+        ><text class="muted">最常玩</text><text>{{gameName}} · {{recap.top_game_rounds}} 局</text></view
+      ><view class="highlight"
+        ><text class="muted">最常参加</text><text>{{playerName}} · {{recap.top_plays}} 次</text></view
+      ><view class="highlight"><text class="muted">记录时长</text><text>{{recap.minutes}} 分钟</text></view
+      ><view class="muted note">{{recap.from}} — {{recap.to}} · 北京时间</view
+      ><view wx:if="{{!recap.rounds}}" class="empty">这一段还没有记录，下一局见。</view></view
+    >
+    <view wx:if="{{photos.length}}" class="card"
+      ><view class="section-title">那时的桌边时光</view
+      ><view class="photos"
+        ><view wx:for="{{photos}}" wx:key="id" class="photo"
+          ><image
+            wx:if="{{item.path}}"
+            src="{{item.path}}"
+            mode="aspectFill"
+            data-path="{{item.path}}"
+            bindtap="previewPhoto"
+          /><view wx:else class="placeholder">照片加载中</view></view
+        ></view
+      ><view wx:if="{{photoError}}" class="error"
+        >{{photoError}}<button class="link" bindtap="retryPhotos">重试照片</button></view
+      ></view
+    >
+    <view class="card export"
+      ><view class="section-title">留一张相聚纪念</view
+      ><view class="muted">卡片包含小组名、参与统计和最常参加的玩家昵称。保存前可以先预览。</view
+      ><button class="primary" bindtap="generateCard" disabled="{{generating}}" loading="{{generating}}">
+        生成回顾卡片</button
+      ><image
+        wx:if="{{cardPath}}"
+        class="recap-preview"
+        src="{{cardPath}}"
+        mode="widthFix"
+        bindtap="previewCard"
+      /><button wx:if="{{cardPath}}" class="secondary" bindtap="saveCard" disabled="{{saving}}" loading="{{saving}}">
+        保存到手机相册</button
+      ><view wx:if="{{saveError}}" class="error">{{saveError}}</view></view
+    >
+  </block>
+  <canvas canvas-id="recap-card" class="export-canvas" style="width: 600px; height: 750px" />
+</view>

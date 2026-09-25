@@ -1,0 +1,61 @@
+<view class="page photo-album">
+  <view class="eyebrow">MOMENTS AROUND THE TABLE</view><view class="title">聚会相册。</view
+  ><view class="subtitle">翻翻一起玩过的照片，再回到那一局。</view>
+  <view class="card filters"
+    ><view class="field"
+      ><text class="label">桌游</text
+      ><picker range="{{games}}" range-key="name" value="{{gameIndex}}" bindchange="changeGame"
+        ><view class="input">{{games[gameIndex].name}}　⌄</view></picker
+      ></view
+    ><view class="date-fields"
+      ><view class="field"
+        ><text class="label">开始日期</text
+        ><picker mode="date" value="{{from}}" data-field="from" bindchange="changeDate"
+          ><view class="input">{{from || '不限'}}　⌄</view></picker
+        ></view
+      ><view class="field"
+        ><text class="label">结束日期</text
+        ><picker mode="date" value="{{to}}" data-field="to" bindchange="changeDate"
+          ><view class="input">{{to || '不限'}}　⌄</view></picker
+        ></view
+      ></view
+    ><button class="primary" bindtap="apply" disabled="{{loading || loadingMore}}">查看照片</button
+    ><button wx:if="{{from || to || gameIndex}}" class="link" bindtap="clear">清空筛选</button
+    ><view wx:if="{{filterError}}" class="error">{{filterError}}</view></view
+  >
+  <view wx:if="{{loading}}" class="empty">正在整理桌边时光…</view
+  ><view wx:if="{{error}}" class="error">{{error}}<button class="secondary" bindtap="retry">重试</button></view
+  ><view wx:if="{{photoError}}" class="error"
+    >部分照片加载失败：{{photoError}}<button class="link" bindtap="retryPhotos">重试照片</button></view
+  >
+  <view wx:if="{{total}}" class="muted count">共 {{total}} 局留下了照片</view>
+  <view wx:for="{{days}}" wx:key="date" class="day"
+    ><view class="day-heading"><text>{{item.date}}</text><text class="muted">那天的桌边时光</text></view
+    ><view class="album-grid"
+      ><view
+        wx:for="{{item.photos}}"
+        wx:for-item="photo"
+        wx:key="id"
+        class="album-photo"
+        data-id="{{photo.roundID}}"
+        bindtap="openRound"
+        ><image wx:if="{{photo.path}}" src="{{photo.path}}" mode="aspectFill" lazy-load /><view
+          wx:else
+          class="photo-placeholder"
+          >照片加载中</view
+        ><view class="caption"
+          ><text class="caption-name">{{photo.game}}</text><text class="caption-arrow">↗</text></view
+        ></view
+      ></view
+    ></view
+  >
+  <view wx:if="{{!loading && !error && !days.length}}" class="card empty"
+    ><view class="section-title">{{filtered ? '这个范围还没有照片' : '相册里还没有照片'}}</view
+    ><view class="muted">{{filtered ? '换个日期或桌游看看。' : '下次记局时，留下一张桌边回忆吧。'}}</view
+    ><button wx:if="{{filtered}}" class="secondary" bindtap="clear">查看全部照片</button
+    ><button wx:else class="primary" bindtap="create">记一局</button></view
+  >
+  <button wx:if="{{hasMore}}" class="secondary" bindtap="more" disabled="{{loadingMore}}" loading="{{loadingMore}}">
+    加载更多照片</button
+  ><view wx:elif="{{days.length}}" class="end muted">— 照片先到这里，下一局待续 —</view>
+</view>

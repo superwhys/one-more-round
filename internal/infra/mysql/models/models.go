@@ -5,11 +5,23 @@ package models
 import "time"
 
 type User struct {
-	ID    string `gorm:"column:id;type:varchar(64);primaryKey"`
-	Email string `gorm:"column:email;type:varchar(254);not null;uniqueIndex:email"`
+	ID    string  `gorm:"column:id;type:varchar(64);primaryKey"`
+	Email *string `gorm:"column:email;type:varchar(254);uniqueIndex:email"`
 }
 
 func (User) TableName() string { return "omr_users" }
+
+// WechatAccount locks each application-scoped identity during registration.
+// OpenID is stored as a digest; a nullable owner permits a transactional lock
+// before the corresponding application account has been selected or created.
+type WechatAccount struct {
+	AppID      string  `gorm:"column:app_id;type:varchar(64);primaryKey;uniqueIndex:app_user,priority:1"`
+	OpenIDHash string  `gorm:"column:openid_hash;type:char(64);primaryKey"`
+	UserID     *string `gorm:"column:user_id;type:varchar(64);uniqueIndex:app_user,priority:2;index:user_id"`
+}
+
+// TableName returns the table of application-scoped WeChat bindings.
+func (WechatAccount) TableName() string { return "omr_wechat_accounts" }
 
 type Challenge struct {
 	Email      string    `gorm:"column:email;type:varchar(254);primaryKey"`
@@ -197,6 +209,7 @@ func (Notification) TableName() string { return "omr_notifications" }
 func AllModels() []any {
 	return []any{
 		&User{},
+		&WechatAccount{},
 		&Group{},
 		&Session{},
 		&Member{},

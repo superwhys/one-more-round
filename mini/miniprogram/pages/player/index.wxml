@@ -1,0 +1,27 @@
+<import src="../game/history.wxml" />
+<view class="page">
+  <view wx:if="{{loading}}" class="muted loading">正在整理这位朋友的故事…</view>
+  <view wx:if="{{error}}" class="error">{{error}}<button class="link" bindtap="reload">重新加载</button></view>
+  <view wx:if="{{current}}">
+    <view class="eyebrow">STORIES AT OUR TABLE</view>
+    <view class="title">{{current.name}}<text class="accent">。</text></view>
+    <view class="muted">输赢是一时，相聚值得记很久。</view>
+    <view class="player-badge">{{current.account ? '已关联账号的玩家档案' : '小组昵称玩家'}}</view>
+    <template is="history-overview" data="{{page}}" />
+    <view class="card"
+      ><view class="section-title">常玩的桌游</view><view class="muted">按当前筛选范围内的参与局数排序</view
+      ><view wx:for="{{commonGames}}" wx:key="id" class="common-game" data-id="{{item.id}}" bindtap="openGame"
+        ><text>{{item.name}} ↗</text><text class="muted">{{item.count}} 局</text></view
+      ><view wx:if="{{!commonGames.length && !loading}}" class="muted no-common">当前筛选范围内还没有对局。</view></view
+    >
+    <template is="history-statistics" data="{{modes,statMode,stats}}" />
+    <template
+      is="history-list"
+      data="{{page,cards,filters,filterOpen,hasFilters,fixedGame,fixedPlayer,gameOptions,playerOptions,modeOptions,outcomeOptions,photoOptions,filterLabels,filterIndices,loading,error}}"
+    />
+  </view>
+  <view wx:if="{{!current && !loading && !error}}" class="empty"
+    ><view class="section-title">这位玩家不在当前小组。</view
+    ><button class="secondary" bindtap="openGroup">回到小组</button></view
+  >
+</view>

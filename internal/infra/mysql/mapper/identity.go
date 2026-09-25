@@ -12,7 +12,11 @@ func UserModelToDomain(m *models.User) *identity.User {
 	if m == nil {
 		return nil
 	}
-	return &identity.User{ID: m.ID, Email: m.Email}
+	user := &identity.User{ID: m.ID}
+	if m.Email != nil {
+		user.Email = *m.Email
+	}
+	return user
 }
 
 // UserDomainToModel converts the account entity into its row.
@@ -20,7 +24,11 @@ func UserDomainToModel(u *identity.User) *models.User {
 	if u == nil {
 		return nil
 	}
-	return &models.User{ID: u.ID, Email: u.Email}
+	m := &models.User{ID: u.ID}
+	if u.Email != "" {
+		m.Email = &u.Email
+	}
+	return m
 }
 
 // ChallengeModelToDomain converts a verification code row into the domain entity.

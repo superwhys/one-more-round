@@ -1,0 +1,204 @@
+.round-detail .title,
+.round-detail .result,
+.round-detail .eyebrow,
+.round-detail .team,
+.round-detail .team-score,
+.round-detail .audit {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+.round-detail .chips .chip {
+  max-width: 100%;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+.eyebrow {
+  margin: 20rpx 0;
+  color: #a66e4b;
+  font-size: 22rpx;
+  letter-spacing: 2rpx;
+}
+.result {
+  color: #5c6b51;
+  font-size: 36rpx;
+  font-weight: 600;
+  margin-bottom: 32rpx;
+}
+.team {
+  margin-top: 24rpx;
+  padding-top: 24rpx;
+  border-top: 1rpx solid #e5e0d4;
+}
+.team-name {
+  margin-bottom: 10rpx;
+  font-weight: 600;
+}
+.team-name text {
+  color: #a76540;
+}
+.team-score {
+  margin-top: 24rpx;
+}
+.memory {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  margin: 32rpx 0;
+  padding: 24rpx;
+  border-left: 5rpx solid #b8835e;
+  background: #f1eadf;
+  line-height: 1.9;
+}
+.photo {
+  margin: 16rpx 0;
+  overflow: hidden;
+  border-radius: 18rpx;
+}
+.photo image {
+  display: block;
+  width: 100%;
+}
+.photo-placeholder {
+  padding: 72rpx 20rpx;
+  text-align: center;
+  background: #eee8dc;
+  color: #918773;
+}
+.audit {
+  margin-top: 30rpx;
+  line-height: 1.9;
+  font-size: 22rpx;
+}
+.duration {
+  margin-top: 20rpx;
+}
+.game-link {
+  margin-top: 22rpx;
+}
+.actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14rpx;
+  margin-top: 24rpx;
+}
+.round-detail .actions button {
+  min-width: 0;
+  margin: 0;
+  white-space: normal;
+}
+.comment {
+  padding: 26rpx 0;
+  border-bottom: 1rpx solid #e6dfd1;
+}
+.comment-name {
+  color: #59654d;
+  font-size: 27rpx;
+  overflow-wrap: anywhere;
+  flex: 1;
+  min-width: 0;
+  word-break: break-word;
+}
+.comment-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8rpx 16rpx;
+}
+.comment-time {
+  color: #8e887b;
+  font-size: 20rpx;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+.comment-body {
+  margin: 16rpx 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  line-height: 1.8;
+}
+.round-detail .comment .link {
+  margin: 0 18rpx 0 0;
+}
+.reply {
+  margin-top: 20rpx;
+  padding: 20rpx;
+  background: #f4f0e7;
+  border-radius: 14rpx;
+}
+.replying {
+  padding: 16rpx;
+  margin-top: 26rpx;
+  background: #eee8da;
+  border-radius: 12rpx;
+  font-size: 25rpx;
+}
+.reply-target {
+  flex: 1 1 160rpx;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+.round-detail .replying .link {
+  flex-shrink: 0;
+}
+.public-footer {
+  padding: 42rpx 0;
+  text-align: center;
+  color: #667159;
+  line-height: 2;
+}
+.share-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  background: #26291f77;
+  display: flex;
+  align-items: flex-end;
+}
+.share-panel {
+  width: 100%;
+  box-sizing: border-box;
+  max-height: 88vh;
+  overflow: hidden;
+  border-radius: 28rpx 28rpx 0 0;
+  background: #faf7ee;
+  padding-top: 24rpx;
+}
+.share-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20rpx;
+  padding: 0 30rpx 18rpx;
+}
+.share-header .section-title {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+}
+.round-detail .share-header .link {
+  flex-shrink: 0;
+  padding: 16rpx 12rpx;
+}
+.share-scroll {
+  height: 62vh;
+}
+.share-content {
+  padding: 0 30rpx calc(36rpx + env(safe-area-inset-bottom));
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+.share-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 20rpx;
+  margin-top: 26rpx;
+}
+.notice {
+  padding: 20rpx;
+  margin: 20rpx 0;
+  background: #eee5d7;
+  border-radius: 12rpx;
+  color: #806248;
+  font-size: 25rpx;
+}

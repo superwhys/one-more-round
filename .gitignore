@@ -10,3 +10,6 @@
 /data/
 /trial-invitation.txt
 /content
+/mini/node_modules/
+/mini/dist/
+/mini/project.private.config.json

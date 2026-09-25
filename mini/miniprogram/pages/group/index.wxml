@@ -1,0 +1,142 @@
+<view class="tab-page"
+  ><scroll-view class="tab-content" scroll-y
+    ><view class="page group-page"
+      ><view class="between"
+        ><text class="eyebrow">OUR LITTLE CIRCLE</text
+        ><button class="link" data-url="/pages/account/index" bindtap="go">我的账号</button></view
+      ><view class="title">{{snapshot.group.name || '小组'}}。</view
+      ><view class="muted">桌子不大，刚好坐得下这些老朋友。</view>
+      <view wx:if="{{error}}" class="error">{{error}}<button class="link" bindtap="load">重新加载</button></view
+      ><view wx:if="{{loading}}" class="muted">正在准备这张桌子…</view>
+      <block wx:if="{{snapshot}}"
+        ><view class="group-shortcuts {{owner ? '' : 'two-actions'}}"
+          ><button class="chip" data-url="/pages/setup/index" bindtap="go">切换 / 创建 / 加入</button
+          ><button wx:if="{{owner}}" class="chip" data-url="/pages/invites/index" bindtap="go">邀请朋友</button
+          ><button class="chip" data-url="/pages/notifications/index" bindtap="go">通知</button></view
+        >
+        <view class="card"
+          ><view class="subtitle">同桌的朋友 · {{snapshot.players.length}}</view
+          ><view
+            wx:for="{{snapshot.players}}"
+            wx:key="id"
+            class="between player-row"
+            data-id="{{item.id}}"
+            bindtap="player"
+            ><text class="player-name">{{item.name}}{{item.account === userID ? '（我）' : ''}}</text
+            ><text class="muted player-status">{{item.account ? '已关联账号' : '昵称玩家'}} →</text></view
+          ><label class="field"
+            ><text class="label">添加昵称玩家</text
+            ><input
+              class="input"
+              value="{{playerName}}"
+              data-field="playerName"
+              bindinput="input"
+              maxlength="255"
+              placeholder="没有注册，也能留下战绩" /></label
+          ><button class="secondary" bindtap="add" disabled="{{busy || !playerName}}">给朋友留个位置</button></view
+        >
+        <view class="card"
+          ><view class="subtitle">我的玩家档案</view><view wx:if="{{myPlayer}}">{{myPlayer}}</view
+          ><view wx:elif="{{myClaim}}" class="muted">关联申请已提交，等待组主确认。</view
+          ><block wx:else
+            ><view class="muted">创建新档案或关联以前的战绩，两种方式都由组主确认。</view
+            ><input
+              class="input field"
+              value="{{newProfile}}"
+              data-field="newProfile"
+              bindinput="input"
+              maxlength="255"
+              placeholder="我的昵称"
+            /><button class="secondary" data-action="claim-new" bindtap="manage" disabled="{{busy || !newProfile}}">
+              创建并申请关联</button
+            ><view wx:if="{{unlinked.length}}" class="field"
+              ><picker range="{{unlinked}}" range-key="name" value="{{claimIndex}}" bindchange="pick"
+                ><view class="input">{{unlinked[claimIndex].name}}</view></picker
+              ><button class="link" data-action="claim" bindtap="manage" disabled="{{busy}}">
+                申请关联已有玩家
+              </button></view
+            ></block
+          ></view
+        >
+        <view class="card"
+          ><view class="subtitle">能一起回顾的人 · {{members.length}}</view
+          ><view wx:for="{{members}}" wx:key="user_id" class="member-row"
+            ><view
+              >{{item.name}}
+              <text class="muted">{{item.user_id === snapshot.group.owner ? '组主' : '成员'}}</text></view
+            ><view wx:if="{{owner && item.user_id !== userID}}" class="row"
+              ><button
+                class="link"
+                data-action="transfer"
+                data-target="{{item.user_id}}"
+                bindtap="manage"
+                disabled="{{busy}}"
+              >
+                转让组主</button
+              ><button
+                class="link"
+                data-action="remove"
+                data-target="{{item.user_id}}"
+                bindtap="manage"
+                disabled="{{busy}}"
+              >
+                移除成员
+              </button></view
+            ></view
+          >
+          <block wx:if="{{owner}}"
+            ><view wx:for="{{claims}}" wx:key="user_id" class="card"
+              ><view>{{item.name}} 申请关联「{{item.player}}」</view
+              ><view class="row"
+                ><button
+                  class="secondary"
+                  data-action="approve"
+                  data-target="{{item.user_id}}"
+                  bindtap="manage"
+                  disabled="{{busy}}"
+                >
+                  确认</button
+                ><button
+                  class="link"
+                  data-action="reject"
+                  data-target="{{item.user_id}}"
+                  bindtap="manage"
+                  disabled="{{busy}}"
+                >
+                  拒绝
+                </button></view
+              ></view
+            ><label class="field"
+              ><text class="label">小组名称</text
+              ><input
+                class="input"
+                value="{{groupName}}"
+                data-field="groupName"
+                bindinput="input"
+                maxlength="255" /></label
+            ><button class="secondary" data-action="rename" bindtap="manage" disabled="{{busy || !groupName}}">
+              修改名称
+            </button></block
+          ><button
+            wx:else
+            class="danger"
+            data-action="remove"
+            data-target="{{userID}}"
+            bindtap="manage"
+            disabled="{{busy}}"
+          >
+            退出小组
+          </button></view
+        >
+        <view class="card stack"
+          ><view class="subtitle">数据与恢复</view
+          ><button class="secondary" data-url="/pages/recycle/index" bindtap="go">回收站</button
+          ><button wx:if="{{owner}}" class="secondary" disabled="{{busy}}" bindtap="backup">导出小组备份</button
+          ><view class="muted">备份包含 JSON、CSV 和照片，请选择可信的接收位置。</view></view
+        ></block
+      >
+    </view></scroll-view
+  ><view class="record-bar"
+    ><button class="primary record-button" data-url="/pages/round-form/index" bindtap="go">＋ 记一局</button></view
+  ></view
+>

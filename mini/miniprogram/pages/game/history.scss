@@ -1,0 +1,163 @@
+.eyebrow {
+  margin: 18rpx 0 16rpx;
+}
+.accent {
+  color: #bc683f;
+}
+.page .title {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+.loading {
+  padding: 18rpx 0;
+}
+.card > .section-title {
+  margin-top: 0;
+}
+.stat-modes {
+  flex-wrap: nowrap;
+  gap: 10rpx;
+  margin: 24rpx 0;
+}
+.page .stat-modes button {
+  flex: 1 1 0;
+  min-width: 0;
+  padding: 12rpx 8rpx;
+  font-size: 24rpx;
+  white-space: nowrap;
+}
+.stat-row {
+  padding: 20rpx 0;
+  border-top: 1rpx solid #e8e2d5;
+}
+.stat-name {
+  font-size: 25rpx;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+.stat-result {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 16rpx;
+  margin-top: 8rpx;
+  color: #a86640;
+  font-weight: 700;
+}
+.stat-result > .muted {
+  font-weight: 400;
+  font-size: 22rpx;
+}
+.stat-played {
+  font-size: 21rpx;
+  margin-top: 4rpx;
+}
+.history-heading .section-title {
+  margin: 22rpx 0;
+}
+.page .history-heading button {
+  flex-shrink: 0;
+  padding: 16rpx 0;
+}
+.history-filters .field {
+  margin: 14rpx 0;
+}
+.filter-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0 20rpx;
+}
+.filter-grid .label {
+  font-size: 23rpx;
+}
+.filter-grid .field,
+.filter-grid picker {
+  min-width: 0;
+}
+.filter-grid .input {
+  font-size: 23rpx;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.filter-actions {
+  margin-top: 20rpx;
+}
+.page .filter-actions button {
+  flex: 1 1 0;
+  min-width: 0;
+}
+.history-card {
+  padding: 28rpx;
+}
+.round-name {
+  flex: 1;
+  font-size: 29rpx;
+  font-weight: 700;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+.round-date {
+  flex-shrink: 0;
+  font-size: 22rpx;
+  color: #93836a;
+}
+.round-meta {
+  font-size: 22rpx;
+  margin-top: 8rpx;
+}
+.round-result {
+  margin-top: 24rpx;
+  font-size: 26rpx;
+  color: #8e7556;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+.round-result.win {
+  color: #a45a34;
+}
+.round-result.draw {
+  color: #65765b;
+}
+.round-photo {
+  display: block;
+  width: 100%;
+  height: 300rpx;
+  margin-top: 18rpx;
+  border-radius: 14rpx;
+  background: #eee8da;
+}
+.photo-note {
+  font-size: 21rpx;
+  margin-top: 10rpx;
+}
+.round-bottom {
+  border-top: 1rpx solid #ebe5d9;
+  margin-top: 22rpx;
+  padding-top: 18rpx;
+  display: flex;
+  justify-content: space-between;
+  gap: 20rpx;
+  font-size: 22rpx;
+  color: #8a7e6c;
+}
+.round-players {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+.round-duration {
+  flex-shrink: 0;
+}
+.history-end {
+  text-align: center;
+  padding: 35rpx 0;
+  color: #978b77;
+  font-size: 23rpx;
+}
+.page .empty button {
+  margin-top: 26rpx;
+}

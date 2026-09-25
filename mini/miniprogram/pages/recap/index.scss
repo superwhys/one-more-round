@@ -1,0 +1,113 @@
+.eyebrow {
+  font-size: 20rpx;
+  letter-spacing: 2rpx;
+  color: #a97553;
+  margin: 20rpx 0;
+}
+.segments {
+  display: flex;
+  background: #eee8dc;
+  border-radius: 16rpx;
+  padding: 6rpx;
+}
+.recap-page .segments button {
+  flex: 1 1 0;
+  min-width: 0;
+  min-height: 88rpx;
+  margin: 0;
+  background: transparent;
+  font-size: 28rpx;
+}
+.segments button::after {
+  border: 0;
+}
+.segments .active {
+  background: #fffaf2;
+  color: #a56440;
+}
+.period-fields {
+  display: flex;
+  gap: 20rpx;
+}
+.period-fields .field {
+  flex: 1;
+  min-width: 0;
+}
+.stat-value {
+  display: block;
+  font-size: 58rpx;
+  font-weight: 600;
+  color: #59664e;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+.recap-page .stat {
+  min-width: 0;
+}
+.stat .muted {
+  display: block;
+  font-size: 21rpx;
+  margin-top: 10rpx;
+}
+.highlight {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 30rpx;
+  padding: 26rpx 0;
+  border-bottom: 1rpx solid #e5dfd2;
+}
+.highlight > text:last-child {
+  flex: 1;
+  min-width: 0;
+  text-align: right;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+.highlight .muted {
+  flex-shrink: 0;
+}
+.note {
+  margin-top: 22rpx;
+  font-size: 22rpx;
+}
+.photos {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14rpx;
+  margin-top: 26rpx;
+}
+.photo {
+  min-width: 0;
+  overflow: hidden;
+  border-radius: 16rpx;
+}
+.photo image,
+.placeholder {
+  display: block;
+  width: 100%;
+  height: 224rpx;
+}
+.placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #eee8dc;
+  color: #8d8574;
+  font-size: 24rpx;
+}
+.recap-page .export > button {
+  margin-top: 24rpx;
+}
+.recap-preview {
+  display: block;
+  width: 100%;
+  margin-top: 28rpx;
+  border-radius: 14rpx;
+}
+.export-canvas {
+  position: fixed;
+  left: -10000px;
+  top: 0;
+  pointer-events: none;
+}

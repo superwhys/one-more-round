@@ -1,0 +1,18 @@
+{
+  "pages": [
+    "pages/login/index", "pages/review/index", "pages/games/index", "pages/group/index",
+    "pages/setup/index", "pages/account/index", "pages/round-form/index", "pages/round/index",
+    "pages/game/index", "pages/player/index", "pages/wishlist/index", "pages/album/index",
+    "pages/recap/index", "pages/recycle/index", "pages/notifications/index", "pages/invites/index"
+  ],
+  "window": { "navigationBarTitleText": "又一局", "navigationBarBackgroundColor": "#f7f5ef", "navigationBarTextStyle": "black", "backgroundColor": "#f7f5ef" },
+  "tabBar": {
+    "color": "#858075", "selectedColor": "#b65e38", "backgroundColor": "#fffefa", "borderStyle": "white",
+    "list": [
+      { "pagePath": "pages/review/index", "text": "回顾", "iconPath": "assets/tabbar/review.png", "selectedIconPath": "assets/tabbar/review-selected.png" },
+      { "pagePath": "pages/games/index", "text": "桌游", "iconPath": "assets/tabbar/games.png", "selectedIconPath": "assets/tabbar/games-selected.png" },
+      { "pagePath": "pages/group/index", "text": "小组", "iconPath": "assets/tabbar/group.png", "selectedIconPath": "assets/tabbar/group-selected.png" }
+    ]
+  },
+  "style": "v2", "sitemapLocation": "sitemap.json", "lazyCodeLoading": "requiredComponents"
+}

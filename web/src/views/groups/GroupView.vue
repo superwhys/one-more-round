@@ -204,7 +204,7 @@ function downloadBackup() {
         </div>
         <div v-for="m in members" :key="m.user_id" class="j-member">
           <div class="j-member-account">
-            <strong>{{ m.email }}</strong>
+            <strong>{{ m.email || m.playerName || '微信成员' }}</strong>
             <span class="d-pill">{{ m.user_id === snapshot.group.owner ? '组主' : '成员' }}</span>
           </div>
           <p v-if="m.playerName" class="j-member-player">关联玩家：{{ m.playerName }}</p>

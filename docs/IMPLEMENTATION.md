@@ -29,6 +29,12 @@
 
 持久化约定：业务表使用独立 Go Model，通过锁定版本的 `gorm.io/gen` 生成 Query，由仓储调用。`make generate` 无需连接数据库；生成文件随源码维护。分层按业务边界组织：领域包 `internal/domain/{identity,group,game,diary,photo}` 各自声明仓储接口与领域服务；`internal/infra/mysql` 用 `RepositoryFactory` 汇总实现并以 `WithTransaction` 派生事务实例；应用层 `internal/app/services` 每个边界一个 `XxxApp`，经 `AppContext` 注入依赖。Model、Domain、DTO 三种模型保持分离，DTO ↔ Domain 转换集中在 `internal/app/mapper`，Model ↔ Domain 转换集中在 `internal/infra/mysql/mapper`，两个 Mapper 区域不跨边界依赖。对局 JSON 存储格式、Read Committed 隔离级别和小组行锁保持不变。
 
+## 微信小程序登录决策（2026-09-25）
+
+用户确认新增微信小程序入口，并保留既有 Web 邮箱登录。首次微信登录时验证已有邮箱，直接使用同一账号；分别注册过的微信、邮箱账号暂不合并。独立微信账号注册仍要求邀请，可稍后验证码补绑未注册邮箱，不支持替换已有绑定。小程序复用现有应用服务和组内权限模型，运行期持有不透明 Bearer 会话，服务端仅保存摘要；浏览器继续使用受 Origin 校验保护的 HttpOnly Cookie。
+
+微信调用单独放在 Infrastructure adapter，组合根按 `app.wechat` 注入；AppSecret 与 session_key 不进入前端或日志。邮箱列改为可空以支持多个真实无邮箱账号，新表按 AppID 隔离并对微信身份、账号双向唯一。启动时 AutoMigrate 仅调整邮箱 nullable 并添加微信身份表，不删除现有数据；Model/Query 由 `make generate` 同步。接口细节见 API.md。
+
 ## 交付顺序与验证
 
 ### 1. 身份与小组

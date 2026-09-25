@@ -38,3 +38,13 @@ dev-web:
 .PHONY: integration
 integration: web-build
 	./scripts/test-mysql.sh
+
+.PHONY: mini-install mini-build mini-check
+mini-install:
+	$(PNPM) --dir mini install --frozen-lockfile
+
+mini-build: mini-install
+	$(PNPM) --dir mini build
+
+mini-check: mini-install
+	$(PNPM) --dir mini check

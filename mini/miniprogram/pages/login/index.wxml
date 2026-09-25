@@ -1,0 +1,62 @@
+<view class="page login-page">
+  <view class="brand">又一局<text>。</text></view>
+  <view class="subtitle">记下每一局的输赢与相聚。</view>
+  <view class="muted intro">朋友在桌边，回忆在这里。</view>
+  <view class="card">
+    <view class="section-title">{{existing ? '已有邮箱账号' : '一起，再来一局'}}</view>
+    <view class="muted"
+      >{{existing ? '验证原账号邮箱后绑定当前微信，原来的小组、对局与玩家关联都会保留。' :
+      '已绑定的微信可直接登录。第一次来，请填写试用邀请或朋友的小组邀请。'}}</view
+    >
+    <block wx:if="{{existing}}">
+      <label class="field"
+        ><text class="label">邮箱</text
+        ><input class="input" value="{{email}}" data-field="email" bindinput="input" placeholder="你注册时的邮箱"
+      /></label>
+      <label class="field"
+        ><text class="label">邮箱验证码</text
+        ><input
+          class="input"
+          type="number"
+          maxlength="6"
+          value="{{emailCode}}"
+          data-field="emailCode"
+          bindinput="input"
+      /></label>
+      <button class="secondary" disabled="{{busy || countdown > 0 || !email}}" bindtap="sendCode">
+        {{countdown > 0 ? countdown + ' 秒后重发' : '发送验证码'}}
+      </button>
+    </block>
+    <label wx:if="{{!groupToken}}" class="field"
+      ><text class="label">试用邀请码（新用户）</text
+      ><input class="input" value="{{invite}}" data-field="invite" bindinput="input" placeholder="已有账号可留空"
+    /></label>
+    <label class="field"
+      ><text class="label">小组邀请</text
+      ><input
+        class="input"
+        value="{{groupToken}}"
+        data-field="groupToken"
+        bindinput="input"
+        placeholder="粘贴朋友分享的链接或邀请码"
+    /></label>
+    <view wx:if="{{groupToken}}" class="row"
+      ><button class="link" bindtap="preview">查看邀请</button
+      ><button class="link" bindtap="cancelInvite">取消邀请</button></view
+    >
+    <view wx:if="{{groupName}}" class="card">即将加入「{{groupName}}」</view>
+    <view wx:if="{{error}}" class="error">{{error}}</view>
+    <button
+      class="primary"
+      loading="{{busy}}"
+      disabled="{{busy || (existing && (!email || !emailCode))}}"
+      bindtap="login"
+    >
+      {{existing ? '验证邮箱并绑定微信' : '微信登录'}}
+    </button>
+    <button class="link" disabled="{{busy}}" bindtap="toggle">
+      {{existing ? '返回微信登录' : '我已有邮箱账号，先绑定'}}
+    </button>
+  </view>
+  <view class="muted">邀请制 · 组内私密 · 默认北京时间</view>
+</view>

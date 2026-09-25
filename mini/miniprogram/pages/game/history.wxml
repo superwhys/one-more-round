@@ -1,0 +1,161 @@
+<template name="history-overview">
+  <view class="stat-grid">
+    <view class="stat"><text class="number">{{page.total}}</text><text>局相聚</text></view>
+    <view class="stat"><text class="number">{{page.games}}</text><text>款桌游</text></view>
+    <view class="stat"><text class="number">{{page.players}}</text><text>位朋友</text></view>
+  </view>
+</template>
+
+<template name="history-statistics">
+  <view class="card">
+    <view class="section-title">每一款，都有自己的故事</view>
+    <view class="chips stat-modes">
+      <button
+        wx:for="{{modes}}"
+        wx:key="value"
+        class="chip {{statMode === item.value ? 'selected' : ''}}"
+        data-mode="{{item.value}}"
+        bindtap="changeStatMode"
+      >
+        {{item.label}}
+      </button>
+    </view>
+    <view wx:for="{{stats}}" wx:key="key" class="stat-row">
+      <view class="stat-name">{{item.gameName}} · {{item.playerName}}</view>
+      <view class="stat-result"><text>{{item.rate}}</text><text class="muted">{{item.result}}</text></view>
+      <view class="muted stat-played">{{item.played}} 次参与</view>
+    </view>
+    <view wx:if="{{!stats.length}}" class="muted">这个模式暂无数据。</view>
+  </view>
+</template>
+
+<template name="history-list">
+  <view class="between history-heading"
+    ><view class="section-title">对局回忆</view
+    ><button class="link" bindtap="toggleFilters">
+      筛选{{hasFilters ? ' · 已应用' : ''}} {{filterOpen ? '⌃' : '⌄'}}
+    </button></view
+  >
+  <view wx:if="{{filterOpen}}" class="card history-filters">
+    <view class="field"
+      ><view class="label">搜索回忆</view
+      ><input
+        class="input"
+        value="{{filters.q}}"
+        data-field="q"
+        bindinput="filterInput"
+        placeholder="例如：第一次通关"
+        bindconfirm="applyFilters"
+        confirm-type="search"
+    /></view>
+    <view class="filter-grid">
+      <view wx:if="{{!fixedGame}}" class="field"
+        ><view class="label">桌游</view
+        ><picker
+          range="{{gameOptions}}"
+          range-key="name"
+          value="{{filterIndices.game}}"
+          data-field="game"
+          bindchange="filterPicker"
+          ><view class="input">{{filterLabels.game}} ⌄</view></picker
+        ></view
+      >
+      <view wx:if="{{!fixedPlayer}}" class="field"
+        ><view class="label">玩家</view
+        ><picker
+          range="{{playerOptions}}"
+          range-key="name"
+          value="{{filterIndices.player}}"
+          data-field="player"
+          bindchange="filterPicker"
+          ><view class="input">{{filterLabels.player}} ⌄</view></picker
+        ></view
+      >
+      <view class="field"
+        ><view class="label">模式</view
+        ><picker
+          range="{{modeOptions}}"
+          range-key="label"
+          value="{{filterIndices.mode}}"
+          data-field="mode"
+          bindchange="filterPicker"
+          ><view class="input">{{filterLabels.mode}} ⌄</view></picker
+        ></view
+      >
+      <view class="field"
+        ><view class="label">结果</view
+        ><picker
+          range="{{outcomeOptions}}"
+          range-key="label"
+          value="{{filterIndices.outcome}}"
+          data-field="outcome"
+          bindchange="filterPicker"
+          ><view class="input">{{filterLabels.outcome}} ⌄</view></picker
+        ></view
+      >
+      <view class="field"
+        ><view class="label">照片</view
+        ><picker
+          range="{{photoOptions}}"
+          range-key="label"
+          value="{{filterIndices.has_photos}}"
+          data-field="has_photos"
+          bindchange="filterPicker"
+          ><view class="input">{{filterLabels.has_photos}} ⌄</view></picker
+        ></view
+      >
+      <view class="field"
+        ><view class="label">开始日期</view
+        ><picker mode="date" value="{{filters.from}}" data-field="from" bindchange="filterInput"
+          ><view class="input">{{filters.from || '不限'}} ⌄</view></picker
+        ></view
+      >
+      <view class="field"
+        ><view class="label">结束日期</view
+        ><picker mode="date" value="{{filters.to}}" data-field="to" bindchange="filterInput"
+          ><view class="input">{{filters.to || '不限'}} ⌄</view></picker
+        ></view
+      >
+    </view>
+    <view class="row"
+      ><button class="link" data-period="month" bindtap="quick">本月</button
+      ><button class="link" data-period="year" bindtap="quick">今年</button></view
+    >
+    <view class="row filter-actions"
+      ><button class="secondary" bindtap="clearFilters" disabled="{{loading}}">清空</button
+      ><button class="primary" bindtap="applyFilters" disabled="{{loading}}">应用筛选</button></view
+    >
+  </view>
+  <view wx:for="{{cards}}" wx:key="id" class="card history-card" data-id="{{item.id}}" bindtap="openRound">
+    <view class="between"
+      ><view class="round-name">{{item.gameName}}</view><view class="round-date">{{item.date}} ↗</view></view
+    >
+    <view class="muted round-meta">{{item.modeName}} · {{item.players.length}} 人一起玩</view>
+    <view class="round-result {{item.outcome}}">{{item.result}}</view>
+    <view wx:if="{{item.memory}}" class="memory">{{item.memory}}</view>
+    <image wx:if="{{item.photoPath}}" class="round-photo" src="{{item.photoPath}}" mode="aspectFill" lazy-load />
+    <view wx:if="{{item.photos.length}}" class="muted photo-note"
+      >{{item.photos.length}} 张回忆{{item.photoFailed ? ' · 图片暂未加载，可进入详情重试' : ''}}</view
+    >
+    <view class="round-bottom"
+      ><text class="round-players">{{item.playerNames}}</text
+      ><text wx:if="{{item.minutes}}" class="round-duration">{{item.minutes}} 分钟</text></view
+    >
+  </view>
+  <view wx:if="{{!loading && !error && !cards.length}}" class="empty"
+    ><view class="section-title">{{hasFilters ? '这个范围还没有对局' : '第一次相聚，从这一局开始'}}</view
+    ><view>{{hasFilters ? '换个条件找找，或者看看全部回忆。' : '选一款桌游，记下今天和谁一起玩。'}}</view
+    ><button wx:if="{{hasFilters}}" class="secondary" bindtap="clearFilters">清空筛选</button
+    ><button wx:else class="primary" bindtap="record">记一局</button></view
+  >
+  <button
+    wx:if="{{cards.length < page.total}}"
+    class="secondary"
+    bindtap="more"
+    disabled="{{loading}}"
+    loading="{{loading}}"
+  >
+    加载更多
+  </button>
+  <view wx:elif="{{page.total}}" class="history-end">— 回忆先到这里，下一局待续 —</view>
+</template>

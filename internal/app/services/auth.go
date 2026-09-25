@@ -16,11 +16,12 @@ import (
 type AuthApp struct {
 	repos  ports.Repositories
 	mailer ports.Mailer
+	wechat ports.WechatLogin
 }
 
 // NewAuthApp builds the authentication application service.
 func NewAuthApp(ctx *AppContext) *AuthApp {
-	return &AuthApp{repos: ctx.Repos, mailer: ctx.Mailer}
+	return &AuthApp{repos: ctx.Repos, mailer: ctx.Mailer, wechat: ctx.Wechat}
 }
 
 // SendCode stores a fresh verification code and mails it. The stored code is

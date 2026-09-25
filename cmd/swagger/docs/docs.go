@@ -142,6 +142,79 @@ const docTemplate = `{
                 }
             }
         },
+        "/v1/auth/wx-bind-email": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "返回新 Bearer 会话并撤销当前会话；不同账号不合并，已有邮箱不替换",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Auth"
+                ],
+                "summary": "给微信账号绑定经过验证码验证的邮箱",
+                "parameters": [
+                    {
+                        "description": "邮箱绑定请求",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.BindEmailReq"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/ginutils.Ret-dto_WechatLoginResp"
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/auth/wx-login": {
+            "post": {
+                "description": "wx.login code 由后端兑换，返回不透明 Bearer 会话；首次注册需有效邀请，已有邮箱须验证验证码",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Auth"
+                ],
+                "summary": "微信小程序登录并可首次绑定已有邮箱",
+                "parameters": [
+                    {
+                        "description": "微信登录请求",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.WechatLoginReq"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/ginutils.Ret-dto_WechatLoginResp"
+                        }
+                    }
+                }
+            }
+        },
         "/v1/groups": {
             "get": {
                 "security": [
@@ -1761,6 +1834,23 @@ const docTemplate = `{
                 }
             }
         },
+        "dto.BindEmailReq": {
+            "type": "object",
+            "required": [
+                "code",
+                "email"
+            ],
+            "properties": {
+                "code": {
+                    "type": "string",
+                    "maxLength": 16
+                },
+                "email": {
+                    "type": "string",
+                    "maxLength": 254
+                }
+            }
+        },
         "dto.Claim": {
             "type": "object",
             "properties": {
@@ -2510,6 +2600,51 @@ const docTemplate = `{
                 }
             }
         },
+        "dto.WechatLoginReq": {
+            "type": "object",
+            "required": [
+                "code"
+            ],
+            "properties": {
+                "code": {
+                    "type": "string",
+                    "maxLength": 512
+                },
+                "email": {
+                    "type": "string",
+                    "maxLength": 254
+                },
+                "email_code": {
+                    "type": "string",
+                    "maxLength": 16
+                },
+                "group_token": {
+                    "type": "string",
+                    "maxLength": 128
+                },
+                "invite": {
+                    "type": "string",
+                    "maxLength": 128
+                }
+            }
+        },
+        "dto.WechatLoginResp": {
+            "type": "object",
+            "properties": {
+                "email": {
+                    "type": "string"
+                },
+                "group_id": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "token": {
+                    "type": "string"
+                }
+            }
+        },
         "dto.Wishlist": {
             "type": "object",
             "properties": {
@@ -2804,6 +2939,18 @@ const docTemplate = `{
                 "message": {}
             }
         },
+        "ginutils.Ret-dto_WechatLoginResp": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "integer"
+                },
+                "data": {
+                    "$ref": "#/definitions/dto.WechatLoginResp"
+                },
+                "message": {}
+            }
+        },
         "ginutils.Ret-dto_Wishlist": {
             "type": "object",
             "properties": {
@@ -2830,6 +2977,11 @@ const docTemplate = `{
         }
     },
     "securityDefinitions": {
+        "BearerAuth": {
+            "type": "apiKey",
+            "name": "Authorization",
+            "in": "header"
+        },
         "SessionCookie": {
             "type": "apiKey",
             "name": "omr_session",

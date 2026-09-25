@@ -15,6 +15,7 @@ type AppContext struct {
 	Mailer    ports.Mailer
 	Photos    ports.PhotoFiles
 	Catalogue ports.ExternalCatalogue
+	Wechat    ports.WechatLogin
 }
 
 // identityService builds the identity domain service on top of a unit of work.

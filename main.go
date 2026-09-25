@@ -25,6 +25,7 @@ import (
 	"github.com/superwhys/one-more-round/internal/infra/mail"
 	"github.com/superwhys/one-more-round/internal/infra/mysql"
 	"github.com/superwhys/one-more-round/internal/infra/photos"
+	"github.com/superwhys/one-more-round/internal/infra/wechat"
 	"github.com/superwhys/one-more-round/internal/worker"
 	"github.com/superwhys/one-more-round/web"
 )
@@ -60,6 +61,9 @@ func main() {
 		Repos:  repos,
 		Mailer: &mail.Sender{Config: runtime.SMTP},
 		Photos: photoFiles,
+	}
+	if runtime.Wechat.Enabled() {
+		appCtx.Wechat = wechat.New(runtime.Wechat)
 	}
 	if runtime.BGG.Enabled() {
 		appCtx.Catalogue = bgg.New(runtime.BGG.Token)

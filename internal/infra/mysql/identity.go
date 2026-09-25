@@ -167,3 +167,75 @@ func (r *sessionRepository) Delete(ctx context.Context, hash string) error {
 	_, err := q.WithContext(ctx).Where(q.Hash.Eq(hash)).Delete()
 	return mapErr(err)
 }
+
+// GetByID returns and locks the account for an identity change.
+func (r *userRepository) GetByID(ctx context.Context, id string) (*identity.User, error) {
+	q := queryOf(r.db).User
+	m, err := q.WithContext(ctx).Where(q.ID.Eq(id)).Clauses(clause.Locking{Strength: "UPDATE"}).Take()
+	if err != nil {
+		return nil, mapErr(err)
+	}
+	return mapper.UserModelToDomain(m), nil
+}
+
+// GetByWechat serializes initial registration even before an account exists.
+func (r *userRepository) GetByWechat(ctx context.Context, appID, openIDHash string) (*identity.User, error) {
+	q := queryOf(r.db).WechatAccount
+	// A no-op duplicate update acquires an exclusive lock immediately. INSERT
+	// IGNORE would let concurrent readers deadlock while upgrading shared locks.
+	if err := q.WithContext(ctx).Clauses(clause.OnConflict{DoUpdates: clause.AssignmentColumns([]string{"app_id"})}).Create(
+		&models.WechatAccount{AppID: appID, OpenIDHash: openIDHash},
+	); err != nil {
+		return nil, mapErr(err)
+	}
+	m, err := q.WithContext(ctx).Where(q.AppID.Eq(appID), q.OpenIDHash.Eq(openIDHash)).
+		Clauses(clause.Locking{Strength: "UPDATE"}).Take()
+	if err != nil {
+		return nil, mapErr(err)
+	}
+	if m.UserID == nil {
+		return nil, errcode.ErrNotFound
+	}
+	return r.GetByID(ctx, *m.UserID)
+}
+
+// BindWechat writes a previously unbound identity; both identity and account
+// uniqueness are enforced by the table so races cannot replace an owner.
+func (r *userRepository) BindWechat(ctx context.Context, appID, openIDHash, userID string) error {
+	q := queryOf(r.db).WechatAccount
+	res, err := q.WithContext(ctx).Where(q.AppID.Eq(appID), q.OpenIDHash.Eq(openIDHash), q.UserID.IsNull()).
+		UpdateSimple(q.UserID.Value(userID))
+	if err != nil {
+		if mapErr(err) == errcode.ErrConflict {
+			return errcode.ErrWechatBound
+		}
+		return mapErr(err)
+	}
+	if res.RowsAffected != 1 {
+		return errcode.ErrWechatBound
+	}
+	return nil
+}
+
+// HasWechat reports whether an authenticated account has any WeChat binding.
+func (r *userRepository) HasWechat(ctx context.Context, userID string) (bool, error) {
+	q := queryOf(r.db).WechatAccount
+	count, err := q.WithContext(ctx).Where(q.UserID.Eq(userID)).Count()
+	return count > 0, mapErr(err)
+}
+
+// BindEmail sets only an unbound email and preserves concurrent uniqueness.
+func (r *userRepository) BindEmail(ctx context.Context, userID, email string) error {
+	q := queryOf(r.db).User
+	res, err := q.WithContext(ctx).Where(q.ID.Eq(userID), q.Email.IsNull()).UpdateSimple(q.Email.Value(email))
+	if err != nil {
+		if mapErr(err) == errcode.ErrConflict {
+			return errcode.ErrEmailAccountConflict
+		}
+		return mapErr(err)
+	}
+	if res.RowsAffected != 1 {
+		return errcode.ErrEmailBound
+	}
+	return nil
+}

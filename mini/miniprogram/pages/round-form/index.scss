@@ -1,0 +1,237 @@
+.editor {
+  padding-bottom: calc(72rpx + env(safe-area-inset-bottom));
+}
+.editor .title,
+.editor .section-title,
+.editor .label,
+.editor .notice,
+.editor .upload {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+.editor picker .input {
+  height: auto;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+.editor .field > button {
+  margin-top: 18rpx;
+}
+.editor .chips .chip {
+  display: flex;
+  align-items: center;
+  gap: 10rpx;
+  max-width: 100%;
+  min-height: 44px;
+  white-space: normal;
+}
+.player-name,
+.participant-name {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+.player-name {
+  flex: 1;
+}
+.selection-mark {
+  flex-shrink: 0;
+}
+.score-heading .participant-name {
+  flex: 1 1 160rpx;
+}
+.score-heading .chip {
+  flex-shrink: 0;
+}
+.eyebrow {
+  color: #b16d47;
+  font-size: 19rpx;
+  letter-spacing: 3rpx;
+  margin: 20rpx 0;
+}
+.context {
+  background: #eeeae1;
+}
+.step {
+  display: inline-block;
+  color: #b16d47;
+  font-size: 22rpx;
+  margin-right: 16rpx;
+}
+.notice {
+  margin: 24rpx 0;
+  padding: 24rpx;
+  border-radius: 16rpx;
+  background: #f2e9d9;
+  color: #75563e;
+  font-size: 25rpx;
+}
+.game-options {
+  width: 100%;
+}
+.editor .game-option {
+  width: 100%;
+  background: transparent;
+  text-align: left;
+  padding: 20rpx 14rpx;
+  font-size: 29rpx;
+  line-height: 1.6;
+  border-bottom: 1rpx solid #e9e4d9;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+.game-option::after,
+.segments button::after,
+.extra-toggle::after {
+  border: 0;
+}
+.game-option.selected {
+  background: #f4e8da;
+  color: #9e5835;
+}
+.catalog-actions {
+  margin-top: 18rpx;
+}
+.external {
+  margin-top: 20rpx;
+}
+.external-item {
+  padding: 16rpx 0;
+  border-bottom: 1rpx solid #e4dfd3;
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+}
+.external-item > view {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+.small {
+  flex-shrink: 0;
+  margin: 0;
+}
+.segments {
+  display: flex;
+  gap: 4rpx;
+  padding: 6rpx;
+  margin: 22rpx 0;
+  border-radius: 14rpx;
+  background: #eeeae1;
+}
+.editor .segments button {
+  flex: 1 1 0;
+  min-width: 0;
+  min-height: 44px;
+  margin: 0;
+  padding: 8rpx 0;
+  background: transparent;
+  font-size: 25rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.segments .active {
+  background: #fffaf0;
+  color: #a85e38;
+}
+.score-row,
+.team-card {
+  margin: 18rpx 0;
+  padding: 24rpx;
+  border: 1rpx solid #e5dfd2;
+  border-radius: 16rpx;
+  background: #fcfaf4;
+}
+.score-row .field,
+.team-card .field {
+  margin: 18rpx 0 0;
+}
+.score-note {
+  margin-top: 22rpx;
+}
+.extra {
+  border-style: dashed;
+}
+.editor .extra-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16rpx;
+  width: 100%;
+  padding: 0;
+  background: transparent;
+  text-align: left;
+  font-size: 29rpx;
+  line-height: 1.7;
+  font-weight: 600;
+  white-space: normal;
+}
+.extra-label {
+  flex: 1;
+  min-width: 0;
+}
+.extra-arrow {
+  flex-shrink: 0;
+}
+.photos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16rpx;
+  margin: 20rpx 0;
+}
+.photo {
+  width: calc((100% - 32rpx) / 3);
+}
+.photo image,
+.photo-placeholder {
+  width: 100%;
+  height: 180rpx;
+  border-radius: 14rpx;
+  background: #eee9df;
+}
+.photo-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #8b8476;
+  font-size: 23rpx;
+}
+.upload {
+  padding: 18rpx;
+  margin: 16rpx 0;
+  background: #f2e9d9;
+  font-size: 24rpx;
+  border-radius: 12rpx;
+}
+.save-area {
+  margin-top: 30rpx;
+  text-align: center;
+}
+.save-area .muted {
+  margin-top: 20rpx;
+}
+.success {
+  text-align: center;
+  margin-top: 64rpx;
+}
+.success-mark {
+  display: block;
+  font-size: 66rpx;
+  color: #71806c;
+  margin: 30rpx;
+}
+.editor .success .primary,
+.editor .success .secondary {
+  margin: 22rpx 0;
+}
+
+.editor .chips .player-name {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  text-align: left;
+}

@@ -1,0 +1,72 @@
+<view class="tab-page">
+  <scroll-view
+    class="tab-content"
+    scroll-y
+    refresher-enabled
+    refresher-triggered="{{refreshing}}"
+    bindrefresherrefresh="onPullDownRefresh"
+    bindscrolltolower="onReachBottom"
+    lower-threshold="100"
+  >
+    <view class="page review-page">
+      <view class="between review-heading"
+        ><text class="eyebrow">ONE MORE ROUND</text
+        ><button class="link group-switch" data-url="/pages/setup/index" bindtap="go">
+          {{group.name || '选择小组'}} ▾
+        </button></view
+      >
+      <view class="title">每一局，都值得记住。</view><view class="muted">输赢之外，还有一起坐下来的时光。</view>
+      <view class="stat-grid"
+        ><view class="stat"><text class="number">{{total}}</text>段回忆</view
+        ><view class="stat"><text class="number">{{gameCount}}</text>款桌游</view
+        ><view class="stat"><text class="number">{{playerCount}}</text>位朋友</view></view
+      >
+      <view class="review-shortcuts"
+        ><button class="chip" data-url="/pages/album/index" bindtap="go">聚会相册</button
+        ><button class="chip" data-url="/pages/recap/index" bindtap="go">月度 / 年度回顾</button
+        ><button class="chip" data-url="/pages/notifications/index" bindtap="go">通知</button></view
+      >
+      <view class="between section-heading"
+        ><text class="section-title">桌边的回忆</text
+        ><button class="link" bindtap="filter">筛选 {{filterOpen ? '－' : '＋'}}</button></view
+      >
+      <view wx:if="{{filterOpen}}" class="card stack">
+        <view class="row"
+          ><picker mode="date" value="{{filters.from}}" data-field="from" bindchange="input"
+            ><view class="chip">从 {{filters.from || '不限'}}</view></picker
+          ><picker mode="date" value="{{filters.to}}" data-field="to" bindchange="input"
+            ><view class="chip">至 {{filters.to || '不限'}}</view></picker
+          ></view
+        >
+        <picker range="{{games}}" value="{{gameIndex}}" data-field="game" bindchange="select"
+          ><view class="input">{{games[gameIndex]}}</view></picker
+        ><picker range="{{players}}" value="{{playerIndex}}" data-field="player" bindchange="select"
+          ><view class="input">{{players[playerIndex]}}</view></picker
+        >
+        <picker range="{{modes}}" value="{{modeIndex}}" data-field="mode" bindchange="select"
+          ><view class="input">{{modes[modeIndex]}}</view></picker
+        ><picker range="{{outcomes}}" value="{{outcomeIndex}}" data-field="outcome" bindchange="select"
+          ><view class="input">{{outcomes[outcomeIndex]}}</view></picker
+        >
+        <input class="input" value="{{filters.q}}" data-field="q" bindinput="input" placeholder="搜索一句回忆" /><picker
+          range="{{photoOptions}}"
+          value="{{photoIndex}}"
+          bindchange="photos"
+          ><view class="input">{{photoOptions[photoIndex]}}</view></picker
+        ><button class="secondary" bindtap="search">应用筛选</button
+        ><button class="link" bindtap="clearFilters">清空筛选</button>
+      </view>
+      <view wx:if="{{error}}" class="error">{{error}}<button class="link" bindtap="search">重试</button></view>
+      <view wx:for="{{items}}" wx:key="id" class="card round-card" data-id="{{item.id}}" bindtap="open"
+        ><view class="muted">{{item.date}}</view><view class="subtitle">{{item.gameName}}</view
+        ><view class="muted round-players">{{item.playerNames}}</view><view class="result">{{item.result}}</view
+        ><view wx:if="{{item.memory}}" class="memory">{{item.memory}}</view
+        ><image wx:if="{{item.image}}" class="round-photo" mode="aspectFill" src="{{item.image}}"
+      /></view>
+      <view wx:if="{{loading}}" class="empty">正在找回桌边的时光…</view
+      ><view wx:elif="{{!items.length && !error}}" class="empty">这里还没有回忆。一起记下第一局吧。</view
+      ><view wx:elif="{{items.length < total}}" class="muted">继续上滑，查看更早的回忆</view>
+    </view>
+  </scroll-view>
+  <view class="record-bar"><button class="primary record-button" bindtap="record">＋ 记一局</button></view>
+</view>

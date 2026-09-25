@@ -1,0 +1,33 @@
+@use '../game/history.scss';
+.player-badge {
+  display: inline-block;
+  border-radius: 30rpx;
+  background: #eae5d9;
+  color: #86765f;
+  padding: 10rpx 22rpx;
+  font-size: 22rpx;
+  margin-top: 24rpx;
+}
+.common-game {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24rpx;
+  border-top: 1rpx solid #e8e2d5;
+  padding-top: 22rpx;
+  margin-top: 22rpx;
+  font-size: 27rpx;
+  color: #aa6440;
+}
+.common-game > text:first-child {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+.common-game .muted {
+  flex-shrink: 0;
+}
+.no-common {
+  margin-top: 24rpx;
+}

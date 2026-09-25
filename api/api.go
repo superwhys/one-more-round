@@ -75,6 +75,9 @@ func NewAPI(
 // @securityDefinitions.apikey SessionCookie
 // @in cookie
 // @name omr_session
+// @securityDefinitions.apikey BearerAuth
+// @in header
+// @name Authorization
 func (api *API) SetupRouter() http.Handler {
 	handler := ginutils.NewServerHandler(
 		ginutils.WithMiddleware(
@@ -104,6 +107,7 @@ func (api *API) SetupRouter() http.Handler {
 			),
 			ginutils.WithRouterHandler(
 				router.MeRouter(),
+				router.WechatAccountRouter(api.authApp),
 				router.GroupRouter(api.groupApp),
 				router.NotificationRouter(api.notificationApp),
 			),

@@ -4,6 +4,7 @@ package common
 
 import (
 	"net/http"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/miebyte/goutils/ginutils"
@@ -40,8 +41,21 @@ func ClearSessionCookie(c *gin.Context, secure bool) {
 	SetSessionCookie(c, "", -1, secure)
 }
 
-// SessionToken returns the raw session token of the request cookie.
+// BearerToken parses an explicit mini-program credential without cookie fallback.
+func BearerToken(c *gin.Context) string {
+	parts := strings.Fields(c.GetHeader("Authorization"))
+	if len(parts) != 2 || !strings.EqualFold(parts[0], "Bearer") || len(parts[1]) != 64 {
+		return ""
+	}
+	return parts[1]
+}
+
+// SessionToken prefers an explicit Authorization header; an invalid header
+// never falls back to an ambient browser cookie.
 func SessionToken(c *gin.Context) string {
+	if c.GetHeader("Authorization") != "" {
+		return BearerToken(c)
+	}
 	token, _ := c.Cookie(SessionCookie)
 	return token
 }

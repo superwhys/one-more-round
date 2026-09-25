@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"mime"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -15,12 +16,37 @@ import (
 func OriginMiddleware(origin string) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		if c.Request.Method != http.MethodGet && c.Request.Method != http.MethodHead &&
-			c.GetHeader("Origin") != origin {
+			c.GetHeader("Origin") != origin && !miniProgramRequest(c) {
 			common.RespondError(c, errcode.ErrOrigin)
 			c.Abort()
 			return
 		}
 		c.Next()
+	}
+}
+
+// miniProgramRequest permits explicit non-cookie clients without weakening
+// browser CSRF checks or granting CORS access. Browser-readable login responses
+// require a custom header and JSON, which cross-origin forms cannot send.
+func miniProgramRequest(c *gin.Context) bool {
+	if c.GetHeader("Origin") != "" || c.GetHeader("Cookie") != "" {
+		return false
+	}
+	if common.BearerToken(c) != "" {
+		return true
+	}
+	if c.GetHeader("Authorization") != "" || c.GetHeader("X-OMR-Client") != "wechat-mini" || c.Request.Method != http.MethodPost {
+		return false
+	}
+	mediaType, _, err := mime.ParseMediaType(c.GetHeader("Content-Type"))
+	if err != nil || mediaType != "application/json" {
+		return false
+	}
+	switch c.Request.URL.Path {
+	case "/v1/auth/wx-login", "/v1/auth/code", "/v1/auth/group-invite":
+		return true
+	default:
+		return false
 	}
 }
 

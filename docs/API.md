@@ -9,7 +9,11 @@
 - POST `/auth/group-invite`：无需登录，Body 为 `{token}`，仅返回有效邀请的小组 `{group_id,name}`。不返回组主、成员、记录或其他组内数据；令牌不放在请求 URL 中。
 - GET `/me`：当前账号；POST `/auth/logout`：撤销服务端会话。
 - `omr_session` Cookie 使用 HttpOnly、SameSite=Strict、生产 Secure；有效期固定 30 天，退出立即失效，不自动续期。localStorage 只保存草稿和当前小组偏好；sessionStorage 保存当前标签页的待处理邀请（最多 7 天）及邮箱/验证码发送时间（恢复期 10 分钟），不保存验证码。成功/取消清除相应邀请，退出清除邀请及登录进度。
-- 所有非 GET/HEAD 业务请求的 Origin 必须与配置 `app.origin` 完全一致。命令行调用也必须带此 Header。不开放跨域访问。
+- 浏览器非 GET/HEAD 请求的 Origin 必须与 `app.origin` 完全一致。小程序使用 `Authorization: Bearer <token>`，无 Cookie、无 Origin 时允许写入；非法 Authorization 不回退 Cookie。无会话的小程序仅 `/auth/wx-login`、`/auth/code`、`/auth/group-invite` 允许无 Origin，必须 POST JSON 并带 `X-OMR-Client: wechat-mini`。带 Cookie 或其他 Origin 的请求仍校验本站来源，不开放 CORS。
+- POST `/auth/wx-login`：`{code,invite?,group_token?,email?,email_code?}`。`code` 必须来自 `wx.login`，后端使用配置的 AppID/Secret 调用微信 `code2Session`（8 秒超时）；不接受客户端 OpenID，不保存或返回微信 session_key。首次微信登录可同时证明已注册邮箱，直接复用该账号、小组、玩家与历史记录；邮箱和验证码必须成对提供。首次创建独立账号仍需试用或小组邀请，注册、微信绑定、加入小组及会话同事务提交。返回 `{id,email,group_id?,token}`，无邮箱时 `email` 是空字符串，不创建虚假邮箱；不设置 Cookie。
+- POST `/auth/wx-bind-email`：已登录微信账号提交 `{email,code}` 补绑邮箱，返回 `{id,email,token}`，原子轮换并撤销当前会话。目标邮箱属于另一账号时返回 409，不合并或迁移任何数据；当前账号已经有其他邮箱时也返回 409，不支持更换邮箱。邮箱验证码仍通过 `/auth/code` 发送，沿用 10 分钟/5 次/一次性规则，绑定与邮箱登录共用验证码消费锁。
+- 同一小程序的一个微信身份只能绑定一个账号，一个账号也只能绑定一个微信身份；数据库使用 `(app_id,openid_hash)` 主键和 `(app_id,user_id)` 唯一索引，首次并发注册锁定身份后仅创建一个账号。OpenID 只保存摘要，邮箱允许 NULL 且保留唯一索引；现有邮箱数据不变。不同小程序的身份不按 UnionID 自动合并。
+- 小程序会话同样固定 30 天，只把原始 token 放在运行期内存；重启小程序重新 `wx.login`，不写本地 Storage。所有组内与照片请求继续经过相同服务端成员校验，退出调用 `/auth/logout` 撤销当前 token。
 - 业务错误：400 输入无效、401 未登录、403 权限/来源失败、404 不存在、409 并发/重复/关联冲突、429 请求过多、502 邮件失败、503 BGG 未配置或暂时不可用。
 
 ## 小组与资料
@@ -78,6 +82,8 @@
 - POST `/notifications/:id/read`：只能把当前账号自己的通知标为已读。
 
 ## 运维
+
+`app.wechat.app_id` 和 `app.wechat.secret` 必须同时配置；均为空时只关闭微信登录，保留 Web 邮箱登录。Secret 只放服务端私有配置，不能填写进小程序工程。小程序平台需配置与后端 HTTPS 地址相同的 request、uploadFile、downloadFile 合法域名。
 
 表结构在启动时由 GORM `AutoMigrate` 按 Model 补齐缺失的表、列和索引，不使用版本化 SQL 迁移。运行时使用 goutils 的生命周期与关闭机制。
 

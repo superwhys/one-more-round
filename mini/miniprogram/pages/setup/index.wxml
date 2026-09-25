@@ -1,0 +1,50 @@
+<view class="page">
+  <view class="eyebrow">OUR LITTLE CIRCLE</view><view class="title">为朋友们，留张桌子。</view>
+  <view wx:if="{{error}}" class="error">{{error}}</view>
+  <view wx:if="{{groups.length}}" class="card"
+    ><view class="subtitle">已有小组</view
+    ><button wx:for="{{groups}}" wx:key="id" class="link" data-id="{{item.id}}" bindtap="select">
+      {{item.name}} →
+    </button></view
+  >
+  <view class="card"
+    ><view class="subtitle">加入朋友的小组</view
+    ><input
+      class="input field"
+      value="{{token}}"
+      data-field="token"
+      bindinput="input"
+      placeholder="邀请链接或邀请码"
+    /><button class="secondary" bindtap="preview" disabled="{{!token || busy}}">查看邀请</button>
+    <block wx:if="{{preview}}"
+      ><view class="section-title">{{preview.name}}</view><view class="muted">加入后可查看组内回忆和照片。</view
+      ><view class="action-space"
+        ><button class="primary" bindtap="join" loading="{{busy}}" disabled="{{busy}}">加入小组</button></view
+      ></block
+    >
+  </view>
+  <view class="card"
+    ><view class="subtitle">创建小组</view
+    ><label class="field"
+      ><text class="label">小组名称</text
+      ><input
+        class="input"
+        value="{{name}}"
+        data-field="name"
+        bindinput="input"
+        maxlength="255"
+        placeholder="比如：周五不散场" /></label
+    ><label class="field"
+      ><text class="label">你的玩家昵称</text
+      ><input
+        class="input"
+        value="{{playerName}}"
+        data-field="playerName"
+        bindinput="input"
+        maxlength="255"
+        placeholder="大家平时怎么称呼你？" /></label
+    ><button class="primary" disabled="{{busy || !name || !playerName}}" loading="{{busy}}" bindtap="create">
+      创建并关联我的玩家档案
+    </button></view
+  >
+</view>

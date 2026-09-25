@@ -78,3 +78,15 @@ type PhotoFiles interface {
 	Read(ctx context.Context, id string, thumb bool) (*PhotoContent, error)
 	Remove(ctx context.Context, id string) error
 }
+
+// WechatIdentity is the application-scoped identity returned by code2Session.
+// Session keys stay inside the adapter and are never used as application tokens.
+type WechatIdentity struct {
+	AppID  string
+	OpenID string
+}
+
+// WechatLogin exchanges the short-lived wx.login code on the server.
+type WechatLogin interface {
+	ExchangeCode(ctx context.Context, code string) (WechatIdentity, error)
+}

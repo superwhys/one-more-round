@@ -1,0 +1,18 @@
+<view class="page"
+  ><view class="title">给朋友留个位置。</view
+  ><view class="muted">小组邀请 7 天有效，可供多位朋友使用。请只分享给信任的朋友。</view
+  ><view wx:if="{{error}}" class="error">{{error}}</view
+  ><block wx:if="{{owner}}"
+    ><button class="primary field" loading="{{busy}}" disabled="{{busy}}" bindtap="create">生成小组邀请</button
+    ><view wx:if="{{token}}" class="card stack"
+      ><view class="subtitle">邀请已准备好</view><button class="secondary" open-type="share">发给微信朋友</button
+      ><button class="link" bindtap="copy">复制网页邀请链接</button
+      ><view class="muted">原始链接仅本次展示。</view></view
+    ><view wx:for="{{items}}" wx:key="id" class="card between"
+      ><view>{{item.date}} 到期<view class="muted">{{item.revoked ? '已撤销' : '已生成'}}</view></view
+      ><button wx:if="{{!item.revoked}}" class="link" data-id="{{item.id}}" disabled="{{busy}}" bindtap="revoke">
+        撤销
+      </button></view
+    ></block
+  ></view
+>

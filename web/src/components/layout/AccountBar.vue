@@ -114,7 +114,7 @@ onBeforeUnmount(() => {
       </button>
       <div v-if="accountOpen" :id="panelID" class="j-account-panel" role="region" aria-label="账号选项">
         <div class="j-account-identity">
-          <span>当前账号</span><strong>{{ user.email }}</strong
+          <span>当前账号</span><strong>{{ user.email || '微信账号' }}</strong
           ><small>邀请试用 · 记下每一次相聚</small>
         </div>
         <button type="button" class="j-account-action" @click="openSetup">

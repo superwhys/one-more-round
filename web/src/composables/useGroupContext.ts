@@ -44,7 +44,15 @@ function createGroupContext(groupId: string) {
   }
   const playerName = (id: string) => snapshot.value?.players.find(player => player.id === id)?.name ?? '玩家'
   const gameName = (id: string) => snapshot.value?.games.find(game => game.id === id)?.name ?? '桌游'
-  const memberName = (id: string) => snapshot.value?.members.find(member => member.user_id === id)?.email ?? '历史成员'
+  // memberName prefers a player nickname and distinguishes WeChat-only accounts from past members.
+  const memberName = (id: string) => {
+    const member = snapshot.value?.members.find(member => member.user_id === id)
+    return (
+      snapshot.value?.players.find(player => player.account === id)?.name ||
+      member?.email ||
+      (member ? '微信成员' : '历史成员')
+    )
+  }
   const commenterName = (id: string) =>
     snapshot.value?.players.find(player => player.account === id)?.name ?? memberName(id)
   return { groupId, snapshot, owner, refresh, handleAccessError, playerName, gameName, memberName, commenterName }

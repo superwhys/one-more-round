@@ -10,6 +10,7 @@ import (
 
 	smtp "github.com/superwhys/one-more-round/internal/infra/mail"
 	"github.com/superwhys/one-more-round/internal/infra/photos"
+	"github.com/superwhys/one-more-round/internal/infra/wechat"
 )
 
 type Runtime struct {
@@ -19,6 +20,7 @@ type Runtime struct {
 	SMTP   smtp.Config            `json:"smtp"`
 	Origin string                 `json:"origin"`
 	OSS    photos.OSSConfig       `json:"oss"`
+	Wechat wechat.Config          `json:"wechat"`
 	BGG    BGGConfig              `json:"bgg"`
 }
 
@@ -54,6 +56,9 @@ func (c *Runtime) Validate() error {
 	if u.Scheme == "http" && u.Hostname() != "localhost" && u.Hostname() != "127.0.0.1" &&
 		u.Hostname() != "::1" {
 		return errors.New("production origin requires HTTPS")
+	}
+	if e = c.Wechat.Validate(); e != nil {
+		return e
 	}
 	if e = c.OSS.Validate(); e != nil {
 		return e

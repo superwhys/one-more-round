@@ -1,0 +1,19 @@
+{
+  "name": "one-more-round-mini",
+  "version": "0.1.0",
+  "private": true,
+  "packageManager": "pnpm@11.22.0",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "node --experimental-strip-types --test tests/*.test.ts",
+    "build": "pnpm typecheck && node scripts/build.mjs",
+    "check": "pnpm test && pnpm build"
+  },
+  "devDependencies": {
+    "miniprogram-api-typings": "5.2.3",
+    "miniprogram-automator": "0.12.1",
+    "sass": "1.100.0",
+    "typescript": "5.9.3"
+  },
+  "type": "module"
+}

@@ -1,0 +1,54 @@
+.round-photo {
+  width: 100%;
+  height: 330rpx;
+  border-radius: 14rpx;
+  margin-top: 20rpx;
+}
+.result {
+  color: #9a5c35;
+  margin-top: 20rpx;
+  font-size: 25rpx;
+}
+
+.review-heading {
+  margin-bottom: 24rpx;
+}
+.review-heading .eyebrow {
+  flex-shrink: 0;
+  font-size: 20rpx;
+}
+.review-page button.group-switch {
+  max-width: 52%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding: 8rpx 0 8rpx 12rpx;
+}
+.review-shortcuts {
+  display: grid;
+  grid-template-columns: 1fr 1.4fr 0.75fr;
+  gap: 12rpx;
+}
+.review-page .review-shortcuts button {
+  min-width: 0;
+  padding: 14rpx 6rpx;
+  font-size: 24rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 16rpx;
+}
+@media (max-width: 360px) {
+  .review-heading .eyebrow {
+    font-size: 18rpx;
+    letter-spacing: 2rpx;
+  }
+}
+
+.round-card .subtitle,
+.round-players {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+}
