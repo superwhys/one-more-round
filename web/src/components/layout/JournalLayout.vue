@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { RouterLink } from 'vue-router'
 import Icon from '@/components/common/AppIcon.vue'
+import BggAttribution from '@/components/games/BggAttribution.vue'
 import favicon from '@/assets/favicon.svg'
 defineProps<{ groupName: string; section: string; editor: boolean }>()
 </script>
@@ -46,7 +47,11 @@ defineProps<{ groupName: string; section: string; editor: boolean }>()
     <main id="main-content" class="d-main">
       <slot />
     </main>
-    <footer class="d-footer">记下每一局的输赢与相聚。<span>又一局 · 私密的共同对局日记</span></footer>
+    <footer class="d-footer">
+      <span>记下每一局的输赢与相聚。</span>
+      <span>又一局 · 私密的共同对局日记</span>
+      <BggAttribution class="d-footer-bgg" />
+    </footer>
   </div>
   <RouterLink v-if="!editor" to="/rounds/new" class="d-button d-floating-record">＋ 记一局</RouterLink>
   <nav v-if="!editor" class="d-mobile-nav" aria-label="手机导航">
@@ -70,6 +75,22 @@ defineProps<{ groupName: string; section: string; editor: boolean }>()
 </template>
 
 <style scoped>
+.d-footer {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+}
+.d-footer > span:nth-child(2) {
+  grid-column: 3;
+  grid-row: 1;
+  justify-self: end;
+  text-align: right;
+}
+.d-footer-bgg {
+  grid-column: 2;
+  grid-row: 1;
+  justify-self: center;
+}
 .d-sidebar {
   background: #efeee5;
 }
@@ -150,6 +171,18 @@ defineProps<{ groupName: string; section: string; editor: boolean }>()
   transition: none;
 }
 @media (max-width: 760px) {
+  .d-footer {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+  .d-footer > span:nth-child(2) {
+    text-align: center;
+  }
+  .d-footer-bgg {
+    margin-top: 10px;
+  }
   .d-mobile-nav {
     gap: 10px;
   }

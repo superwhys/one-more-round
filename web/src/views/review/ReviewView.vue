@@ -45,6 +45,7 @@ const inviteOpen = ref(false)
     </header>
     <RequestStatus :loading="loading" :error="error" @retry="load()" /><RoundOverview :page="page" />
     <RoundHistory
+      class="review-history"
       :snapshot="snapshot"
       :page="page"
       :loading="loading"
@@ -201,6 +202,13 @@ const inviteOpen = ref(false)
 @media (hover: hover) and (pointer: fine) {
   .review-recap:hover > svg:last-child {
     transform: translateX(3px);
+  }
+}
+@media (min-width: 961px) {
+  .review-history :deep(.d-companion) {
+    position: sticky;
+    top: 20px;
+    z-index: 1;
   }
 }
 @media (max-width: 1150px) {

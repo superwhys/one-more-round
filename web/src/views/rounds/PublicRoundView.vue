@@ -3,6 +3,7 @@ import { computed, onMounted, onScopeDispose, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import PlayerChip from '@/components/common/PlayerChip.vue'
 import RequestStatus from '@/components/common/RequestStatus.vue'
+import BggAttribution from '@/components/games/BggAttribution.vue'
 import favicon from '@/assets/favicon.svg'
 import { getPublicRound, getPublicRoundPhoto } from '@/api/round'
 import type { PublicRound } from '@/types/journal'
@@ -96,6 +97,18 @@ onScopeDispose(clearPhotos)
         </article>
       </template>
     </main>
-    <footer class="j-public-footer">这是一条由小组成员主动公开的对局记录。链接被撤销或记录被删除后将无法访问。</footer>
+    <footer class="j-public-footer">
+      <p>这是一条由小组成员主动公开的对局记录。链接被撤销或记录被删除后将无法访问。</p>
+      <BggAttribution />
+    </footer>
   </div>
 </template>
+
+<style scoped>
+.j-public-footer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+</style>
