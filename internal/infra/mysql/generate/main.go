@@ -21,6 +21,7 @@ func main() {
 		models.Member{},
 		models.Player{},
 		models.Game{},
+		models.GameWish{},
 		models.Round{},
 		models.RoundShare{},
 		models.RoundComment{},

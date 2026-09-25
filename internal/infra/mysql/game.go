@@ -7,6 +7,7 @@ import (
 	"gorm.io/gorm/clause"
 
 	"github.com/superwhys/one-more-round/internal/domain/game"
+	"github.com/superwhys/one-more-round/internal/errcode"
 	"github.com/superwhys/one-more-round/internal/infra/mysql/mapper"
 )
 
@@ -41,4 +42,17 @@ func (r *gameRepository) ListByGroup(ctx context.Context, groupID string) ([]*ga
 		items = append(items, mapper.GameModelToDomain(m))
 	}
 	return items, nil
+}
+
+// Delete removes a game after its round and wishlist references have moved.
+func (r *gameRepository) Delete(ctx context.Context, groupID, gameID string) error {
+	q := queryOf(r.db).Game
+	result, err := q.WithContext(ctx).Where(q.GroupID.Eq(groupID), q.ID.Eq(gameID)).Delete()
+	if err != nil {
+		return mapErr(err)
+	}
+	if result.RowsAffected == 0 {
+		return errcode.ErrNotFound
+	}
+	return nil
 }

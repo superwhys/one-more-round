@@ -36,11 +36,18 @@ type SearchExternalGamesReq struct {
 	Query   string `            form:"q"`
 }
 
-// SyncCoverReq attaches an external cover to a game already on the shelf.
+// SyncCoverReq links an external entry to a game already on the shelf.
 type SyncCoverReq struct {
-	GroupID string `uri:"group"`
-	GameID  string `uri:"game"`
-	BGGID   int    `            json:"bgg_id"`
+	GroupID string `uri:"group" json:"-" form:"-" header:"-"`
+	GameID  string `uri:"game" json:"-" form:"-" header:"-"`
+	BGGID   int    `json:"bgg_id" uri:"-" form:"-" header:"-"`
+}
+
+// MergeGameReq folds a manual game into an existing BGG game in the same group.
+type MergeGameReq struct {
+	GroupID      string `uri:"group" json:"-" form:"-" header:"-"`
+	GameID       string `uri:"game" json:"-" form:"-" header:"-"`
+	TargetGameID string `json:"target_game_id" uri:"-" form:"-" header:"-" validate:"required"`
 }
 
 // ImportGameReq copies one external game into the group catalogue.

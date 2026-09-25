@@ -26,6 +26,9 @@ const inviteOpen = ref(false)
           <RouterLink to="/recaps" class="review-recap"
             ><Icon name="calendar" :size="16" />月度 / 年度回顾<Icon name="arrow" :size="16"
           /></RouterLink>
+          <RouterLink to="/album" class="review-recap"
+            ><Icon name="photo" :size="16" />聚会相册<Icon name="arrow" :size="16"
+          /></RouterLink>
         </div>
       </div>
       <div class="review-keepsake" aria-hidden="true">

@@ -82,6 +82,15 @@ type Game struct {
 
 func (Game) TableName() string { return "omr_games" }
 
+// GameWish marks a game the group wants to play.
+type GameWish struct {
+	GroupID string `gorm:"column:group_id;type:varchar(64);primaryKey"`
+	GameID  string `gorm:"column:game_id;type:varchar(64);primaryKey"`
+}
+
+// TableName returns the persistent game wish table name.
+func (GameWish) TableName() string { return "omr_game_wishes" }
+
 type Round struct {
 	ID        string     `gorm:"column:id;type:varchar(64);primaryKey;index:group_id,priority:3"`
 	GroupID   string     `gorm:"column:group_id;type:varchar(64);not null;index:group_id,priority:1"`
@@ -193,6 +202,7 @@ func AllModels() []any {
 		&Member{},
 		&Player{},
 		&Game{},
+		&GameWish{},
 		&Round{},
 		&RoundShare{},
 		&RoundComment{},

@@ -94,6 +94,11 @@ func (f *RepositoryFactory) Game() game.IGameRepository {
 	return &gameRepository{db: f.db}
 }
 
+// GameWish returns the group's want-to-play repository.
+func (f *RepositoryFactory) GameWish() game.IWishRepository {
+	return &gameWishRepository{db: f.db}
+}
+
 // Round returns the round repository.
 func (f *RepositoryFactory) Round() diary.IRoundRepository {
 	return &roundRepository{db: f.db}

@@ -111,6 +111,7 @@ func (api *API) SetupRouter() http.Handler {
 				ginutils.WithPrefix("/groups/:group"),
 				ginutils.WithRouterHandler(
 					router.GroupDetailRouter(api.groupApp, api.config.Origin),
+					router.WishlistRouter(api.groupApp),
 					router.RoundRouter(api.roundApp),
 					router.CommentRouter(api.commentApp),
 					router.PhotoRouter(api.photoApp),

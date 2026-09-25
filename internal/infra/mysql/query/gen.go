@@ -22,6 +22,7 @@ func Use(db *gorm.DB, opts ...gen.DOOption) *Query {
 		Claim:              newClaim(db, opts...),
 		CommentIdempotency: newCommentIdempotency(db, opts...),
 		Game:               newGame(db, opts...),
+		GameWish:           newGameWish(db, opts...),
 		Group:              newGroup(db, opts...),
 		Idempotency:        newIdempotency(db, opts...),
 		Invite:             newInvite(db, opts...),
@@ -46,6 +47,7 @@ type Query struct {
 	Claim              claim
 	CommentIdempotency commentIdempotency
 	Game               game
+	GameWish           gameWish
 	Group              group
 	Idempotency        idempotency
 	Invite             invite
@@ -73,6 +75,7 @@ func (q *Query) clone(db *gorm.DB) *Query {
 		Claim:              q.Claim.clone(db),
 		CommentIdempotency: q.CommentIdempotency.clone(db),
 		Game:               q.Game.clone(db),
+		GameWish:           q.GameWish.clone(db),
 		Group:              q.Group.clone(db),
 		Idempotency:        q.Idempotency.clone(db),
 		Invite:             q.Invite.clone(db),
@@ -105,6 +108,7 @@ func (q *Query) ReplaceDB(db *gorm.DB) *Query {
 		Claim:              q.Claim.replaceDB(db),
 		CommentIdempotency: q.CommentIdempotency.replaceDB(db),
 		Game:               q.Game.replaceDB(db),
+		GameWish:           q.GameWish.replaceDB(db),
 		Group:              q.Group.replaceDB(db),
 		Idempotency:        q.Idempotency.replaceDB(db),
 		Invite:             q.Invite.replaceDB(db),
@@ -127,6 +131,7 @@ type queryCtx struct {
 	Claim              IClaimDo
 	CommentIdempotency ICommentIdempotencyDo
 	Game               IGameDo
+	GameWish           IGameWishDo
 	Group              IGroupDo
 	Idempotency        IIdempotencyDo
 	Invite             IInviteDo
@@ -149,6 +154,7 @@ func (q *Query) WithContext(ctx context.Context) *queryCtx {
 		Claim:              q.Claim.WithContext(ctx),
 		CommentIdempotency: q.CommentIdempotency.WithContext(ctx),
 		Game:               q.Game.WithContext(ctx),
+		GameWish:           q.GameWish.WithContext(ctx),
 		Group:              q.Group.WithContext(ctx),
 		Idempotency:        q.Idempotency.WithContext(ctx),
 		Invite:             q.Invite.WithContext(ctx),

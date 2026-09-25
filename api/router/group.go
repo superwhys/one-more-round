@@ -60,6 +60,7 @@ func GroupDetailRouter(groupApp *services.GroupApp, origin string) groupRouterFn
 		router.POST("/games", addGameHandler(groupApp))
 		router.POST("/games/import", importExternalGameHandler(groupApp))
 		router.POST("/games/:game/cover", syncCoverHandler(groupApp))
+		router.POST("/games/:game/merge", mergeGameHandler(groupApp))
 		router.GET("/bgg/search", searchExternalGamesHandler(groupApp))
 		router.GET("/invites", listInvitesHandler(groupApp))
 		router.POST("/invites", createInviteHandler(groupApp, origin))
@@ -274,9 +275,9 @@ func importExternalGameHandler(groupApp *services.GroupApp) gin.HandlerFunc {
 	})
 }
 
-// syncCoverHandler 同步桌游封面
-// @Summary 同步桌游封面
-// @Description 把已有桌游关联到一条 BGG 条目并保存封面，不改本组名称
+// syncCoverHandler 关联 BGG 桌游资料
+// @Summary 关联 BGG 桌游资料
+// @Description 把已有桌游关联到一条 BGG 条目，有封面时保存，不改本组名称
 // @Tags Game
 // @Accept json
 // @Produce json
@@ -293,6 +294,28 @@ func syncCoverHandler(groupApp *services.GroupApp) gin.HandlerFunc {
 			return
 		}
 		ctx.JSON(http.StatusOK, dto.ResponseWithData(game))
+	})
+}
+
+// mergeGameHandler 合并手动桌游到现有 BGG 条目
+// @Summary 合并桌游
+// @Description 仅组主可确认合并；保留目标桌游名称，迁移手动条目的历史对局和想玩状态
+// @Tags Game
+// @Accept json
+// @Produce json
+// @Security SessionCookie
+// @Param group path string true "小组 ID"
+// @Param game path string true "手动桌游 ID"
+// @Param request body dto.MergeGameReq true "目标 BGG 桌游"
+// @Success 200 {object} ginutils.Ret[dto.Game]
+// @Router /v1/groups/{group}/games/{game}/merge [post]
+func mergeGameHandler(groupApp *services.GroupApp) gin.HandlerFunc {
+	return ginutils.RequestHandler(func(ctx *gin.Context, req *dto.MergeGameReq) {
+		merged, err := groupApp.MergeGame(ctx.Request.Context(), req.GroupID, common.UserID(ctx), req)
+		if common.HandleRouterError(ctx, err, "merge game failed", errcode.ErrGameSave) {
+			return
+		}
+		ctx.JSON(http.StatusOK, dto.ResponseWithData(merged))
 	})
 }
 

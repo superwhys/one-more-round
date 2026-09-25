@@ -412,7 +412,7 @@ const docTemplate = `{
                         "SessionCookie": []
                     }
                 ],
-                "description": "把已有桌游关联到一条 BGG 条目并保存封面，不改本组名称",
+                "description": "把已有桌游关联到一条 BGG 条目，有封面时保存，不改本组名称",
                 "consumes": [
                     "application/json"
                 ],
@@ -422,7 +422,7 @@ const docTemplate = `{
                 "tags": [
                     "Game"
                 ],
-                "summary": "同步桌游封面",
+                "summary": "关联 BGG 桌游资料",
                 "parameters": [
                     {
                         "type": "string",
@@ -445,6 +445,59 @@ const docTemplate = `{
                         "required": true,
                         "schema": {
                             "$ref": "#/definitions/dto.SyncCoverReq"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/ginutils.Ret-dto_Game"
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/groups/{group}/games/{game}/merge": {
+            "post": {
+                "security": [
+                    {
+                        "SessionCookie": []
+                    }
+                ],
+                "description": "仅组主可确认合并；保留目标桌游名称，迁移手动条目的历史对局和想玩状态",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Game"
+                ],
+                "summary": "合并桌游",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "小组 ID",
+                        "name": "group",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "手动桌游 ID",
+                        "name": "game",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "目标 BGG 桌游",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.MergeGameReq"
                         }
                     }
                 ],
@@ -1349,6 +1402,117 @@ const docTemplate = `{
                 }
             }
         },
+        "/v1/groups/{group}/wishlist": {
+            "get": {
+                "security": [
+                    {
+                        "SessionCookie": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Game"
+                ],
+                "summary": "获取小组想玩清单",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "小组 ID",
+                        "name": "group",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/ginutils.Ret-dto_Wishlist"
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/groups/{group}/wishlist/{game}": {
+            "post": {
+                "security": [
+                    {
+                        "SessionCookie": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Game"
+                ],
+                "summary": "加入小组想玩清单",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "小组 ID",
+                        "name": "group",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "桌游 ID",
+                        "name": "game",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/ginutils.Ret-any"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "SessionCookie": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Game"
+                ],
+                "summary": "移出小组想玩清单",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "小组 ID",
+                        "name": "group",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "桌游 ID",
+                        "name": "game",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/ginutils.Ret-any"
+                        }
+                    }
+                }
+            }
+        },
         "/v1/join": {
             "post": {
                 "security": [
@@ -1847,6 +2011,17 @@ const docTemplate = `{
                 }
             }
         },
+        "dto.MergeGameReq": {
+            "type": "object",
+            "required": [
+                "target_game_id"
+            ],
+            "properties": {
+                "target_game_id": {
+                    "type": "string"
+                }
+            }
+        },
         "dto.Notification": {
             "type": "object",
             "properties": {
@@ -2290,12 +2465,6 @@ const docTemplate = `{
             "properties": {
                 "bgg_id": {
                     "type": "integer"
-                },
-                "gameID": {
-                    "type": "string"
-                },
-                "groupID": {
-                    "type": "string"
                 }
             }
         },
@@ -2338,6 +2507,17 @@ const docTemplate = `{
                 },
                 "id": {
                     "type": "string"
+                }
+            }
+        },
+        "dto.Wishlist": {
+            "type": "object",
+            "properties": {
+                "game_ids": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
                 }
             }
         },
@@ -2620,6 +2800,18 @@ const docTemplate = `{
                 },
                 "data": {
                     "$ref": "#/definitions/dto.User"
+                },
+                "message": {}
+            }
+        },
+        "ginutils.Ret-dto_Wishlist": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "integer"
+                },
+                "data": {
+                    "$ref": "#/definitions/dto.Wishlist"
                 },
                 "message": {}
             }

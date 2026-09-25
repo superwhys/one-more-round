@@ -23,3 +23,5 @@ export const importGame = (groupId: string, bggId: number, name: string) =>
   send<Game>(`/groups/${groupId}/games/import`, { bgg_id: bggId, name })
 export const syncCover = (groupId: string, gameId: string, bggId: number) =>
   send<Game>(`/groups/${groupId}/games/${gameId}/cover`, { bgg_id: bggId })
+export const mergeGame = (groupId: string, sourceGameId: string, targetGameId: string) =>
+  send<Game>(`/groups/${groupId}/games/${sourceGameId}/merge`, { target_game_id: targetGameId })

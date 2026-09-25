@@ -7,11 +7,11 @@ import RequestStatus from '@/components/common/RequestStatus.vue'
 import { useGroupContext } from '@/composables/useGroupContext'
 import { useGroupOperation } from '@/composables/useGroupOperation'
 
-import { addGame, importGame, searchBGG as search, syncCover, type ExternalSearch } from '@/api/game'
+import { addGame, importGame, mergeGame, searchBGG as search, syncCover, type ExternalSearch } from '@/api/game'
 import type { Game } from '@/types/journal'
 import { message } from '@/utils/error'
 import { useRoundHistory } from '@/composables/useRoundHistory'
-const { groupId, snapshot, refresh } = useGroupContext()
+const { groupId, snapshot, owner, refresh } = useGroupContext()
 const { page, loading, error: loadError, load } = useRoundHistory()
 const { busy, error, notice, run } = useGroupOperation()
 const gameSearch = ref('')
@@ -22,6 +22,7 @@ const importingOriginal = ref('')
 const externalOpen = ref(false)
 const external = ref<ExternalSearch | null>(null)
 const linkingGame = ref<Game | null>(null)
+const mergePending = ref<{ source: Game; target: Game } | null>(null)
 const searching = ref(false)
 const searchError = ref('')
 const addResults = ref<ExternalSearch | null>(null)
@@ -109,15 +110,26 @@ function submitAdd() {
 function chooseExternal(id: number, original: string) {
   const target = linkingGame.value
   if (target) {
+    const existing = snapshot.value?.games.find(game => game.id !== target.id && game.bgg_id === id)
+    if (existing) {
+      externalOpen.value = false
+      linkingGame.value = null
+      if (owner.value) {
+        mergePending.value = { source: target, target: existing }
+      } else {
+        error.value = '架上已有这款 BGG 桌游，请联系组主合并'
+      }
+      return
+    }
     return run(async () => {
-      await syncCover(groupId, target.id, id)
+      const linked = await syncCover(groupId, target.id, id)
       linkingGame.value = null
       externalOpen.value = false
-      notice.value = '封面已经同步'
+      notice.value = linked.cover ? '已关联 BGG 并同步封面' : '已关联 BGG；这款桌游暂无封面'
       try {
         await refresh()
       } catch {
-        notice.value = '封面已同步，刷新失败，请重新加载'
+        notice.value = 'BGG 关联已保存，刷新失败，请重新加载'
       }
     })
   }
@@ -127,16 +139,31 @@ function chooseExternal(id: number, original: string) {
   externalOpen.value = false
   addingOpen.value = true
 }
+// confirmMerge moves the manual entry into the selected BGG game after owner approval.
+function confirmMerge() {
+  const pending = mergePending.value
+  if (!pending) return
+  return run(async () => {
+    await mergeGame(groupId, pending.source.id, pending.target.id)
+    mergePending.value = null
+    notice.value = `已合并到「${pending.target.name}」，历史对局和想玩状态已保留`
+    try {
+      await Promise.all([refresh(), load()])
+    } catch {
+      notice.value = '桌游已合并，刷新失败，请重新加载'
+    }
+  })
+}
 function syncGameCover(game: Game) {
   if (game.bgg_id) {
     const bggID = game.bgg_id
     return run(async () => {
-      await syncCover(groupId, game.id, bggID)
-      notice.value = '封面已经同步'
+      const linked = await syncCover(groupId, game.id, bggID)
+      notice.value = linked.cover ? '封面已经同步' : 'BGG 暂无这款桌游的封面'
       try {
         await refresh()
       } catch {
-        notice.value = '封面已同步，刷新失败，请重新加载'
+        notice.value = 'BGG 资料已更新，刷新失败，请重新加载'
       }
     })
   }
@@ -198,7 +225,10 @@ function retry() {
         <h1>我们的桌游架<span class="d-title-dot">。</span></h1>
         <p>每一盒打开的，都是一起玩的理由。</p>
       </div>
-      <button class="d-button" @click="openAddForm()"><Icon name="plus" :size="16" /> 添加桌游</button>
+      <div class="shelf-heading-actions">
+        <RouterLink class="d-button secondary" to="/wishlist">想玩清单</RouterLink>
+        <button class="d-button" @click="openAddForm()"><Icon name="plus" :size="16" /> 添加桌游</button>
+      </div>
     </header>
 
     <section class="shelf-toolbar" aria-label="桌游架与搜索">
@@ -235,7 +265,7 @@ function retry() {
           <span class="shelf-cover-note">好游戏，一起玩。</span>
         </div>
         <button v-if="!game.cover" class="shelf-sync" type="button" @click.prevent.stop="syncGameCover(game)">
-          同步封面
+          {{ game.bgg_id ? '重试封面' : '关联 BGG' }}
         </button>
         <div class="shelf-card-body">
           <h2 :title="game.name">{{ game.name }}</h2>
@@ -270,8 +300,29 @@ function retry() {
       </div>
     </div>
     <Modal
+      v-if="mergePending"
+      title="确认合并桌游。"
+      @close="
+        () => {
+          if (!busy) mergePending = null
+        }
+      "
+    >
+      <p class="shelf-merge-copy">
+        手动条目「{{ mergePending.source.name }}」会并入「{{ mergePending.target.name }}」。后者的本组名称和 BGG
+        资料会保留；前者的历史对局（包括回收站）与想玩状态会迁过去，手动条目将从桌游架移除。
+      </p>
+      <p v-if="error" class="j-error" role="alert">{{ error }}</p>
+      <div class="shelf-merge-actions">
+        <button class="d-button secondary" type="button" :disabled="busy" @click="mergePending = null">取消</button>
+        <button class="d-button" type="button" :disabled="busy" @click="confirmMerge">
+          {{ busy ? '正在合并…' : '确认合并' }}
+        </button>
+      </div>
+    </Modal>
+    <Modal
       v-if="externalOpen && external"
-      :title="linkingGame ? '选择一张封面。' : '搜索更多桌游。'"
+      :title="linkingGame ? '关联 BGG 桌游。' : '搜索更多桌游。'"
       wide
       @close="
         () => {
@@ -290,7 +341,7 @@ function retry() {
             <span v-if="item.year">{{ item.year }}</span>
           </div>
           <button class="d-button secondary" type="button" @click="chooseExternal(item.bgg_id, item.name)">
-            {{ linkingGame ? '使用这张封面' : '放入游戏架' }}
+            {{ linkingGame ? '关联此条目' : '放入游戏架' }}
           </button>
         </li>
       </ul>
@@ -367,6 +418,21 @@ function retry() {
 <style scoped>
 .shelf-heading {
   margin-bottom: 28px;
+}
+.shelf-heading-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.shelf-merge-copy {
+  line-height: 1.8;
+  color: var(--d-muted);
+}
+.shelf-merge-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 24px;
 }
 .shelf-toolbar {
   display: flex;

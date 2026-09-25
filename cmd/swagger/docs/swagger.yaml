@@ -189,6 +189,13 @@ definitions:
       user_id:
         type: string
     type: object
+  dto.MergeGameReq:
+    properties:
+      target_game_id:
+        type: string
+    required:
+    - target_game_id
+    type: object
   dto.Notification:
     properties:
       body:
@@ -479,10 +486,6 @@ definitions:
     properties:
       bgg_id:
         type: integer
-      gameID:
-        type: string
-      groupID:
-        type: string
     type: object
   dto.Team:
     properties:
@@ -510,6 +513,13 @@ definitions:
         type: string
       id:
         type: string
+    type: object
+  dto.Wishlist:
+    properties:
+      game_ids:
+        items:
+          type: string
+        type: array
     type: object
   ginutils.Ret-any:
     properties:
@@ -698,6 +708,14 @@ definitions:
         type: integer
       data:
         $ref: '#/definitions/dto.User'
+      message: {}
+    type: object
+  ginutils.Ret-dto_Wishlist:
+    properties:
+      code:
+        type: integer
+      data:
+        $ref: '#/definitions/dto.Wishlist'
       message: {}
     type: object
   ginutils.Ret-string:
@@ -936,7 +954,7 @@ paths:
     post:
       consumes:
       - application/json
-      description: 把已有桌游关联到一条 BGG 条目并保存封面，不改本组名称
+      description: 把已有桌游关联到一条 BGG 条目，有封面时保存，不改本组名称
       parameters:
       - description: 小组 ID
         in: path
@@ -963,7 +981,41 @@ paths:
             $ref: '#/definitions/ginutils.Ret-dto_Game'
       security:
       - SessionCookie: []
-      summary: 同步桌游封面
+      summary: 关联 BGG 桌游资料
+      tags:
+      - Game
+  /v1/groups/{group}/games/{game}/merge:
+    post:
+      consumes:
+      - application/json
+      description: 仅组主可确认合并；保留目标桌游名称，迁移手动条目的历史对局和想玩状态
+      parameters:
+      - description: 小组 ID
+        in: path
+        name: group
+        required: true
+        type: string
+      - description: 手动桌游 ID
+        in: path
+        name: game
+        required: true
+        type: string
+      - description: 目标 BGG 桌游
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.MergeGameReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/ginutils.Ret-dto_Game'
+      security:
+      - SessionCookie: []
+      summary: 合并桌游
       tags:
       - Game
   /v1/groups/{group}/games/import:
@@ -1562,6 +1614,75 @@ paths:
       summary: 获取回收站
       tags:
       - Round
+  /v1/groups/{group}/wishlist:
+    get:
+      parameters:
+      - description: 小组 ID
+        in: path
+        name: group
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/ginutils.Ret-dto_Wishlist'
+      security:
+      - SessionCookie: []
+      summary: 获取小组想玩清单
+      tags:
+      - Game
+  /v1/groups/{group}/wishlist/{game}:
+    delete:
+      parameters:
+      - description: 小组 ID
+        in: path
+        name: group
+        required: true
+        type: string
+      - description: 桌游 ID
+        in: path
+        name: game
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/ginutils.Ret-any'
+      security:
+      - SessionCookie: []
+      summary: 移出小组想玩清单
+      tags:
+      - Game
+    post:
+      parameters:
+      - description: 小组 ID
+        in: path
+        name: group
+        required: true
+        type: string
+      - description: 桌游 ID
+        in: path
+        name: game
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/ginutils.Ret-any'
+      security:
+      - SessionCookie: []
+      summary: 加入小组想玩清单
+      tags:
+      - Game
   /v1/join:
     post:
       consumes:

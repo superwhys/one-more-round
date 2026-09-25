@@ -105,6 +105,46 @@ func (r *roundRepository) Save(ctx context.Context, groupID string, round *diary
 	)
 }
 
+// ReassignGame moves every round of the source game, including recycle-bin
+// rows. The indexed column and JSON document must agree for reads and stats.
+func (r *roundRepository) ReassignGame(
+	ctx context.Context,
+	groupID, sourceGameID, targetGameID string,
+) error {
+	q := queryOf(r.db).Round
+	rows, err := q.WithContext(ctx).
+		Clauses(clause.Locking{Strength: "UPDATE"}).
+		Where(q.GroupID.Eq(groupID), q.GameID.Eq(sourceGameID)).
+		Find()
+	if err != nil {
+		return mapErr(err)
+	}
+	for _, row := range rows {
+		stored, err := mapper.RoundModelToDomain(row)
+		if err != nil {
+			return err
+		}
+		if stored.GameID != sourceGameID {
+			return errcode.ErrConflict.WithMessage("对局游戏资料不一致，暂不能合并")
+		}
+		stored.GameID = targetGameID
+		updated, err := mapper.RoundDomainToModel(stored)
+		if err != nil {
+			return err
+		}
+		result, err := q.WithContext(ctx).
+			Where(q.GroupID.Eq(groupID), q.ID.Eq(row.ID), q.GameID.Eq(sourceGameID)).
+			UpdateSimple(q.GameID.Value(targetGameID), q.Body.Value(updated.Body))
+		if err != nil {
+			return mapErr(err)
+		}
+		if result.RowsAffected != 1 {
+			return errcode.ErrConflict.WithMessage("对局已变化，请刷新后再合并")
+		}
+	}
+	return nil
+}
+
 // Delete removes the round of the group.
 func (r *roundRepository) Delete(ctx context.Context, groupID, id string) error {
 	queries := queryOf(r.db)

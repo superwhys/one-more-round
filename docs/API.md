@@ -1,6 +1,6 @@
 # V0.1 本地试用接口契约
 
-当前实现支持手动添加，以及在配置 `app.bgg.token` 后搜索并导入 BoardGameGeek 基础游戏。未配置令牌、授权失败或外部服务不可用时返回 503。自定义游戏关联 BGG 与组主确认合并尚未实现。所有业务路径以 `/api/v1` 开头，成功为 `{"code":0,"data":...,"message":"success"}`，错误同时使用非 2xx HTTP 状态和非零 code。
+当前实现支持手动添加，以及在配置 `app.bgg.token` 后搜索、导入和关联 BoardGameGeek 基础游戏；同组已有该 BGG 条目时可由组主确认合并。未配置令牌、授权失败或外部服务不可用时返回 503。所有业务路径以 `/api/v1` 开头，成功为 `{"code":0,"data":...,"message":"success"}`，错误同时使用非 2xx HTTP 状态和非零 code。
 
 ## 身份与安全
 
@@ -20,15 +20,20 @@
 - POST `/groups/:group/players`、`/games`：以 `name` 添加玩家或手动桌游。
 - GET `/groups/:group/bgg/search?q=`：成员搜索 BoardGameGeek 基础游戏，返回名称、年份、BGG ID、封面地址和来源标识。封面来自详情接口的 `thumbnail`，没有则省略。令牌只在服务端使用，结果缓存一小时。
 - POST `/groups/:group/games/import`：`bgg_id` 与可选 `name`。服务端读取外部原名；`name` 作为本组名称，留空则使用原名。同组相同 BGG ID 复用已有条目，不覆盖已有本组名称。同名但不同条目返回 409。
+- POST `/groups/:group/games/:game/cover`：`bgg_id`。将已有手动桌游关联到该 BGG 条目，保留本组名称；有封面时保存地址，无封面仍可关联。同组已有另一条游戏使用此 BGG ID 时返回 409。
+- POST `/groups/:group/games/:game/merge`：组主提交 `target_game_id`，把未关联 BGG 的手动条目合并进本组已有的 BGG 条目。保留目标条目及其本组名称，在同一事务内迁移来源条目的历史对局（含回收站）和想玩状态，并删除来源条目；跨组、无效目标与普通成员请求被拒绝。
+- GET `/groups/:group/wishlist`：当前成员读取本组想玩清单，返回 `{game_ids: [...]}`；列表只引用本组已有桌游，不新增另一份游戏资料。
+- POST/DELETE `/groups/:group/wishlist/:game`：当前成员把本组桌游加入或移出共享想玩清单；重复操作幂等，跨组或不存在的游戏返回 404。想玩状态不影响游玩次数与战绩。
 - POST `/groups/:group/manage`：`action`、`target`、`value`。`claim` 申请关联 `target` 指定的已有档案；`claim-new` 以 `value` 为昵称创建新档案并同时申请关联。其余操作包括 `rename`、`alias`、`remove`、`transfer`、`approve`、`reject`、`revoke`；关联均由组主确认，服务端拒绝重复申请和重复绑定。
 - GET/POST `/groups/:group/invites`：组主查看/创建邀请；7 天有效、可多人使用、可撤销，链接密钥只在创建响应中返回。链接仍为 `/join#令牌`，使用 fragment 避免进入 HTTP 访问日志。无效、过期和撤销返回不同中文提示，HTTP 400；数据库故障保留系统错误语义。
-- GET `/groups/:group/export`：仅组主可下载 ZIP 备份，包含 `one-more-round.json`、`rounds.csv` 和已关联照片展示图；导出包含仍在 7 天恢复期内的记录。
+- GET `/groups/:group/export`：仅组主可下载 ZIP 备份，包含 `one-more-round.json`、`rounds.csv` 和已关联照片展示图；JSON 中包含本组想玩游戏 ID，导出包含仍在 7 天恢复期内的记录。
 - 玩家名称、小组名称、游戏名称最多 255 个 Unicode 字符，与数据库字段一致。同组玩家名唯一；账号与玩家关联由数据库 `UNIQUE(group_id,account)` 约束及事务校验保证。
 
 ## 对局
 
 - GET `/groups/:group/rounds`：`from`、`to`（包含边界的 YYYY-MM-DD）、`game`、`player`、`q`（回忆）、`mode`、`outcome`、`has_photos`；`offset` 默认 0，`limit` 默认 30、最多 100。返回当前页 `items`，全筛选范围的 `total/games/players/stats/activity`。列表和统计共用一次筛选。
 - GET `/groups/:group/rounds/recap?period=YYYY-MM|YYYY`：返回整月或整年的局数、游戏数、玩家数、记录时长、最常游戏/玩家与最多 12 张照片，不受列表分页影响。
+- 聚会相册使用现有 `GET /groups/:group/rounds?has_photos=true` 分页接口与授权照片入口，按桌游和日期筛选已关联照片，不另设上传或公开图片接口。
 - GET `/groups/:group/rounds/recycle-bin`、POST `/groups/:group/rounds/:id/restore`：查看和恢复 7 天内删除的对局；恢复请求携带当前 `version`。
 - GET/POST `/groups/:group/rounds[/:id]`：详情 / 创建。
 - PUT/DELETE `/groups/:group/rounds/:id`：编辑 / 移入回收站。删除体为 `{"version":1}`；删除后立即从列表和统计移除，7 天后后台永久清理。

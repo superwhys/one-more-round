@@ -31,6 +31,7 @@ type Repositories interface {
 	Invite() group.IInviteRepository
 
 	Game() game.IGameRepository
+	GameWish() game.IWishRepository
 
 	Round() diary.IRoundRepository
 	Idempotency() diary.IIdempotencyRepository

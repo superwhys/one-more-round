@@ -1190,7 +1190,7 @@ func TestHTTPAuthenticationAndCSRF(t *testing.T) {
 	if e != nil || len(groups) != 1 {
 		t.Fatal("group not persisted")
 	}
-	if w = call("GET", "/v1/groups/"+groups[0].ID+"/bgg/search", "", session, nil); w.Code != 503 {
+	if w = call("GET", "/v1/groups/"+groups[0].ID+"/bgg/search?q=Catan", "", session, nil); w.Code != 503 {
 		t.Fatal("missing BGG not reported")
 	}
 	if w = call(

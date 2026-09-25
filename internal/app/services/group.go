@@ -237,7 +237,7 @@ func (a *GroupApp) ImportExternalGame(
 	return mapper.GameDomainToDTO(saved), nil
 }
 
-// SyncCover copies an external cover onto a game already on the shelf.
+// SyncCover links a BGG entry to a game already on the shelf and saves its cover when available.
 func (a *GroupApp) SyncCover(
 	ctx context.Context,
 	groupID, userID string,
@@ -270,6 +270,61 @@ func (a *GroupApp) SyncCover(
 		return dto.Game{}, err
 	}
 	return mapper.GameDomainToDTO(saved), nil
+}
+
+// MergeGame folds a manual game into an existing BGG entry while preserving
+// the BGG entry's group name. Rounds and wishlist state move in one transaction.
+func (a *GroupApp) MergeGame(
+	ctx context.Context,
+	groupID, userID string,
+	req *dto.MergeGameReq,
+) (dto.Game, error) {
+	var surviving *game.Game
+	err := a.repos.WithTransaction(ctx, func(repos ports.Repositories) error {
+		access, err := groupService(repos).RequireMember(ctx, groupID, userID)
+		if err != nil {
+			return err
+		}
+		if !access.IsOwner(userID) {
+			return errcode.ErrForbidden
+		}
+		var source, target *game.Game
+		for _, g := range access.Games {
+			if g.ID == req.GameID {
+				source = g
+			}
+			if g.ID == req.TargetGameID {
+				target = g
+			}
+		}
+		if err = game.ValidateMerge(source, target); err != nil {
+			return err
+		}
+		if err = repos.Round().ReassignGame(ctx, groupID, source.ID, target.ID); err != nil {
+			return err
+		}
+		wishes, err := repos.GameWish().ListByGroup(ctx, groupID)
+		if err != nil {
+			return err
+		}
+		if slices.Contains(wishes, source.ID) {
+			if err = repos.GameWish().Add(ctx, groupID, target.ID); err != nil {
+				return err
+			}
+		}
+		if err = repos.GameWish().Remove(ctx, groupID, source.ID); err != nil {
+			return err
+		}
+		if err = repos.Game().Delete(ctx, groupID, source.ID); err != nil {
+			return err
+		}
+		surviving = target
+		return nil
+	})
+	if err != nil {
+		return dto.Game{}, err
+	}
+	return mapper.GameDomainToDTO(surviving), nil
 }
 
 // requireMember checks the current account without holding a transaction open
@@ -426,6 +481,7 @@ func (a *GroupApp) Join(ctx context.Context, userID string, req *dto.JoinReq) (s
 func (a *GroupApp) Export(ctx context.Context, groupID, userID string) ([]byte, error) {
 	var snapshot *group.Snapshot
 	var rounds, deleted []*diary.Round
+	var wishes []string
 	err := a.repos.WithTransaction(ctx, func(repos ports.Repositories) error {
 		current, e := groupService(repos).RequireMember(ctx, groupID, userID)
 		if e != nil {
@@ -440,6 +496,10 @@ func (a *GroupApp) Export(ctx context.Context, groupID, userID string) ([]byte, 
 		}
 		deleted, e = repos.Round().
 			ListDeletedByGroup(ctx, groupID, time.Now().UTC().Add(-RoundRecycleRetention))
+		if e != nil {
+			return e
+		}
+		wishes, e = repos.GameWish().ListByGroup(ctx, groupID)
 		return e
 	})
 	if err != nil {
@@ -449,9 +509,10 @@ func (a *GroupApp) Export(ctx context.Context, groupID, userID string) ([]byte, 
 	manifest := struct {
 		ExportedAt time.Time    `json:"exported_at"`
 		Snapshot   dto.Snapshot `json:"snapshot"`
+		Wishlist   []string     `json:"wishlist"`
 		Rounds     []dto.Round  `json:"rounds"`
 		RecycleBin []dto.Round  `json:"recycle_bin"`
-	}{time.Now().UTC(), mapper.SnapshotDomainToDTO(snapshot), mapper.RoundDomainListToDTOList(rounds), mapper.RoundDomainListToDTOList(deleted)}
+	}{time.Now().UTC(), mapper.SnapshotDomainToDTO(snapshot), wishes, mapper.RoundDomainListToDTOList(rounds), mapper.RoundDomainListToDTOList(deleted)}
 
 	var buffer bytes.Buffer
 	archive := zip.NewWriter(&buffer)

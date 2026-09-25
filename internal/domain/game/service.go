@@ -15,6 +15,8 @@ type IGameRepository interface {
 	Save(ctx context.Context, groupID string, g *Game) error
 	// ListByGroup returns the group's games ordered by local name.
 	ListByGroup(ctx context.Context, groupID string) ([]*Game, error)
+	// Delete removes one game after all references have been reassigned.
+	Delete(ctx context.Context, groupID, gameID string) error
 }
 
 // IService defines the game catalogue use cases of one group.
@@ -30,7 +32,7 @@ type IService interface {
 		bggID int,
 		localName, original, cover string,
 	) (*Game, error)
-	// AttachCover links an existing game to an external entry and stores its cover.
+	// AttachCover links an existing game to an external entry and stores its cover when available.
 	AttachCover(
 		ctx context.Context,
 		groupID, target string,
@@ -143,8 +145,8 @@ func (s *service) Import(
 	return g, nil
 }
 
-// AttachCover stores an external cover on a game already on the shelf. The
-// local name stays as the group wrote it.
+// AttachCover links an external entry to a game already on the shelf, with a
+// cover when available. The local name stays as the group wrote it.
 func (s *service) AttachCover(
 	ctx context.Context,
 	groupID, target string,
@@ -153,8 +155,8 @@ func (s *service) AttachCover(
 ) (*Game, error) {
 	original = strings.TrimSpace(original)
 	cover = strings.TrimSpace(cover)
-	if bggID <= 0 || !validName(original) || !validCover(cover) || cover == "" {
-		return nil, errcode.ErrBGGSearch.WithMessage("这款桌游没有可用封面")
+	if bggID <= 0 || !validName(original) || !validCover(cover) {
+		return nil, errcode.ErrBGGSearch.WithMessage("桌游资料不可用")
 	}
 	games, err := s.games.ListByGroup(ctx, groupID)
 	if err != nil {
@@ -172,9 +174,14 @@ func (s *service) AttachCover(
 	if current == nil {
 		return nil, errcode.ErrNotFound
 	}
+	if current.BGGID != nil && *current.BGGID != bggID {
+		return nil, errcode.ErrConflict.WithMessage("这款桌游已关联其他 BGG 条目")
+	}
 	id := bggID
 	current.BGGID = &id
-	current.Cover = cover
+	if cover != "" {
+		current.Cover = cover
+	}
 	if current.Original == "" {
 		current.Original = original
 	}
@@ -187,4 +194,21 @@ func (s *service) AttachCover(
 // validCover accepts an empty cover or one https image address.
 func validCover(v string) bool {
 	return v == "" || (strings.HasPrefix(v, "https://") && utf8.RuneCountInString(v) <= 512)
+}
+
+// ValidateMerge allows a manual game to be folded into an existing BGG game.
+func ValidateMerge(source, target *Game) error {
+	if source == nil || target == nil {
+		return errcode.ErrNotFound
+	}
+	if source.ID == target.ID {
+		return errcode.ErrBadRequest.WithMessage("不能把桌游合并到自身")
+	}
+	if source.BGGID != nil {
+		return errcode.ErrConflict.WithMessage("只能合并尚未关联 BGG 的手动桌游")
+	}
+	if target.BGGID == nil {
+		return errcode.ErrConflict.WithMessage("目标桌游尚未关联 BGG")
+	}
+	return nil
 }

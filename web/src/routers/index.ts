@@ -44,6 +44,12 @@ export const router = createRouter({
               meta: { title: '月度与年度回顾', section: 'review', back: true },
             },
             {
+              path: 'album',
+              name: 'photo-album',
+              component: () => import('@/views/review/PhotoAlbumView.vue'),
+              meta: { title: '聚会相册', section: 'review', back: true },
+            },
+            {
               path: 'notifications',
               name: 'notifications',
               component: () => import('@/views/notifications/NotificationView.vue'),
@@ -54,6 +60,12 @@ export const router = createRouter({
               name: 'game-list',
               component: () => import('@/views/games/GameListView.vue'),
               meta: { title: '桌游', section: 'games' },
+            },
+            {
+              path: 'wishlist',
+              name: 'wishlist',
+              component: () => import('@/views/games/WishlistView.vue'),
+              meta: { title: '下次想玩', section: 'games', back: true },
             },
             {
               path: 'games/:id',

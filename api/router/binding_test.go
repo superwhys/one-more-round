@@ -72,6 +72,36 @@ func TestGroupPathBinding(t *testing.T) {
 	}
 }
 
+// TestGameWishPathBinding keeps group and game IDs from the path.
+func TestGameWishPathBinding(t *testing.T) {
+	req := bindRequest[dto.GameWishPathReq](
+		t,
+		http.MethodPost,
+		"/groups/:group/wishlist/:game",
+		"/groups/g1/wishlist/w1?GroupID=g2&GameID=w2",
+		map[string]string{},
+		nil,
+	)
+	if req.GroupID != "g1" || req.GameID != "w1" {
+		t.Fatalf("group=%q game=%q", req.GroupID, req.GameID)
+	}
+}
+
+// TestMergeGamePathBinding keeps the source game and group in the request path.
+func TestMergeGamePathBinding(t *testing.T) {
+	req := bindRequest[dto.MergeGameReq](
+		t,
+		http.MethodPost,
+		"/groups/:group/games/:game/merge",
+		"/groups/g1/games/source/merge?GroupID=g2&GameID=other",
+		map[string]string{"GroupID": "g3", "GameID": "other", "target_game_id": "target"},
+		nil,
+	)
+	if req.GroupID != "g1" || req.GameID != "source" || req.TargetGameID != "target" {
+		t.Fatalf("group=%q source=%q target=%q", req.GroupID, req.GameID, req.TargetGameID)
+	}
+}
+
 // TestRoundPathBinding 对局路径参数由绑定填充，且查询参数不能覆盖它们。
 func TestRoundPathBinding(t *testing.T) {
 	req := bindRequest[dto.RoundPathReq](

@@ -15,6 +15,8 @@ type IRoundRepository interface {
 	ListDeletedBefore(ctx context.Context, before time.Time, limit int) ([]*Round, error)
 	// Save inserts the round or overwrites its stored document.
 	Save(ctx context.Context, groupID string, r *Round) error
+	// ReassignGame moves every round, including deleted rounds, to another group game.
+	ReassignGame(ctx context.Context, groupID, sourceGameID, targetGameID string) error
 	// Delete permanently removes an expired round of the group.
 	Delete(ctx context.Context, groupID, id string) error
 	// SaveShare creates or rotates the single public link of a round.
