@@ -877,8 +877,23 @@
   padding: 18px 0;
   overflow-wrap: anywhere;
 }
-.j-member .d-pill {
-  margin-left: 12px;
+.j-member-account {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 12px;
+}
+.j-member-account strong {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.j-member .j-member-player {
+  margin-top: 6px;
+  color: #858c79;
+  font-size: 12px;
+}
+.j-member .j-actions {
+  margin: 12px 0 0;
 }
 .j-stat {
   padding: 16px 0;

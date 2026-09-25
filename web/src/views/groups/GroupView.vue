@@ -30,6 +30,16 @@ const myPlayer = computed(() => snapshot.value?.players.find(player => player.ac
 const myClaim = computed(() => snapshot.value?.claims.find(claim => claim.user_id === user.value?.id))
 const claimedPlayer = computed(() => snapshot.value?.players.find(player => player.id === myClaim.value?.player_id))
 const unlinkedPlayers = computed(() => snapshot.value?.players.filter(player => !player.account) ?? [])
+const members = computed(() => {
+  const current = snapshot.value
+  if (!current) return []
+  return current.members
+    .map(member => ({
+      ...member,
+      playerName: current.players.find(player => player.account === member.user_id)?.name,
+    }))
+    .sort((a, b) => Number(b.user_id === current.group.owner) - Number(a.user_id === current.group.owner))
+})
 const confirmation = ref<{ action: GroupAction; target: string; title: string }>({
   action: 'remove',
   target: '',
@@ -192,9 +202,12 @@ function downloadBackup() {
         <div class="d-list-heading">
           <h2>能一起回顾的人<small>账号成员</small></h2>
         </div>
-        <div v-for="m in snapshot.members" :key="m.user_id" class="j-member">
-          <strong>{{ m.email }}</strong
-          ><span class="d-pill">{{ m.user_id === snapshot.group.owner ? '组主' : '成员' }}</span>
+        <div v-for="m in members" :key="m.user_id" class="j-member">
+          <div class="j-member-account">
+            <strong>{{ m.email }}</strong>
+            <span class="d-pill">{{ m.user_id === snapshot.group.owner ? '组主' : '成员' }}</span>
+          </div>
+          <p v-if="m.playerName" class="j-member-player">关联玩家：{{ m.playerName }}</p>
           <div v-if="owner && m.user_id !== user.id" class="j-actions">
             <button class="d-text-link" @click="confirm('transfer', m.user_id, '转让组主身份？你将成为普通成员。')">
               转让组主</button
