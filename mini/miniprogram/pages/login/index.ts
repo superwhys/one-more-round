@@ -41,7 +41,7 @@ Page({
       if (current) {
         if (this.data.groupToken) wx.redirectTo({ url: '/pages/setup/index' })
         else wx.switchTab({ url: '/pages/review/index' })
-      } else if (this.data.groupToken) await this.preview()
+      } else if (!this.data.existing && this.data.groupToken) await this.preview()
     } catch (error) {
       if (this.visible) this.setData({ error: errorMessage(error) })
     } finally {
@@ -92,8 +92,6 @@ Page({
     try {
       await send('/auth/code', {
         email: this.data.email.trim(),
-        invite: this.data.invite.trim(),
-        group_token: invitationToken(this.data.groupToken),
       })
       this.setData({ sentAt: Date.now(), countdown: 60 })
       if (this.timer) clearInterval(this.timer)
@@ -115,9 +113,9 @@ Page({
     try {
       const result = await send<LoginResult>('/auth/wx-login', {
         code: await wxCode(),
-        invite: this.data.invite.trim(),
-        group_token: invitationToken(this.data.groupToken),
-        ...(this.data.existing ? { email: this.data.email.trim(), email_code: this.data.emailCode.trim() } : {}),
+        ...(this.data.existing
+          ? { email: this.data.email.trim(), email_code: this.data.emailCode.trim() }
+          : { invite: this.data.invite.trim(), group_token: invitationToken(this.data.groupToken) }),
       })
       acceptLogin(result)
       wx.switchTab({ url: '/pages/review/index' })

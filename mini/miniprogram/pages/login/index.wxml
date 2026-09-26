@@ -6,7 +6,7 @@
   <view wx:else class="card">
     <view class="section-title">{{existing ? '已有邮箱账号' : '一起，再来一局'}}</view>
     <view class="muted"
-      >{{existing ? '验证原账号邮箱后绑定当前微信，原来的小组、对局与玩家关联都会保留。' :
+      >{{existing ? '无需邀请码，验证原账号邮箱即可绑定当前微信，原来的小组、对局与玩家关联都会保留。' :
       '已绑定的微信可直接登录。第一次来，请填写试用邀请或朋友的小组邀请。'}}</view
     >
     <block wx:if="{{existing}}">
@@ -28,24 +28,26 @@
         {{countdown > 0 ? countdown + ' 秒后重发' : '发送验证码'}}
       </button>
     </block>
-    <label wx:if="{{!groupToken}}" class="field"
-      ><text class="label">试用邀请码（新用户）</text
-      ><input class="input" value="{{invite}}" data-field="invite" bindinput="input" placeholder="已有账号可留空"
-    /></label>
-    <label class="field"
-      ><text class="label">小组邀请</text
-      ><input
-        class="input"
-        value="{{groupToken}}"
-        data-field="groupToken"
-        bindinput="input"
-        placeholder="粘贴朋友分享的链接或邀请码"
-    /></label>
-    <view wx:if="{{groupToken}}" class="row"
-      ><button class="link" bindtap="preview">查看邀请</button
-      ><button class="link" bindtap="cancelInvite">取消邀请</button></view
-    >
-    <view wx:if="{{groupName}}" class="card">即将加入「{{groupName}}」</view>
+    <block wx:if="{{!existing}}">
+      <label wx:if="{{!groupToken}}" class="field"
+        ><text class="label">试用邀请码（新用户）</text
+        ><input class="input" value="{{invite}}" data-field="invite" bindinput="input" placeholder="已有账号可留空"
+      /></label>
+      <label class="field"
+        ><text class="label">小组邀请</text
+        ><input
+          class="input"
+          value="{{groupToken}}"
+          data-field="groupToken"
+          bindinput="input"
+          placeholder="粘贴朋友分享的链接或邀请码"
+      /></label>
+      <view wx:if="{{groupToken}}" class="row"
+        ><button class="link" bindtap="preview">查看邀请</button
+        ><button class="link" bindtap="cancelInvite">取消邀请</button></view
+      >
+      <view wx:if="{{groupName}}" class="card">即将加入「{{groupName}}」</view>
+    </block>
     <view wx:if="{{error}}" class="error">{{error}}</view>
     <button
       class="primary"
