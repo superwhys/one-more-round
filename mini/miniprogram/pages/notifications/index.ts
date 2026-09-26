@@ -1,10 +1,12 @@
 import { request, send } from '../../utils/api'
+import { appShare } from '../../utils/share'
 import { requireSession, setGroupID } from '../../utils/session'
 import type { NotificationPage } from '../../utils/types'
 import { errorMessage, navigate } from '../../utils/ui'
 
 // Notifications preserves server-owned read state and group context.
 Page({
+  onShareAppMessage: appShare,
   data: { page: { items: [], unread: 0 } as NotificationPage, loading: false, busy: false, error: '' },
   // onShow refreshes this page when it becomes visible.
   onShow() {

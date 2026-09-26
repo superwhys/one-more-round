@@ -19,10 +19,17 @@
 }
 .review-page button.group-switch {
   max-width: 52%;
+  gap: 8rpx;
+  padding: 8rpx 0 8rpx 12rpx;
+}
+.group-switch-label {
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  padding: 8rpx 0 8rpx 12rpx;
+}
+.group-switch-arrow {
+  flex-shrink: 0;
 }
 .review-shortcuts {
   display: grid;

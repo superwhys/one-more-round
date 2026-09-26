@@ -1,10 +1,12 @@
 import { send } from '../../utils/api'
+import { appShare } from '../../utils/share'
 import { acceptLogin, getUser, logout, requireSession } from '../../utils/session'
 import type { LoginResult } from '../../utils/session'
 import { confirm, errorMessage } from '../../utils/ui'
 
 // Account links an unused email to a WeChat-only identity without merging data.
 Page({
+  onShareAppMessage: appShare,
   data: { user: getUser(), email: '', code: '', busy: false, error: '', countdown: 0 },
   timer: 0 as ReturnType<typeof setInterval> | 0,
   // onShow refreshes this page when it becomes visible.

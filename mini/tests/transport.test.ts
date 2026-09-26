@@ -29,6 +29,18 @@ function load(file: string, wx: object = {}, cache = new Map<string, { exports: 
   return module.exports as Record<string, Function>
 }
 
+test('only the developer-tool build uses the local test service', () => {
+  const origin = (envVersion: string, platform: string) =>
+    load('utils/config', {
+      getAccountInfoSync: () => ({ miniProgram: { envVersion } }),
+      getSystemInfoSync: () => ({ platform }),
+    }).API_ORIGIN
+  assert.equal(origin('develop', 'devtools'), 'http://127.0.0.1:8080')
+  assert.equal(origin('develop', 'ios'), 'https://omr.superwhys.top')
+  assert.equal(origin('trial', 'ios'), 'https://omr.superwhys.top')
+  assert.equal(origin('release', 'ios'), 'https://omr.superwhys.top')
+})
+
 test('transport checks HTTP and business errors independently', () => {
   const api = load('utils/api')
   assert.equal(api.parseResponse(200, { code: 0, data: 0 }), 0)

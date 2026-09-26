@@ -15,6 +15,7 @@ import type {
   Member,
 } from '../../utils/types'
 import { beijingTime, modeNames, newID, resultLabel } from '../../utils/round-form'
+import { appShare } from '../../utils/share'
 
 // CommentView adds display names and a single nesting level to comment responses.
 interface CommentView extends RoundComment {
@@ -82,10 +83,10 @@ Page({
     if (!this.token && (options.group || options.groupId)) setGroupID(options.group || options.groupId || '')
     this.commentKey = newID()
     this.setData({ public: !!this.token })
-    wx.hideShareMenu()
   },
   // onShow reloads after an edit and rechecks membership before showing private content.
   onShow() {
+    wx.showShareMenu({ menus: ['shareAppMessage'] })
     void this.load()
   },
   // onHide clears private projections before a later visit revalidates membership.
@@ -103,7 +104,6 @@ Page({
       loading: true,
       commentsLoading: false,
     })
-    wx.hideShareMenu()
   },
   // onUnload invalidates delayed response handlers.
   onUnload() {
@@ -441,17 +441,15 @@ Page({
     try {
       await send(`/groups/${this.groupID}/rounds/${this.roundID}/share`, {}, 'DELETE')
       this.setData({ shareActive: false, shareToken: '' })
-      wx.hideShareMenu()
     } catch (cause) {
       this.setData({ shareError: errorMessage(cause) })
     } finally {
       this.setData({ shareBusy: false })
     }
   },
-  // onShareAppMessage shares only an explicitly generated public token.
+  // onShareAppMessage shares this round only while its explicit public token is available.
   onShareAppMessage() {
-    if (!this.data.shareToken || !this.data.detail)
-      return { title: '又一局 · 记下输赢与相聚', path: '/pages/review/index', imageUrl: '/pages/round/share-card.png' }
+    if (!this.data.shareToken || !this.data.detail) return appShare()
     return {
       title: `${this.data.detail.game} · ${this.data.detail.date} 的桌边回忆`,
       path: `/pages/round/index?token=${encodeURIComponent(this.data.shareToken)}`,

@@ -1,10 +1,12 @@
 import { send } from '../../utils/api'
-import { acceptLogin, getUser, getInvitation, setInvitation, wxCode } from '../../utils/session'
+import { appShare } from '../../utils/share'
+import { acceptLogin, getInvitation, restoreSession, setInvitation, wxCode } from '../../utils/session'
 import type { LoginResult } from '../../utils/session'
 import { errorMessage, invitationToken } from '../../utils/ui'
 
 // Login lets existing members attach WeChat before a separate account is created.
 Page({
+  onShareAppMessage: appShare,
   data: {
     email: '',
     emailCode: '',
@@ -13,29 +15,46 @@ Page({
     groupName: '',
     existing: false,
     busy: false,
+    restoring: true,
     error: '',
     sentAt: 0,
     countdown: 0,
   },
   timer: 0 as ReturnType<typeof setInterval> | 0,
+  visible: false,
   // onLoad initializes this page from its route and pending invitation.
   onLoad(options: Record<string, string>) {
     const token = options.group_token || options.join || getInvitation()
     this.setData({ groupToken: token, invite: options.invite || '' })
     if (token) {
       setInvitation(token)
-      void this.preview()
     }
   },
-  // onShow refreshes this page when it becomes visible.
-  onShow() {
-    if (getUser()) {
-      if (this.data.groupToken) wx.redirectTo({ url: '/pages/setup/index' })
-      else wx.switchTab({ url: '/pages/review/index' })
+  // onShow restores returning members before displaying the registration form.
+  async onShow() {
+    this.visible = true
+    if (this.data.busy) return
+    this.setData({ busy: true, restoring: true, error: '' })
+    try {
+      const current = await restoreSession()
+      if (!this.visible) return
+      if (current) {
+        if (this.data.groupToken) wx.redirectTo({ url: '/pages/setup/index' })
+        else wx.switchTab({ url: '/pages/review/index' })
+      } else if (this.data.groupToken) await this.preview()
+    } catch (error) {
+      if (this.visible) this.setData({ error: errorMessage(error) })
+    } finally {
+      this.setData({ busy: false, restoring: false })
     }
+  },
+  // onHide prevents a delayed login from navigating away from a different page.
+  onHide() {
+    this.visible = false
   },
   // onUnload releases page timers before the page is destroyed.
   onUnload() {
+    this.visible = false
     if (this.timer) clearInterval(this.timer)
   },
   // input updates the editable field identified by the control.

@@ -1,5 +1,5 @@
 import { ApiError, request, send } from './api'
-import { getToken, setToken } from './credential'
+import { getGeneration, getToken, setToken } from './credential'
 import { clearPhotos } from './photo'
 import type { User, Group, Snapshot } from './types'
 
@@ -10,6 +10,9 @@ export interface LoginResult extends User {
 let user: User | null = null
 let groupID = ''
 let pendingGroupToken = ''
+let restoration: Promise<User | null> | null = null
+let restoreAttempted = false
+const LOGGED_OUT_KEY = 'omr:logged-out'
 // setInvitation remembers only the current app visit's invitation.
 export function setInvitation(token: string): void {
   pendingGroupToken = token
@@ -34,6 +37,7 @@ export function setGroupID(id: string): void {
 // acceptLogin switches the current identity without persisting its credential.
 export function acceptLogin(result: LoginResult): void {
   if (user && user.id !== result.id) clearSession()
+  if (wx.getStorageSync(LOGGED_OUT_KEY)) wx.removeStorageSync(LOGGED_OUT_KEY)
   setToken(result.token)
   user = { id: result.id, email: result.email }
   groupID = result.group_id || wx.getStorageSync(`omr:group:${result.id}`) || ''
@@ -41,6 +45,7 @@ export function acceptLogin(result: LoginResult): void {
 }
 // clearSession removes account-scoped drafts and private downloaded images.
 export function clearSession(): void {
+  restoreAttempted = true
   setToken('')
   user = null
   groupID = ''
@@ -58,13 +63,47 @@ export function wxCode(): Promise<string> {
     }),
   )
 }
+// restoreSession shares one cold-start login without registering or joining a group.
+export async function restoreSession(): Promise<User | null> {
+  if (getUser()) return getUser()
+  if (restoration) return restoration
+  if (restoreAttempted || wx.getStorageSync(LOGGED_OUT_KEY)) return null
+  restoreAttempted = true
+  const generation = getGeneration()
+  restoration = (async () => {
+    try {
+      const code = await wxCode()
+      if (generation !== getGeneration()) return getUser()
+      const result = await send<LoginResult>('/auth/wx-login', { code })
+      if (generation !== getGeneration()) return getUser()
+      // Automatic login must leave invitation acceptance to the existing setup flow.
+      const invitation = getInvitation()
+      const selectedGroup = groupID
+      acceptLogin(result)
+      if (selectedGroup) setGroupID(selectedGroup)
+      setInvitation(invitation)
+      return getUser()
+    } catch (error) {
+      if (generation !== getGeneration()) return getUser()
+      // Unbound WeChat identities need the invitation or email form to continue.
+      if (error instanceof ApiError && error.status === 403 && error.code === 100403) return null
+      throw error
+    }
+  })()
+  try {
+    return await restoration
+  } finally {
+    restoration = null
+  }
+}
 // requireSession validates the active account before opening protected pages.
 export async function requireSession(): Promise<User | null> {
   if (!getToken()) {
     if (user) clearSession()
-    user = null
-    wx.reLaunch({ url: '/pages/login/index' })
-    return null
+    if (!(await restoreSession())) {
+      wx.reLaunch({ url: '/pages/login/index' })
+      return null
+    }
   }
   try {
     user = await request<User>('/me')
@@ -96,6 +135,7 @@ export async function requireGroup(): Promise<{ user: User; group: Group; snapsh
 // logout revokes the server session before clearing local account data.
 export async function logout(): Promise<void> {
   await send('/auth/logout', {})
+  wx.setStorageSync(LOGGED_OUT_KEY, true)
   clearSession()
   wx.reLaunch({ url: '/pages/login/index' })
 }

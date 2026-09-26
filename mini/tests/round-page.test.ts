@@ -48,6 +48,7 @@ function formPage() {
       },
     },
     '../../utils/round-form': forms,
+    '../../utils/share': { appShare: () => ({ path: '/pages/review/index' }) },
   }
   const code = ts.transpileModule(
     fs.readFileSync(new URL('../miniprogram/pages/round-form/index.ts', import.meta.url), 'utf8'),

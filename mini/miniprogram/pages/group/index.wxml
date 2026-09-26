@@ -61,9 +61,10 @@
         <view class="card"
           ><view class="subtitle">能一起回顾的人 · {{members.length}}</view
           ><view wx:for="{{members}}" wx:key="user_id" class="member-row"
-            ><view
-              >{{item.name}}
-              <text class="muted">{{item.user_id === snapshot.group.owner ? '组主' : '成员'}}</text></view
+            ><view class="member-account"
+              ><text class="member-name">{{item.email || item.playerName || '微信成员'}}</text>
+              <text class="muted member-role">{{item.user_id === snapshot.group.owner ? '组主' : '成员'}}</text></view
+            ><view wx:if="{{item.playerName}}" class="muted member-player">关联玩家：{{item.playerName}}</view
             ><view wx:if="{{owner && item.user_id !== userID}}" class="row"
               ><button
                 class="link"

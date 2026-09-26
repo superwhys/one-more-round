@@ -1,10 +1,12 @@
 import { request, send } from '../../utils/api'
+import { appShare } from '../../utils/share'
 import { getInvitation, requireSession, setGroupID, setInvitation } from '../../utils/session'
 import type { Group } from '../../utils/types'
 import { errorMessage, invitationToken } from '../../utils/ui'
 
 // Setup creates the user's table or joins a verified invitation.
 Page({
+  onShareAppMessage: appShare,
   data: {
     name: '',
     playerName: '',

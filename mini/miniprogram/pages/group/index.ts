@@ -1,15 +1,17 @@
 import { download, send } from '../../utils/api'
+import { appShare } from '../../utils/share'
 import { requireGroup, setGroupID } from '../../utils/session'
 import type { Snapshot, Member, Player } from '../../utils/types'
 import { confirm, errorMessage, navigate } from '../../utils/ui'
 
 // Group keeps membership and historical player profiles distinct.
 Page({
+  onShareAppMessage: appShare,
   data: {
     snapshot: null as Snapshot | null,
     userID: '',
     owner: false,
-    members: [] as (Member & { name: string })[],
+    members: [] as (Member & { playerName: string })[],
     claims: [] as { user_id: string; name: string; player: string }[],
     unlinked: [] as Player[],
     myPlayer: '',
@@ -45,10 +47,12 @@ Page({
         userID: current.user.id,
         owner: current.user.id === current.group.owner,
         groupName: current.group.name,
-        members: snapshot.members.map(member => ({
-          ...member,
-          name: snapshot.players.find(player => player.account === member.user_id)?.name || member.email || '微信成员',
-        })),
+        members: snapshot.members
+          .map(member => ({
+            ...member,
+            playerName: snapshot.players.find(player => player.account === member.user_id)?.name || '',
+          }))
+          .sort((a, b) => Number(b.user_id === current.group.owner) - Number(a.user_id === current.group.owner)),
         claims: snapshot.claims.map(claim => ({
           ...claim,
           name: snapshot.members.find(member => member.user_id === claim.user_id)?.email || '微信成员',

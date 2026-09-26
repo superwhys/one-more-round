@@ -16,9 +16,18 @@ button {
   min-height: 44px;
   font-size: 28rpx;
   border-radius: 16rpx;
-  line-height: 1.5;
   padding: 22rpx 28rpx;
   font-weight: 600;
+}
+/* Center the space added by the minimum touch height, including compact buttons. */
+button,
+button[class] {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  font-family: inherit;
+  line-height: 1.5;
 }
 /* Override the native v2 button width and auto margins without overriding component padding. */
 button[class]:not([size='mini']) {

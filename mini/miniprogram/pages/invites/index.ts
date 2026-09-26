@@ -2,6 +2,7 @@ import { request, send } from '../../utils/api'
 import { getGroupID, requireGroup } from '../../utils/session'
 import type { Invite } from '../../utils/types'
 import { confirm, errorMessage, invitationToken } from '../../utils/ui'
+import { appShare } from '../../utils/share'
 
 // Invites exposes explicitly created, revocable invitations to the group owner.
 Page({
@@ -14,12 +15,9 @@ Page({
     busy: false,
     error: '',
   },
-  // onLoad hides sharing until the owner generates an invitation.
-  onLoad() {
-    wx.hideShareMenu()
-  },
   // onShow refreshes this page when it becomes visible.
   onShow() {
+    wx.showShareMenu({ menus: ['shareAppMessage'] })
     void this.load()
   },
   // load refreshes the authorized data for this page.
@@ -51,7 +49,6 @@ Page({
     try {
       const result = await send<{ url: string }>(`/groups/${getGroupID()}/invites`, {})
       this.setData({ url: result.url, token: invitationToken(result.url) })
-      wx.showShareMenu({ menus: ['shareAppMessage'] })
       await this.load()
     } catch (error) {
       this.setData({ error: errorMessage(error) })
@@ -66,7 +63,6 @@ Page({
     try {
       await send(`/groups/${getGroupID()}/manage`, { action: 'revoke', target: event.currentTarget.dataset.id })
       this.setData({ url: '', token: '' })
-      wx.hideShareMenu()
       await this.load()
     } catch (error) {
       this.setData({ error: errorMessage(error) })
@@ -78,10 +74,11 @@ Page({
   copy() {
     if (this.data.url) wx.setClipboardData({ data: this.data.url })
   },
-  // onShareAppMessage shares the explicitly generated group invitation.
-  onShareAppMessage() {
+  // onShareAppMessage keeps the menu on the home card and the explicit button on its invitation.
+  onShareAppMessage(options: WechatMiniprogram.Page.IShareAppMessageOption) {
+    if (options.from !== 'button' || !this.data.token) return appShare()
     return {
-      title: this.data.token ? `来「${this.data.name}」，一起记下每一局` : '又一局',
+      title: `来「${this.data.name}」，一起记下每一局`,
       imageUrl: '/pages/round/share-card.png',
       path: `/pages/login/index?group_token=${encodeURIComponent(this.data.token)}`,
     }

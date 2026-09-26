@@ -167,7 +167,7 @@
             ><text class="participant-name">{{item.name}}</text
             ><button
               wx:if="{{form.outcome === 'win'}}"
-              class="chip {{item.winner ? 'selected' : ''}}"
+              class="chip winner-toggle {{item.winner ? 'selected' : ''}}"
               data-id="{{item.id}}"
               bindtap="toggleWinner"
               disabled="{{saving}}"
@@ -210,7 +210,7 @@
               disabled="{{saving}}" /></view
           ><button
             wx:if="{{form.outcome === 'win'}}"
-            class="chip {{item.winner ? 'selected' : ''}}"
+            class="chip winner-toggle {{item.winner ? 'selected' : ''}}"
             data-index="{{index}}"
             bindtap="toggleTeamWinner"
             disabled="{{saving}}"

@@ -117,7 +117,6 @@
           ><view>{{item.name}}</view><text class="muted">{{item.year || '年份未知'}}</text></view
         >
         <button
-          size="mini"
           class="secondary compact"
           data-id="{{item.bgg_id}}"
           bindtap="chooseExternal"

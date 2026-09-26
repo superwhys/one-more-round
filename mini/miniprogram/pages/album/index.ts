@@ -1,4 +1,5 @@
 import { query, request } from '../../utils/api'
+import { appShare } from '../../utils/share'
 import { getGroupID, getUser, requireGroup, setGroupID } from '../../utils/session'
 import { getPhoto } from '../../utils/photo'
 import { errorMessage } from '../../utils/ui'
@@ -18,6 +19,7 @@ interface AlbumDay {
 }
 
 Page({
+  onShareAppMessage: appShare,
   data: {
     loading: true,
     loadingMore: false,

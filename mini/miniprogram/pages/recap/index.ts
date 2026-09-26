@@ -1,4 +1,5 @@
 import { query, request } from '../../utils/api'
+import { appShare } from '../../utils/share'
 import { getGroupID, getUser, requireGroup, setGroupID } from '../../utils/session'
 import { getPhoto } from '../../utils/photo'
 import { errorMessage } from '../../utils/ui'
@@ -8,6 +9,7 @@ import type { Recap, Snapshot } from '../../utils/types'
 const currentDate = today()
 
 Page({
+  onShareAppMessage: appShare,
   data: {
     loading: true,
     error: '',
@@ -35,7 +37,7 @@ Page({
   // onLoad accepts a group deep link while keeping the default Beijing month.
   onLoad(options: Record<string, string | undefined>) {
     if (options.group || options.groupId) setGroupID(options.group || options.groupId || '')
-    wx.hideShareMenu()
+    wx.showShareMenu({ menus: ['shareAppMessage'] })
   },
   // onShow refreshes membership and highlights after records may have changed.
   onShow() {

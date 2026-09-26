@@ -1,9 +1,11 @@
 import { request, send } from '../../utils/api'
+import { appShare } from '../../utils/share'
 import { requireGroup } from '../../utils/session'
 import type { Game, Snapshot } from '../../utils/types'
 import { errorMessage, navigate, toast } from '../../utils/ui'
 
 Page({
+  onShareAppMessage: appShare,
   data: {
     groupId: '',
     snapshot: null as Snapshot | null,

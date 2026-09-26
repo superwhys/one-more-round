@@ -1,4 +1,5 @@
 import { query, request } from '../../utils/api'
+import { appShare } from '../../utils/share'
 import { requireGroup } from '../../utils/session'
 import type { Group, Page as RoundPage, Round, Snapshot } from '../../utils/types'
 import { getPhoto } from '../../utils/photo'
@@ -12,6 +13,7 @@ interface Card extends Round {
 }
 // Review displays the same filtered timeline and statistics as the web app.
 Page({
+  onShareAppMessage: appShare,
   data: {
     group: null as Group | null,
     snapshot: null as Snapshot | null,

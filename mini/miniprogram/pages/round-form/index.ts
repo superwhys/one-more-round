@@ -1,4 +1,5 @@
 import { request, send } from '../../utils/api'
+import { appShare } from '../../utils/share'
 import { getGroupID, getUser, requireGroup, setGroupID } from '../../utils/session'
 import { confirm, errorMessage } from '../../utils/ui'
 import { getPhoto, uploadPhoto } from '../../utils/photo'
@@ -22,6 +23,7 @@ interface ExternalSearch {
 }
 
 Page({
+  onShareAppMessage: appShare,
   data: {
     loading: true,
     loadFailed: false,

@@ -163,6 +163,7 @@ function catalogPage(kind: 'game' | 'player') {
       navigate() {},
       toast() {},
     },
+    '../../utils/share': { appShare: () => ({ path: '/pages/review/index' }) },
     './history': history,
     '../game/history': history,
   }

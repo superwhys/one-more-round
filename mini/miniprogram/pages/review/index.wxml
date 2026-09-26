@@ -12,7 +12,7 @@
       <view class="between review-heading"
         ><text class="eyebrow">ONE MORE ROUND</text
         ><button class="link group-switch" data-url="/pages/setup/index" bindtap="go">
-          {{group.name || '选择小组'}} ▾
+          <text class="group-switch-label">{{group.name || '选择小组'}}</text><text class="group-switch-arrow">▾</text>
         </button></view
       >
       <view class="title">每一局，都值得记住。</view><view class="muted">输赢之外，还有一起坐下来的时光。</view>

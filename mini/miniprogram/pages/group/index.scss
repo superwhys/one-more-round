@@ -38,3 +38,20 @@
 .member-row > .row {
   margin-top: 12rpx;
 }
+.member-account {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 16rpx;
+}
+.member-name {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  font-weight: 600;
+}
+.member-role {
+  white-space: nowrap;
+}
+.member-player {
+  margin-top: 12rpx;
+}

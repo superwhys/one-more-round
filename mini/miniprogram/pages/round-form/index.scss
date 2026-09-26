@@ -40,8 +40,23 @@
 .score-heading .participant-name {
   flex: 1 1 160rpx;
 }
-.score-heading .chip {
+.editor button.winner-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   flex-shrink: 0;
+  min-width: 160rpx;
+  height: 44px;
+  padding: 0 20rpx;
+  border-radius: 16rpx;
+  font-size: 24rpx;
+  line-height: 1.5;
+  text-align: center;
+  white-space: nowrap;
+}
+.editor .team-card .winner-toggle {
+  min-width: 220rpx;
+  margin-top: 18rpx;
 }
 .eyebrow {
   color: #b16d47;
@@ -70,6 +85,8 @@
   width: 100%;
 }
 .editor .game-option {
+  flex-direction: column;
+  align-items: stretch;
   width: 100%;
   background: transparent;
   text-align: left;
@@ -109,9 +126,20 @@
   overflow-wrap: anywhere;
   word-break: break-word;
 }
-.small {
-  flex-shrink: 0;
+.editor .external-item button.small {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 64px;
+  width: 64px;
+  height: 44px;
+  min-height: 44px;
   margin: 0;
+  padding: 0;
+  font-size: 24rpx;
+  line-height: 1.5;
+  text-align: center;
+  white-space: nowrap;
 }
 .segments {
   display: flex;

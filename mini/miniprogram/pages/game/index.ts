@@ -1,4 +1,5 @@
 import { ApiError, query, request, send } from '../../utils/api'
+import { appShare } from '../../utils/share'
 import { getPhoto } from '../../utils/photo'
 import { requireGroup, setGroupID } from '../../utils/session'
 import type { Game, Mode, Page as RoundPage, Snapshot } from '../../utils/types'
@@ -18,6 +19,7 @@ import {
 import type { HistoryCard, StatRow } from './history'
 
 Page({
+  onShareAppMessage: appShare,
   data: {
     id: '',
     groupId: '',

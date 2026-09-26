@@ -1,4 +1,5 @@
 import { query, request, send } from '../../utils/api'
+import { appShare } from '../../utils/share'
 import { requireGroup } from '../../utils/session'
 import type { Game, Page as RoundPage, Snapshot } from '../../utils/types'
 import { confirm, errorMessage, navigate, toast } from '../../utils/ui'
@@ -42,6 +43,7 @@ function shelfGames(snapshot: Snapshot, activity: RoundPage['activity']): ShelfG
 }
 
 Page({
+  onShareAppMessage: appShare,
   data: {
     groupId: '',
     owner: false,

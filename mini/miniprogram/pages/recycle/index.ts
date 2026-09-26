@@ -1,10 +1,12 @@
 import { request, send } from '../../utils/api'
+import { appShare } from '../../utils/share'
 import { getGroupID, requireGroup } from '../../utils/session'
 import type { Round } from '../../utils/types'
 import { confirm, errorMessage } from '../../utils/ui'
 
 // Recycle restores only records the current member is allowed to manage.
 Page({
+  onShareAppMessage: appShare,
   data: { items: [] as (Round & { name: string; canRestore: boolean })[], loading: false, busy: false, error: '' },
   // onShow refreshes this page when it becomes visible.
   onShow() {
