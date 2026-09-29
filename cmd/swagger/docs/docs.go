@@ -1769,43 +1769,9 @@ const docTemplate = `{
                     }
                 }
             }
-        },
-        "/v1/status": {
-            "get": {
-                "description": "返回服务名、构建版本与产品阶段",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Status"
-                ],
-                "summary": "服务健康与版本",
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/ginutils.Ret-api_Status"
-                        }
-                    }
-                }
-            }
         }
     },
     "definitions": {
-        "api.Status": {
-            "type": "object",
-            "properties": {
-                "name": {
-                    "type": "string"
-                },
-                "stage": {
-                    "type": "string"
-                },
-                "version": {
-                    "type": "string"
-                }
-            }
-        },
         "dto.AddGameReq": {
             "type": "object",
             "required": [
@@ -2661,18 +2627,6 @@ const docTemplate = `{
                     "type": "integer"
                 },
                 "data": {},
-                "message": {}
-            }
-        },
-        "ginutils.Ret-api_Status": {
-            "type": "object",
-            "properties": {
-                "code": {
-                    "type": "integer"
-                },
-                "data": {
-                    "$ref": "#/definitions/api.Status"
-                },
                 "message": {}
             }
         },

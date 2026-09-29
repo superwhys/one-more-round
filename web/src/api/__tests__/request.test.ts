@@ -6,12 +6,12 @@ afterEach(() => mock.restoreAll())
 
 test('uses same-origin API and unwraps a successful response', async () => {
   mock.method(globalThis, 'fetch', async (url: string, options: RequestInit) => {
-    assert.equal(url, '/api/v1/status')
+    assert.equal(url, '/api/v1/me')
     assert.equal(options.credentials, 'same-origin')
     assert.equal(new Headers(options.headers).get('Accept'), 'application/json')
     return Response.json({ code: 0, data: { name: 'one-more-round' } })
   })
-  assert.deepEqual(await request('/status'), { name: 'one-more-round' })
+  assert.deepEqual(await request('/me'), { name: 'one-more-round' })
 })
 
 test('does not treat HTTP 200 with a failed business code as success', async () => {
@@ -27,13 +27,13 @@ test('does not treat HTTP 200 with a failed business code as success', async () 
 
 test('rejects HTTP errors even when the business code is zero', async () => {
   mock.method(globalThis, 'fetch', async () => Response.json({ code: 0, data: {} }, { status: 503 }))
-  await assert.rejects(request('/status'), { status: 503 })
+  await assert.rejects(request('/me'), { status: 503 })
 })
 
 test('reports HTML proxy responses and malformed envelopes', async () => {
   for (const response of [new Response('<html>error</html>'), Response.json({}), Response.json({ code: 0 })]) {
     mock.method(globalThis, 'fetch', async () => response)
-    await assert.rejects(request('/status'), ApiError)
+    await assert.rejects(request('/me'), ApiError)
     mock.restoreAll()
   }
 })
@@ -42,7 +42,7 @@ test('reports network failures without exposing implementation errors', async ()
   mock.method(globalThis, 'fetch', async () => {
     throw new TypeError('fetch failed')
   })
-  await assert.rejects(request('/status'), { status: 0, message: '连接中断或超时，请重试' })
+  await assert.rejects(request('/me'), { status: 0, message: '连接中断或超时，请重试' })
 })
 
 test('JSON writes preserve concurrency headers, decimal strings, zero and null', async () => {

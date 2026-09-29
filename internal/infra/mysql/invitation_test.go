@@ -59,7 +59,7 @@ func invitationFixture(t *testing.T, s *stack) (dto.User, dto.Group, dto.Invite,
 func TestGroupInvitationRegistrationAndReuse(t *testing.T) {
 	s := setup(t)
 	_, g, _, token := invitationFixture(t, s)
-	handler := api.NewAPI("test", &config.Runtime{Origin: testOrigin}, s.auth, s.groups, s.rounds, s.photos, s.notifications, s.comments).
+	handler := api.NewAPI(&config.Runtime{Origin: testOrigin}, s.auth, s.groups, s.rounds, s.photos, s.notifications, s.comments).
 		SetupRouter()
 	for _, email := range []string{"friend-one@example.com", "friend-two@example.com"} {
 		rec := invitationRequest(
@@ -139,7 +139,7 @@ func TestGroupInvitationExistingAccountLogin(t *testing.T) {
 	).Error; err != nil {
 		t.Fatal(err)
 	}
-	handler := api.NewAPI("test", &config.Runtime{Origin: testOrigin}, s.auth, s.groups, s.rounds, s.photos, s.notifications, s.comments).
+	handler := api.NewAPI(&config.Runtime{Origin: testOrigin}, s.auth, s.groups, s.rounds, s.photos, s.notifications, s.comments).
 		SetupRouter()
 	rec := invitationRequest(
 		t,
@@ -200,7 +200,7 @@ func TestGroupInvitationPreviewAndInvalidation(t *testing.T) {
 		t.Run(state, func(t *testing.T) {
 			s := setup(t)
 			owner, g, inv, token := invitationFixture(t, s)
-			handler := api.NewAPI("test", &config.Runtime{Origin: testOrigin}, s.auth, s.groups, s.rounds, s.photos, s.notifications, s.comments).
+			handler := api.NewAPI(&config.Runtime{Origin: testOrigin}, s.auth, s.groups, s.rounds, s.photos, s.notifications, s.comments).
 				SetupRouter()
 			rec := invitationRequest(
 				t,

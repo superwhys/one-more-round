@@ -1142,7 +1142,7 @@ func (f countingFiles) Remove(ctx context.Context, id string) error {
 func TestHTTPAuthenticationAndCSRF(t *testing.T) {
 	s := setup(t)
 	u, session := s.signup(t, "api@example.com")
-	handler := api.NewAPI("test", &config.Runtime{Origin: testOrigin}, s.auth, s.groups, s.rounds, s.photos, s.notifications, s.comments).
+	handler := api.NewAPI(&config.Runtime{Origin: testOrigin}, s.auth, s.groups, s.rounds, s.photos, s.notifications, s.comments).
 		SetupRouter()
 	call := func(method, path, origin, cookie string, payload any) *httptest.ResponseRecorder {
 		t.Helper()

@@ -13,44 +13,10 @@ import (
 	"github.com/superwhys/one-more-round/internal/errcode"
 )
 
-// TestStatusResponseEnvelope checks that a success response carries business code
-// zero and the running build version.
-func TestStatusResponseEnvelope(t *testing.T) {
-	handler := NewAPI(
-		"test-version",
-		&config.Runtime{Origin: "http://localhost:8080"},
-		nil,
-		nil,
-		nil,
-		nil,
-		nil,
-		nil,
-	).SetupRouter()
-	rec := httptest.NewRecorder()
-	handler.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/v1/status", nil))
-	if rec.Code != http.StatusOK {
-		t.Fatalf("status: %d", rec.Code)
-	}
-	var payload struct {
-		Code int `json:"code"`
-		Data struct {
-			Name    string `json:"name"`
-			Version string `json:"version"`
-		} `json:"data"`
-	}
-	if err := json.Unmarshal(rec.Body.Bytes(), &payload); err != nil {
-		t.Fatal(err)
-	}
-	if payload.Code != 0 || payload.Data.Version != "test-version" {
-		t.Fatalf("unexpected payload: %s", rec.Body.String())
-	}
-}
-
 // TestFailureKeepsBusinessCodeAndStatus checks that a rejected request reports
 // the business code while the HTTP status carries the protocol semantics.
 func TestFailureKeepsBusinessCodeAndStatus(t *testing.T) {
 	handler := NewAPI(
-		"test",
 		&config.Runtime{Origin: "http://localhost:8080"},
 		nil,
 		nil,
@@ -80,7 +46,6 @@ func TestFailureKeepsBusinessCodeAndStatus(t *testing.T) {
 // instead of the default success envelope of the request binder.
 func TestRejectedInputKeepsBusinessCodeAndStatus(t *testing.T) {
 	handler := NewAPI(
-		"test",
 		&config.Runtime{Origin: "http://localhost:8080"},
 		nil,
 		nil,
@@ -122,7 +87,7 @@ func TestRejectedInputKeepsBusinessCodeAndStatus(t *testing.T) {
 // TestSwaggerRouter checks that the generated documentation is served while
 // production builds hide it.
 func TestSwaggerRouter(t *testing.T) {
-	api := NewAPI("test", &config.Runtime{}, nil, nil, nil, nil, nil, nil)
+	api := NewAPI(&config.Runtime{}, nil, nil, nil, nil, nil, nil)
 	docs := api.SwaggerRouter(false)
 	for _, path := range []string{"/", "/doc.json"} {
 		rec := httptest.NewRecorder()

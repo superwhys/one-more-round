@@ -12,7 +12,6 @@ import (
 	"context"
 	"time"
 
-	"github.com/miebyte/goutils/buildinfo"
 	"github.com/miebyte/goutils/cores"
 	"github.com/miebyte/goutils/flags"
 	"github.com/miebyte/goutils/logging"
@@ -76,7 +75,6 @@ func main() {
 	commentApp := services.NewCommentApp(appCtx)
 
 	backend := api.NewAPI(
-		buildinfo.Version,
 		runtime,
 		authApp,
 		groupApp,

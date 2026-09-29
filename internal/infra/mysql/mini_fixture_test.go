@@ -88,7 +88,7 @@ func TestWechatMiniFixture(t *testing.T) {
 	auth := services.NewAuthApp(
 		&services.AppContext{Repos: s.repos, Mailer: s.inbox, Wechat: miniFixtureWechat{}},
 	)
-	backend := api.NewAPI("mini-ui-fixture", &config.Runtime{Origin: "http://127.0.0.1:8080"}, auth, s.groups, s.rounds, s.photos, s.notifications, s.comments).
+	backend := api.NewAPI(&config.Runtime{Origin: "http://127.0.0.1:8080"}, auth, s.groups, s.rounds, s.photos, s.notifications, s.comments).
 		SetupRouter()
 	frontend, err := web.NewHandler()
 	if err != nil {

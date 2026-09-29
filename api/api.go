@@ -13,24 +13,12 @@ import (
 	"github.com/superwhys/one-more-round/api/router"
 	_ "github.com/superwhys/one-more-round/cmd/swagger/docs"
 	"github.com/superwhys/one-more-round/config"
-	"github.com/superwhys/one-more-round/internal/app/dto"
 	"github.com/superwhys/one-more-round/internal/app/services"
 	"github.com/superwhys/one-more-round/internal/errcode"
 )
 
-// Status describes the running build.
-type Status struct {
-	Name    string `json:"name"`
-	Version string `json:"version"`
-	Stage   string `json:"stage"`
-}
-
-// stage marks the product phase the deployed build serves.
-const stage = "invite-trial"
-
 // API assembles the HTTP routes on top of the application services.
 type API struct {
-	version         string
 	config          *config.Runtime
 	authApp         *services.AuthApp
 	groupApp        *services.GroupApp
@@ -42,7 +30,6 @@ type API struct {
 
 // NewAPI wires the application services into the HTTP layer.
 func NewAPI(
-	version string,
 	conf *config.Runtime,
 	authApp *services.AuthApp,
 	groupApp *services.GroupApp,
@@ -55,7 +42,6 @@ func NewAPI(
 	// than the default success envelope of the request binder.
 	common.ConfigureRequestFailures()
 	return &API{
-		version:         version,
 		config:          conf,
 		authApp:         authApp,
 		groupApp:        groupApp,
@@ -80,27 +66,25 @@ func NewAPI(
 // @name Authorization
 func (api *API) SetupRouter() http.Handler {
 	handler := ginutils.NewServerHandler(
+		ginutils.WithPrefix("/v1"),
 		ginutils.WithMiddleware(
 			middleware.RecoveryMiddleware(),
 			middleware.NoCacheMiddleware(),
 			middleware.OriginMiddleware(api.config.Origin),
 		),
-		ginutils.WithHandler(http.MethodGet, "/v1/status", statusHandler(api.version)),
 		// Authentication and bearer-link reads are the routes without a session.
 		ginutils.WithGroupHandlers(
-			ginutils.WithPrefix("/v1/auth"),
+			ginutils.WithPrefix("/auth"),
 			ginutils.WithRouterHandler(
 				router.AuthRouter(api.authApp, api.sessionOptions()),
 				router.GroupInvitationRouter(api.groupApp),
 			),
 		),
 		ginutils.WithGroupHandlers(
-			ginutils.WithPrefix("/v1"),
 			ginutils.WithRouterHandler(router.PublicRoundRouter(api.roundApp)),
 		),
 		// Everything else requires a current session and group membership.
 		ginutils.WithGroupHandlers(
-			ginutils.WithPrefix("/v1"),
 			ginutils.WithMiddleware(
 				middleware.TokenVerifyMiddleware(api.authApp),
 				middleware.ContextInjectMiddleware(),
@@ -154,21 +138,5 @@ func (api *API) sessionOptions() router.SessionOptions {
 	return router.SessionOptions{
 		Secure: strings.HasPrefix(api.config.Origin, "https://"),
 		MaxAge: 30 * 24 * 3600,
-	}
-}
-
-// statusHandler 服务健康与版本
-// @Summary 服务健康与版本
-// @Description 返回服务名、构建版本与产品阶段
-// @Tags Status
-// @Produce json
-// @Success 200 {object} ginutils.Ret[api.Status]
-// @Router /v1/status [get]
-func statusHandler(version string) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		c.JSON(
-			http.StatusOK,
-			dto.ResponseWithData(Status{Name: "one-more-round", Version: version, Stage: stage}),
-		)
 	}
 }

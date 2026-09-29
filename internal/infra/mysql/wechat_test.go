@@ -365,7 +365,7 @@ func TestWechatVerificationLimitAndProviderFailures(t *testing.T) {
 func TestWechatHTTPBearerSession(t *testing.T) {
 	s := setup(t)
 	auth := wechatAuth(s)
-	handler := api.NewAPI("test", &config.Runtime{Origin: testOrigin}, auth, s.groups, s.rounds, s.photos, s.notifications, s.comments).
+	handler := api.NewAPI(&config.Runtime{Origin: testOrigin}, auth, s.groups, s.rounds, s.photos, s.notifications, s.comments).
 		SetupRouter()
 	request := httptest.NewRequest(
 		http.MethodPost,

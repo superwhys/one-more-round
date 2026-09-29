@@ -1,14 +1,5 @@
 basePath: /api
 definitions:
-  api.Status:
-    properties:
-      name:
-        type: string
-      stage:
-        type: string
-      version:
-        type: string
-    type: object
   dto.AddGameReq:
     properties:
       groupID:
@@ -568,14 +559,6 @@ definitions:
       code:
         type: integer
       data: {}
-      message: {}
-    type: object
-  ginutils.Ret-api_Status:
-    properties:
-      code:
-        type: integer
-      data:
-        $ref: '#/definitions/api.Status'
       message: {}
     type: object
   ginutils.Ret-array_dto_Group:
@@ -1893,19 +1876,6 @@ paths:
       summary: 查看公开分享的对局照片
       tags:
       - Round Share
-  /v1/status:
-    get:
-      description: 返回服务名、构建版本与产品阶段
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/ginutils.Ret-api_Status'
-      summary: 服务健康与版本
-      tags:
-      - Status
 securityDefinitions:
   BearerAuth:
     in: header

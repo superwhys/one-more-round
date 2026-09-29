@@ -81,7 +81,7 @@ func TestGroupInvitationBrowser(t *testing.T) {
 	mux := http.NewServeMux()
 	server := httptest.NewUnstartedServer(mux)
 	origin := "http://" + server.Listener.Addr().String()
-	backend := api.NewAPI("browser-test", &config.Runtime{Origin: origin}, s.auth, s.groups, s.rounds, s.photos, s.notifications, s.comments).
+	backend := api.NewAPI(&config.Runtime{Origin: origin}, s.auth, s.groups, s.rounds, s.photos, s.notifications, s.comments).
 		SetupRouter()
 	mux.Handle("/api/", http.StripPrefix("/api", backend))
 	mux.HandleFunc("/__test__/code", func(w http.ResponseWriter, r *http.Request) {
@@ -182,7 +182,7 @@ func TestInvitationStandaloneBinary(t *testing.T) {
 	t.Cleanup(func() { cancel(); cmd.Wait() })
 	client := &http.Client{Timeout: time.Second}
 	for {
-		resp, e := client.Get(origin + "/api/v1/status")
+		resp, e := client.Get(origin + "/")
 		if e == nil {
 			resp.Body.Close()
 			break
@@ -202,7 +202,6 @@ func TestInvitationStandaloneBinary(t *testing.T) {
 		{"/join", 200},
 		{"/login", 200},
 		{"/group", 200},
-		{"/api/v1/status", 200},
 		{"/api/v1/me", 401},
 		{"/api/v1/missing", 404},
 		{"/assets/missing.js", 404},

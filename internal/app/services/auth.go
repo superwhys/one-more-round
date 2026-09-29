@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/miebyte/authkit"
+	"github.com/miebyte/goutils/logging"
 
 	"github.com/superwhys/one-more-round/internal/app/dto"
 	"github.com/superwhys/one-more-round/internal/app/mapper"
@@ -27,9 +28,8 @@ func NewAuthApp(ctx *AppContext) *AuthApp {
 		wechat = wechatExchanger{ctx.Wechat}
 	}
 	service, err := authkit.NewService(newAuthStore(ctx.Repos), ctx.Mailer, wechat, nil)
-	if err != nil {
-		panic(err)
-	}
+	logging.PanicError(err)
+
 	return &AuthApp{repos: ctx.Repos, auth: service}
 }
 
