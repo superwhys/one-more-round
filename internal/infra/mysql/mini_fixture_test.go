@@ -46,28 +46,50 @@ func TestWechatMiniFixture(t *testing.T) {
 	const email = "mini-existing@example.test"
 	const trial = "mini-ui-trial"
 	owner, _ := s.signup(t, email)
-	if err := s.client.Gorm.Exec("UPDATE omr_challenges SET sent=? WHERE email=?", time.Now().Add(-time.Minute), email).Error; err != nil {
+	if err := s.client.Gorm.Exec(
+		"UPDATE auth_challenges SET sent=? WHERE email=?",
+		time.Now().Add(-time.Minute),
+		email,
+	).Error; err != nil {
 		t.Fatal(err)
 	}
-	group, err := s.groups.Create(ctx, owner.ID, &dto.CreateGroupReq{Name: "开发者工具测试小组", PlayerName: "我"})
+	group, err := s.groups.Create(
+		ctx,
+		owner.ID,
+		&dto.CreateGroupReq{Name: "开发者工具测试小组", PlayerName: "我"},
+	)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err = s.groups.AddPlayer(ctx, group.ID, owner.ID, &dto.AddPlayerReq{Name: "好友"}); err != nil {
+	if _, err = s.groups.AddPlayer(
+		ctx,
+		group.ID,
+		owner.ID,
+		&dto.AddPlayerReq{Name: "好友"},
+	); err != nil {
 		t.Fatal(err)
 	}
-	if _, err = s.groups.AddGame(ctx, group.ID, owner.ID, &dto.AddGameReq{Name: "璀璨宝石"}); err != nil {
+	if _, err = s.groups.AddGame(
+		ctx,
+		group.ID,
+		owner.ID,
+		&dto.AddGameReq{Name: "璀璨宝石"},
+	); err != nil {
 		t.Fatal(err)
 	}
 	_, groupToken, err := s.groups.Invite(ctx, group.ID, owner.ID)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err = s.repos.Trial().Create(ctx, secure.Hash(trial), time.Now().Add(time.Hour)); err != nil {
+	if err = s.repos.Trial().
+		Create(ctx, secure.Hash(trial), time.Now().Add(time.Hour)); err != nil {
 		t.Fatal(err)
 	}
-	auth := services.NewAuthApp(&services.AppContext{Repos: s.repos, Mailer: s.inbox, Wechat: miniFixtureWechat{}})
-	backend := api.NewAPI("mini-ui-fixture", &config.Runtime{Origin: "http://127.0.0.1:8080"}, auth, s.groups, s.rounds, s.photos, s.notifications, s.comments).SetupRouter()
+	auth := services.NewAuthApp(
+		&services.AppContext{Repos: s.repos, Mailer: s.inbox, Wechat: miniFixtureWechat{}},
+	)
+	backend := api.NewAPI("mini-ui-fixture", &config.Runtime{Origin: "http://127.0.0.1:8080"}, auth, s.groups, s.rounds, s.photos, s.notifications, s.comments).
+		SetupRouter()
 	frontend, err := web.NewHandler()
 	if err != nil {
 		t.Fatal(err)
@@ -75,7 +97,13 @@ func TestWechatMiniFixture(t *testing.T) {
 	mux := http.NewServeMux()
 	mux.Handle("/api/", http.StripPrefix("/api", backend))
 	mux.Handle("/", frontend)
-	fixture := map[string]string{"origin": "http://127.0.0.1:8080", "trial": trial, "existing_email": email, "group_token": groupToken, "group_id": group.ID}
+	fixture := map[string]string{
+		"origin":         "http://127.0.0.1:8080",
+		"trial":          trial,
+		"existing_email": email,
+		"group_token":    groupToken,
+		"group_id":       group.ID,
+	}
 	mux.HandleFunc("GET /__test__/fixture", func(w http.ResponseWriter, _ *http.Request) {
 		w.Header().Set("Cache-Control", "no-store")
 		w.Header().Set("Content-Type", "application/json")
@@ -84,7 +112,8 @@ func TestWechatMiniFixture(t *testing.T) {
 	mux.HandleFunc("GET /__test__/code", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Cache-Control", "no-store")
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]string{"code": s.inbox.code(r.URL.Query().Get("email"))})
+		json.NewEncoder(w).
+			Encode(map[string]string{"code": s.inbox.code(r.URL.Query().Get("email"))})
 	})
 	stop, cancel := signal.NotifyContext(ctx, os.Interrupt, syscall.SIGTERM)
 	defer cancel()
@@ -95,8 +124,15 @@ func TestWechatMiniFixture(t *testing.T) {
 	server := &http.Server{Handler: mux, ReadHeaderTimeout: 5 * time.Second}
 	serveErr := make(chan error, 1)
 	go func() { serveErr <- server.Serve(listener) }()
-	t.Logf("MINI_FIXTURE_READY origin=%s trial=%s existing_email=%s", fixture["origin"], trial, email)
-	t.Log("Fixture: GET /__test__/fixture; mailbox: GET /__test__/code?email=...; stop: POST /__test__/stop")
+	t.Logf(
+		"MINI_FIXTURE_READY origin=%s trial=%s existing_email=%s",
+		fixture["origin"],
+		trial,
+		email,
+	)
+	t.Log(
+		"Fixture: GET /__test__/fixture; mailbox: GET /__test__/code?email=...; stop: POST /__test__/stop",
+	)
 	select {
 	case <-stop.Done():
 	case err = <-serveErr:

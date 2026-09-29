@@ -22,12 +22,16 @@ func GroupDomainToModel(g *group.Group) *models.Group {
 	return &models.Group{ID: g.ID, Name: g.Name, Owner: g.Owner}
 }
 
-// MemberUserModelToDomain converts a joined account row into a member entry.
-func MemberUserModelToDomain(m *models.User) *group.Member {
+// MemberAccountModelToDomain converts a joined account projection into a member.
+func MemberAccountModelToDomain(m *models.MemberAccount) *group.Member {
 	if m == nil {
 		return nil
 	}
-	return &group.Member{UserID: m.ID, Email: UserModelToDomain(m).Email}
+	member := &group.Member{UserID: m.ID}
+	if m.Email != nil {
+		member.Email = *m.Email
+	}
+	return member
 }
 
 // PlayerModelToDomain converts a player row into the domain entity.

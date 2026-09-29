@@ -7,12 +7,12 @@ import (
 	"testing"
 	"time"
 
+	"github.com/miebyte/authkit"
 	"github.com/miebyte/goutils/mysqlutils"
 
 	"github.com/superwhys/one-more-round/internal/app/ports"
 	"github.com/superwhys/one-more-round/internal/domain/game"
 	"github.com/superwhys/one-more-round/internal/domain/group"
-	"github.com/superwhys/one-more-round/internal/domain/identity"
 	"github.com/superwhys/one-more-round/internal/errcode"
 	"github.com/superwhys/one-more-round/internal/infra/mysql"
 	"github.com/superwhys/one-more-round/internal/pkg/secure"
@@ -62,21 +62,20 @@ func TestPersistenceNullableAndZeroValues(t *testing.T) {
 	}
 	ctx := context.Background()
 	now := time.Now().UTC().Truncate(time.Microsecond)
-	user := &identity.User{ID: "owner", Email: "nullable@example.com"}
+	user := &authkit.Account{ID: "owner", Email: "nullable@example.com"}
 	g := &group.Group{ID: "group", Name: "空值测试", Owner: user.ID}
 	player := &group.Player{ID: "player", Name: "玩家"}
 	gameRecord := &game.Game{ID: "game", Name: "游戏"}
-	challenge := &identity.Challenge{
+	challenge := &authkit.Challenge{
 		Email:    user.Email,
 		Hash:     "hash",
-		Invite:   "invite",
 		Expires:  now.Add(time.Hour),
 		Sent:     now,
 		Attempts: 3,
 		Ready:    true,
 	}
 	if err := repos.WithTransaction(ctx, func(tx ports.Repositories) error {
-		if err := tx.User().Create(ctx, user); err != nil {
+		if err := tx.Auth().Accounts().Create(ctx, user); err != nil {
 			return err
 		}
 		if err := tx.Group().Create(ctx, g, user.ID); err != nil {
@@ -88,10 +87,10 @@ func TestPersistenceNullableAndZeroValues(t *testing.T) {
 		if err := tx.Game().Save(ctx, g.ID, gameRecord); err != nil {
 			return err
 		}
-		if _, err := tx.VerifyCode().Get(ctx, user.Email); err != nil {
+		if _, err := tx.Auth().Challenges().Get(ctx, user.Email); err != nil {
 			return err
 		}
-		return tx.VerifyCode().Save(ctx, challenge)
+		return tx.Auth().Challenges().Save(ctx, challenge)
 	}); err != nil {
 		t.Fatal(err)
 	}
@@ -126,7 +125,7 @@ func TestPersistenceNullableAndZeroValues(t *testing.T) {
 			*snapshot.Games[0].BGGID != 42 {
 			t.Fatal("non-NULL updates were lost")
 		}
-		stored, err := tx.VerifyCode().Get(ctx, user.Email)
+		stored, err := tx.Auth().Challenges().Get(ctx, user.Email)
 		if err != nil {
 			return err
 		}
@@ -141,12 +140,12 @@ func TestPersistenceNullableAndZeroValues(t *testing.T) {
 		if err = tx.Game().Save(ctx, g.ID, gameRecord); err != nil {
 			return err
 		}
-		cleared := &identity.Challenge{
+		cleared := &authkit.Challenge{
 			Email:   user.Email,
 			Expires: challenge.Expires,
 			Sent:    challenge.Sent,
 		}
-		return tx.VerifyCode().Save(ctx, cleared)
+		return tx.Auth().Challenges().Save(ctx, cleared)
 	}); err != nil {
 		t.Fatal(err)
 	}
@@ -159,11 +158,11 @@ func TestPersistenceNullableAndZeroValues(t *testing.T) {
 			snapshot.Games[0].Original != "" {
 			t.Fatal("NULL or empty-string update was skipped")
 		}
-		stored, err := tx.VerifyCode().Get(ctx, user.Email)
+		stored, err := tx.Auth().Challenges().Get(ctx, user.Email)
 		if err != nil {
 			return err
 		}
-		if stored.Ready || stored.Attempts != 0 || stored.Hash != "" || stored.Invite != "" ||
+		if stored.Ready || stored.Attempts != 0 || stored.Hash != "" ||
 			!stored.Sent.Equal(now) {
 			t.Fatal("zero-value update or timestamp round-trip failed")
 		}
@@ -176,10 +175,10 @@ func TestPersistenceNullableAndZeroValues(t *testing.T) {
 func TestPersistenceRollbackAndCancellation(t *testing.T) {
 	repos, _ := newRepos(t)
 	ctx := context.Background()
-	user := &identity.User{ID: "rollback", Email: "rollback@example.com"}
+	user := &authkit.Account{ID: "rollback", Email: "rollback@example.com"}
 	want := errors.New("abort transaction")
 	err := repos.WithTransaction(ctx, func(tx ports.Repositories) error {
-		if err := tx.User().Create(ctx, user); err != nil {
+		if err := tx.Auth().Accounts().Create(ctx, user); err != nil {
 			return err
 		}
 		if err := tx.Group().
@@ -192,7 +191,12 @@ func TestPersistenceRollbackAndCancellation(t *testing.T) {
 		t.Fatalf("transaction error: %v", err)
 	}
 	if err = repos.WithTransaction(ctx, func(tx ports.Repositories) error {
-		if _, err := tx.User().GetByEmail(ctx, user.Email); !errors.Is(err, errcode.ErrNotFound) {
+		if _, err := tx.Auth().
+			Accounts().
+			GetByEmail(ctx, user.Email); !errors.Is(
+			err,
+			authkit.ErrNotFound,
+		) {
 			t.Fatalf("user escaped rollback: %v", err)
 		}
 		if _, err := tx.Group().

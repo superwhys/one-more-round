@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"errors"
 
+	authmysql "github.com/miebyte/authkit/mysql"
 	"github.com/miebyte/goutils/mysqlutils"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
@@ -36,7 +37,7 @@ func Open(cfg mysqlutils.MysqlConfig) (*Client, error) {
 // AutoMigrate creates missing tables and adds missing columns and indexes based
 // on the persistence models. It is idempotent and safe to run on every startup.
 func (c *Client) AutoMigrate() error {
-	return c.Gorm.AutoMigrate(models.AllModels()...)
+	return c.Gorm.AutoMigrate(append(authmysql.Models(), models.AllModels()...)...)
 }
 
 // Close releases the connection pool.

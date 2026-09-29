@@ -24,7 +24,11 @@ func TestGameMergeKeepsHistoryAndWishlist(t *testing.T) {
 	ctx := context.Background()
 	owner, _ := s.signup(t, "merge-owner@example.com")
 	member, _ := s.signup(t, "merge-member@example.com")
-	group, err := s.groups.Create(ctx, owner.ID, &dto.CreateGroupReq{Name: "合并测试", PlayerName: "组主"})
+	group, err := s.groups.Create(
+		ctx,
+		owner.ID,
+		&dto.CreateGroupReq{Name: "合并测试", PlayerName: "组主"},
+	)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -57,8 +61,15 @@ func TestGameMergeKeepsHistoryAndWishlist(t *testing.T) {
 	save := func() dto.Round {
 		t.Helper()
 		round, err := s.rounds.Save(ctx, owner.ID, &dto.SaveRoundReq{
-			GroupID: group.ID, IdempotencyKey: secure.NewID(),
-			Round: dto.Round{GameID: source.ID, Date: "2026-09-20", Mode: "coop", Outcome: "win", Players: []string{playerID}},
+			GroupID:        group.ID,
+			IdempotencyKey: secure.NewID(),
+			Round: dto.Round{
+				GameID:  source.ID,
+				Date:    "2026-09-20",
+				Mode:    "coop",
+				Outcome: "win",
+				Players: []string{playerID},
+			},
 		})
 		if err != nil {
 			t.Fatal(err)
@@ -75,10 +86,22 @@ func TestGameMergeKeepsHistoryAndWishlist(t *testing.T) {
 		t.Fatal(err)
 	}
 	req := &dto.MergeGameReq{GameID: source.ID, TargetGameID: target.ID}
-	if _, err = s.groups.MergeGame(ctx, group.ID, member.ID, req); !errors.Is(err, errcode.ErrForbidden) {
+	if _, err = s.groups.MergeGame(
+		ctx,
+		group.ID,
+		member.ID,
+		req,
+	); !errors.Is(
+		err,
+		errcode.ErrForbidden,
+	) {
 		t.Fatalf("member merge error = %v", err)
 	}
-	other, err := s.groups.Create(ctx, owner.ID, &dto.CreateGroupReq{Name: "另一个小组", PlayerName: "组主"})
+	other, err := s.groups.Create(
+		ctx,
+		owner.ID,
+		&dto.CreateGroupReq{Name: "另一个小组", PlayerName: "组主"},
+	)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -92,7 +115,8 @@ func TestGameMergeKeepsHistoryAndWishlist(t *testing.T) {
 		t.Fatalf("cross-group merge error = %v", err)
 	}
 	merged, err := s.groups.MergeGame(ctx, group.ID, owner.ID, req)
-	if err != nil || merged.ID != target.ID || merged.Name != target.Name || merged.BGGID == nil || *merged.BGGID != bggID {
+	if err != nil || merged.ID != target.ID || merged.Name != target.Name || merged.BGGID == nil ||
+		*merged.BGGID != bggID {
 		t.Fatalf("merged game = %#v, error = %v", merged, err)
 	}
 	snapshot, err = s.groups.Snapshot(ctx, group.ID, owner.ID)
@@ -100,7 +124,9 @@ func TestGameMergeKeepsHistoryAndWishlist(t *testing.T) {
 		t.Fatalf("games after merge = %#v, error = %v", snapshot.Games, err)
 	}
 	page, err := s.rounds.List(ctx, group.ID, owner.ID, &dto.ListRoundsReq{Limit: 30})
-	if err != nil || page.Total != 1 || page.Items[0].ID != active.ID || page.Items[0].GameID != target.ID || page.Activity[target.ID].Count != 1 {
+	if err != nil || page.Total != 1 || page.Items[0].ID != active.ID ||
+		page.Items[0].GameID != target.ID ||
+		page.Activity[target.ID].Count != 1 {
 		t.Fatalf("active rounds after merge = %#v, error = %v", page, err)
 	}
 	if len(page.Stats) != 1 || page.Stats[0].Game != target.ID || page.Stats[0].Wins != 1 {
@@ -130,10 +156,20 @@ func TestGameMergeKeepsHistoryAndWishlist(t *testing.T) {
 	var manifest struct {
 		Wishlist []string `json:"wishlist"`
 	}
-	if err = json.NewDecoder(file).Decode(&manifest); err != nil || !slices.Equal(manifest.Wishlist, []string{target.ID}) {
+	if err = json.NewDecoder(file).
+		Decode(&manifest); err != nil ||
+		!slices.Equal(manifest.Wishlist, []string{target.ID}) {
 		t.Fatalf("exported wishlist = %#v, error = %v", manifest.Wishlist, err)
 	}
-	if _, err = s.groups.MergeGame(ctx, group.ID, owner.ID, req); !errors.Is(err, errcode.ErrNotFound) {
+	if _, err = s.groups.MergeGame(
+		ctx,
+		group.ID,
+		owner.ID,
+		req,
+	); !errors.Is(
+		err,
+		errcode.ErrNotFound,
+	) {
 		t.Fatalf("second merge error = %v", err)
 	}
 }
@@ -159,7 +195,10 @@ func (r rejectDeleteRepos) Game() game.IGameRepository {
 }
 
 // WithTransaction preserves the failure injection inside the unit of work.
-func (r rejectDeleteRepos) WithTransaction(ctx context.Context, fn func(ports.Repositories) error) error {
+func (r rejectDeleteRepos) WithTransaction(
+	ctx context.Context,
+	fn func(ports.Repositories) error,
+) error {
 	return r.Repositories.WithTransaction(ctx, func(tx ports.Repositories) error {
 		return fn(rejectDeleteRepos{Repositories: tx, err: r.err})
 	})
@@ -171,7 +210,11 @@ func TestGameMergeRollsBack(t *testing.T) {
 	s := setup(t)
 	ctx := context.Background()
 	owner, _ := s.signup(t, "merge-rollback@example.com")
-	group, err := s.groups.Create(ctx, owner.ID, &dto.CreateGroupReq{Name: "回滚测试", PlayerName: "组主"})
+	group, err := s.groups.Create(
+		ctx,
+		owner.ID,
+		&dto.CreateGroupReq{Name: "回滚测试", PlayerName: "组主"},
+	)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -184,7 +227,8 @@ func TestGameMergeRollsBack(t *testing.T) {
 		t.Fatal(err)
 	}
 	bggID := 42
-	if err = s.repos.Game().Save(ctx, group.ID, &game.Game{ID: target.ID, Name: target.Name, Original: "Target", BGGID: &bggID}); err != nil {
+	if err = s.repos.Game().
+		Save(ctx, group.ID, &game.Game{ID: target.ID, Name: target.Name, Original: "Target", BGGID: &bggID}); err != nil {
 		t.Fatal(err)
 	}
 	snapshot, err := s.groups.Snapshot(ctx, group.ID, owner.ID)
@@ -192,8 +236,15 @@ func TestGameMergeRollsBack(t *testing.T) {
 		t.Fatal(err)
 	}
 	round, err := s.rounds.Save(ctx, owner.ID, &dto.SaveRoundReq{
-		GroupID: group.ID, IdempotencyKey: secure.NewID(),
-		Round: dto.Round{GameID: source.ID, Date: "2026-09-20", Mode: "coop", Outcome: "win", Players: []string{snapshot.Players[0].ID}},
+		GroupID:        group.ID,
+		IdempotencyKey: secure.NewID(),
+		Round: dto.Round{
+			GameID:  source.ID,
+			Date:    "2026-09-20",
+			Mode:    "coop",
+			Outcome: "win",
+			Players: []string{snapshot.Players[0].ID},
+		},
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -202,7 +253,9 @@ func TestGameMergeRollsBack(t *testing.T) {
 		t.Fatal(err)
 	}
 	want := errors.New("injected game delete failure")
-	broken := services.NewGroupApp(&services.AppContext{Repos: rejectDeleteRepos{Repositories: s.repos, err: want}})
+	broken := services.NewGroupApp(
+		&services.AppContext{Repos: rejectDeleteRepos{Repositories: s.repos, err: want}},
+	)
 	if _, err = broken.MergeGame(ctx, group.ID, owner.ID, &dto.MergeGameReq{
 		GameID: source.ID, TargetGameID: target.ID,
 	}); !errors.Is(err, want) {
@@ -213,7 +266,8 @@ func TestGameMergeRollsBack(t *testing.T) {
 		t.Fatalf("games after rollback = %#v, error = %v", snapshot.Games, err)
 	}
 	page, err := s.rounds.List(ctx, group.ID, owner.ID, &dto.ListRoundsReq{Limit: 30})
-	if err != nil || page.Total != 1 || page.Items[0].ID != round.ID || page.Items[0].GameID != source.ID {
+	if err != nil || page.Total != 1 || page.Items[0].ID != round.ID ||
+		page.Items[0].GameID != source.ID {
 		t.Fatalf("round after rollback = %#v, error = %v", page, err)
 	}
 	wishes, err := s.repos.GameWish().ListByGroup(ctx, group.ID)

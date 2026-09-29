@@ -1,23 +1,22 @@
 package main
 
 import (
+	authmodels "github.com/miebyte/authkit/mysql/models"
 	"gorm.io/gen"
 
 	"github.com/superwhys/one-more-round/internal/infra/mysql/models"
 )
 
+// main regenerates typed queries from the host and authkit-owned models.
 func main() {
 	g := gen.NewGenerator(gen.Config{
 		OutPath: "./query",
 		Mode:    gen.WithQueryInterface,
 	})
 	g.ApplyBasic(
-		models.User{},
-		models.WechatAccount{},
-		models.Challenge{},
-		models.Rate{},
+		authmodels.Account{},
+		authmodels.Binding{},
 		models.Trial{},
-		models.Session{},
 		models.Group{},
 		models.Member{},
 		models.Player{},

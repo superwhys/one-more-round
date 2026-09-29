@@ -270,12 +270,12 @@ func (s *stack) signup(t *testing.T, email string) (dto.User, string) {
 	}
 	if err := s.auth.SendCode(
 		ctx,
-		&dto.SendCodeReq{Email: email, Invite: token},
+		&dto.SendCodeReq{Email: email},
 		"127.0.0.1",
 	); err != nil {
 		t.Fatal(err)
 	}
-	user, session, err := s.auth.Login(ctx, &dto.LoginReq{Email: email, Code: s.inbox.code(email)})
+	user, session, err := s.auth.Login(ctx, &dto.LoginReq{Email: email, Code: s.inbox.code(email), Invite: token})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -530,14 +530,14 @@ func TestOTPAndInvites(t *testing.T) {
 	ctx := context.Background()
 	if e := s.auth.SendCode(
 		ctx,
-		&dto.SendCodeReq{Email: "new@example.com", Invite: "invalid"},
+		&dto.SendCodeReq{Email: "new@example.com"},
 		"local",
 	); e != nil {
 		t.Fatal(e)
 	}
 	if _, _, e := s.auth.Login(
 		ctx,
-		&dto.LoginReq{Email: "new@example.com", Code: s.inbox.code("new@example.com")},
+		&dto.LoginReq{Email: "new@example.com", Code: s.inbox.code("new@example.com"), Invite: "invalid"},
 	); e == nil {
 		t.Fatal("registered without trial")
 	}
@@ -558,7 +558,7 @@ func TestOTPAndInvites(t *testing.T) {
 	}
 	if e := s.auth.SendCode(
 		ctx,
-		&dto.SendCodeReq{Email: "attempts@example.com", Invite: trial},
+		&dto.SendCodeReq{Email: "attempts@example.com"},
 		"local",
 	); e != nil {
 		t.Fatal(e)
@@ -566,14 +566,14 @@ func TestOTPAndInvites(t *testing.T) {
 	for i := 0; i < 5; i++ {
 		if _, _, e := s.auth.Login(
 			ctx,
-			&dto.LoginReq{Email: "attempts@example.com", Code: "wrong"},
+			&dto.LoginReq{Email: "attempts@example.com", Code: "wrong", Invite: trial},
 		); e == nil {
 			t.Fatal("wrong code accepted")
 		}
 	}
 	if _, _, e := s.auth.Login(
 		ctx,
-		&dto.LoginReq{Email: "attempts@example.com", Code: s.inbox.code("attempts@example.com")},
+		&dto.LoginReq{Email: "attempts@example.com", Code: s.inbox.code("attempts@example.com"), Invite: trial},
 	); e == nil {
 		t.Fatal("attempt cap ignored")
 	}
@@ -598,7 +598,7 @@ func TestOTPAndInvites(t *testing.T) {
 	}
 	// Expiry is persisted, not a frontend timer.
 	s.client.Gorm.Exec(
-		"UPDATE omr_challenges SET expires=? WHERE email=?",
+		"UPDATE auth_challenges SET expires=? WHERE email=?",
 		time.Now().UTC().Add(-time.Hour),
 		"attempts@example.com",
 	)
@@ -1190,7 +1190,13 @@ func TestHTTPAuthenticationAndCSRF(t *testing.T) {
 	if e != nil || len(groups) != 1 {
 		t.Fatal("group not persisted")
 	}
-	if w = call("GET", "/v1/groups/"+groups[0].ID+"/bgg/search?q=Catan", "", session, nil); w.Code != 503 {
+	if w = call(
+		"GET",
+		"/v1/groups/"+groups[0].ID+"/bgg/search?q=Catan",
+		"",
+		session,
+		nil,
+	); w.Code != 503 {
 		t.Fatal("missing BGG not reported")
 	}
 	if w = call(

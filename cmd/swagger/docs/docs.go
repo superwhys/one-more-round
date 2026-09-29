@@ -17,7 +17,7 @@ const docTemplate = `{
     "paths": {
         "/v1/auth/code": {
             "post": {
-                "description": "向目标邮箱发送登录验证码；可携带试用邀请 invite 或小组邀请 group_token",
+                "description": "向目标邮箱发送验证码；不判断账号是否存在或校验邀请码",
                 "consumes": [
                     "application/json"
                 ],
@@ -85,7 +85,7 @@ const docTemplate = `{
         },
         "/v1/auth/login": {
             "post": {
-                "description": "验证邮箱；携带 group_token 时原子注册并加入小组，否则新账号消费试用邀请",
+                "description": "已有账号验证邮箱即可登录，忽略邀请码；新账号需 invite 或 group_token，小组邀请注册时原子加入小组",
                 "consumes": [
                     "application/json"
                 ],
@@ -2053,6 +2053,10 @@ const docTemplate = `{
                 },
                 "group_token": {
                     "type": "string"
+                },
+                "invite": {
+                    "type": "string",
+                    "maxLength": 128
                 }
             }
         },
@@ -2485,12 +2489,6 @@ const docTemplate = `{
             ],
             "properties": {
                 "email": {
-                    "type": "string"
-                },
-                "group_token": {
-                    "type": "string"
-                },
-                "invite": {
                     "type": "string"
                 }
             }

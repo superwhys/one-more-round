@@ -38,7 +38,7 @@ func AuthRouter(authApp *services.AuthApp, opts SessionOptions) authRouterFn {
 
 // sendCodeHandler 发送邮箱验证码
 // @Summary 发送邮箱验证码
-// @Description 向目标邮箱发送登录验证码；可携带试用邀请 invite 或小组邀请 group_token
+// @Description 向目标邮箱发送验证码；不判断账号是否存在或校验邀请码
 // @Tags Auth
 // @Accept json
 // @Produce json
@@ -57,7 +57,7 @@ func sendCodeHandler(authApp *services.AuthApp) gin.HandlerFunc {
 
 // loginHandler 验证码登录
 // @Summary 验证码登录
-// @Description 验证邮箱；携带 group_token 时原子注册并加入小组，否则新账号消费试用邀请
+// @Description 已有账号验证邮箱即可登录，忽略邀请码；新账号需 invite 或 group_token，小组邀请注册时原子加入小组
 // @Tags Auth
 // @Accept json
 // @Produce json
@@ -153,7 +153,12 @@ func WechatAccountRouter(authApp *services.AuthApp) authRouterFn {
 // @Router /v1/auth/wx-bind-email [post]
 func bindWechatEmailHandler(authApp *services.AuthApp) gin.HandlerFunc {
 	return ginutils.RequestHandler(func(ctx *gin.Context, req *dto.BindEmailReq) {
-		result, err := authApp.BindWechatEmail(ctx.Request.Context(), common.UserID(ctx), common.SessionToken(ctx), req)
+		result, err := authApp.BindWechatEmail(
+			ctx.Request.Context(),
+			common.UserID(ctx),
+			common.SessionToken(ctx),
+			req,
+		)
 		if common.HandleRouterError(ctx, err, "wechat email binding failed", errcode.ErrLogin) {
 			return
 		}

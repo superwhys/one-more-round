@@ -37,7 +37,11 @@ func WishlistRouter(groupApp *services.GroupApp) wishlistRouterFn {
 // @Router /v1/groups/{group}/wishlist [get]
 func listWishlistHandler(groupApp *services.GroupApp) gin.HandlerFunc {
 	return ginutils.RequestHandler(func(ctx *gin.Context, req *dto.GroupPathReq) {
-		wishlist, err := groupApp.ListWishlist(ctx.Request.Context(), req.GroupID, common.UserID(ctx))
+		wishlist, err := groupApp.ListWishlist(
+			ctx.Request.Context(),
+			req.GroupID,
+			common.UserID(ctx),
+		)
 		if common.HandleRouterError(ctx, err, "list wishlist failed", errcode.ErrSysInternal) {
 			return
 		}
@@ -74,7 +78,13 @@ func removeWishlistHandler(groupApp *services.GroupApp) gin.HandlerFunc {
 // setWishlistHandler updates one group's wanted game.
 func setWishlistHandler(groupApp *services.GroupApp, wanted bool) gin.HandlerFunc {
 	return ginutils.RequestHandler(func(ctx *gin.Context, req *dto.GameWishPathReq) {
-		err := groupApp.SetGameWanted(ctx.Request.Context(), req.GroupID, common.UserID(ctx), req.GameID, wanted)
+		err := groupApp.SetGameWanted(
+			ctx.Request.Context(),
+			req.GroupID,
+			common.UserID(ctx),
+			req.GameID,
+			wanted,
+		)
 		if common.HandleRouterError(ctx, err, "update wishlist failed", errcode.ErrSysInternal) {
 			return
 		}

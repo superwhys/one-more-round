@@ -118,7 +118,11 @@ Page({
           : { invite: this.data.invite.trim(), group_token: invitationToken(this.data.groupToken) }),
       })
       acceptLogin(result)
-      wx.switchTab({ url: '/pages/review/index' })
+      const pendingInvitation = invitationToken(this.data.groupToken)
+      if (pendingInvitation && !result.group_id) {
+        setInvitation(pendingInvitation)
+        wx.redirectTo({ url: '/pages/setup/index' })
+      } else wx.switchTab({ url: '/pages/review/index' })
     } catch (error) {
       this.setData({ error: errorMessage(error) })
     } finally {

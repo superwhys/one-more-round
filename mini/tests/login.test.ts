@@ -5,7 +5,7 @@ import vm from 'node:vm'
 import ts from 'typescript'
 
 // loginPage loads the real page with controlled authentication and navigation.
-function loginPage(restoreSession: () => Promise<object | null>) {
+function loginPage(restoreSession: () => Promise<object | null>, options: { groupID?: string; previewError?: string } = {}) {
   const navigation: string[] = []
   const requests: unknown[] = []
   const logins: unknown[] = []
@@ -17,11 +17,13 @@ function loginPage(restoreSession: () => Promise<object | null>) {
       getInvitation: () => invitation,
       setInvitation: (token: string) => { invitation = token },
       wxCode: async () => 'wechat-code',
-      acceptLogin: (result: unknown) => { logins.push(result) },
+      acceptLogin: (result: unknown) => { logins.push(result); invitation = '' },
     },
     '../../utils/api': {
       send: async (path: string, data: unknown) => {
         requests.push({ path, data: structuredClone(data) })
+        if (path === '/auth/group-invite' && options.previewError) throw new Error(options.previewError)
+        if (path === '/auth/wx-login') return { id: 'member', group_id: options.groupID }
         return { name: '朋友小组' }
       },
     },
@@ -108,7 +110,7 @@ test('finishing restoration after leaving the login page does not change the cur
 
 for (const options of [{}, { invite: 'expired-trial', group_token: 'expired-group' }]) {
   test(`existing email binding only submits email proofs with ${Object.keys(options).length ? 'stale' : 'no'} invitations`, async () => {
-    const { page, requests, navigation, logins } = loginPage(async () => null)
+    const { page, requests, navigation, logins, invitation } = loginPage(async () => null)
     page.onLoad(options)
     page.toggle()
     page.setData({ email: ' member@example.test ', emailCode: ' 123456 ' })
@@ -125,7 +127,8 @@ for (const options of [{}, { invite: 'expired-trial', group_token: 'expired-grou
       data: { code: 'wechat-code', email: 'member@example.test', email_code: '123456' },
     })
     assert.equal(logins.length, 1)
-    assert.deepEqual(navigation, ['/pages/review/index'])
+    assert.deepEqual(navigation, [options.group_token ? '/pages/setup/index' : '/pages/review/index'])
+    assert.equal(invitation(), options.group_token || '')
   })
 }
 
@@ -157,4 +160,28 @@ test('returning from the mailbox in existing-account mode does not preview a sta
   assert.equal(page.data.existing, true)
   assert.equal(page.data.busy, false)
   assert.equal(page.data.error, '')
+})
+
+test('an unavailable invitation does not prevent login and remains pending for explicit joining', async () => {
+  const { page, requests, navigation, invitation } = loginPage(async () => null, { previewError: '邀请已失效' })
+  page.onLoad({ group_token: 'revoked-group' })
+  await page.onShow()
+  assert.equal(page.data.error, '邀请已失效')
+
+  await page.login()
+  assert.equal(page.data.error, '')
+  assert.equal(invitation(), 'revoked-group')
+  assert.deepEqual(navigation, ['/pages/setup/index'])
+  assert.deepEqual(requests[1], {
+    path: '/auth/wx-login',
+    data: { code: 'wechat-code', invite: '', group_token: 'revoked-group' },
+  })
+})
+
+test('new accounts already joined by registration do not repeat the invitation flow', async () => {
+  const { page, navigation, invitation } = loginPage(async () => null, { groupID: 'new-group' })
+  page.onLoad({ group_token: 'group-invite' })
+  await page.login()
+  assert.equal(invitation(), '')
+  assert.deepEqual(navigation, ['/pages/review/index'])
 })

@@ -35,7 +35,8 @@ func miniProgramRequest(c *gin.Context) bool {
 	if common.BearerToken(c) != "" {
 		return true
 	}
-	if c.GetHeader("Authorization") != "" || c.GetHeader("X-OMR-Client") != "wechat-mini" || c.Request.Method != http.MethodPost {
+	if c.GetHeader("Authorization") != "" || c.GetHeader("X-OMR-Client") != "wechat-mini" ||
+		c.Request.Method != http.MethodPost {
 		return false
 	}
 	mediaType, _, err := mime.ParseMediaType(c.GetHeader("Content-Type"))

@@ -68,6 +68,12 @@ func TestGroupInvitationBrowser(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	if err := s.client.Gorm.Exec(
+		"UPDATE auth_challenges SET sent=? WHERE email=?",
+		time.Now().Add(-time.Minute), owner.Email,
+	).Error; err != nil {
+		t.Fatal(err)
+	}
 	frontend, err := web.NewHandler()
 	if err != nil {
 		t.Fatal(err)
@@ -88,13 +94,15 @@ func TestGroupInvitationBrowser(t *testing.T) {
 	defer server.Close()
 	fixture, err := json.Marshal(
 		map[string]string{
-			"origin":     origin,
-			"token":      token,
-			"revoked":    revoked,
-			"expired":    expired,
-			"second":     second,
-			"name":       g.Name,
-			"secondName": other.Name,
+			"origin":        origin,
+			"token":         token,
+			"revoked":       revoked,
+			"expired":       expired,
+			"second":        second,
+			"name":          g.Name,
+			"secondName":    other.Name,
+			"existingEmail": owner.Email,
+			"trial":         trialToken(t, s),
 		},
 	)
 	if err != nil {

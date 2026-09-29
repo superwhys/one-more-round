@@ -31,14 +31,18 @@ func TestExchangeCode(t *testing.T) {
 		{"failed-status", 503, `{"openid":"wx-person"}`, errcode.ErrWechatLogin},
 	} {
 		t.Run(test.name, func(t *testing.T) {
-			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				if r.URL.Query().Get("appid") != "app" || r.URL.Query().Get("secret") != "private-secret" ||
-					r.URL.Query().Get("js_code") != "private-code" || r.URL.Query().Get("grant_type") != "authorization_code" {
-					t.Error("missing server-side code2Session parameters")
-				}
-				w.WriteHeader(test.status)
-				fmt.Fprint(w, test.body)
-			}))
+			server := httptest.NewServer(
+				http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+					if r.URL.Query().Get("appid") != "app" ||
+						r.URL.Query().Get("secret") != "private-secret" ||
+						r.URL.Query().Get("js_code") != "private-code" ||
+						r.URL.Query().Get("grant_type") != "authorization_code" {
+						t.Error("missing server-side code2Session parameters")
+					}
+					w.WriteHeader(test.status)
+					fmt.Fprint(w, test.body)
+				}),
+			)
 			defer server.Close()
 			client := New(Config{AppID: "app", Secret: "private-secret"})
 			client.endpoint = server.URL
@@ -49,7 +53,8 @@ func TestExchangeCode(t *testing.T) {
 			if err == nil && (identity.AppID != "app" || identity.OpenID != "wx-person") {
 				t.Fatalf("identity = %#v", identity)
 			}
-			if err != nil && (strings.Contains(err.Error(), "private-") || strings.Contains(err.Error(), server.URL)) {
+			if err != nil &&
+				(strings.Contains(err.Error(), "private-") || strings.Contains(err.Error(), server.URL)) {
 				t.Fatal("provider credentials leaked in error")
 			}
 		})
@@ -60,23 +65,39 @@ func TestExchangeCode(t *testing.T) {
 // credentials inside the configured provider host.
 func TestExchangeCodeTimeoutAndRedirect(t *testing.T) {
 	t.Run("timeout", func(t *testing.T) {
-		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { <-r.Context().Done() }))
+		server := httptest.NewServer(
+			http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { <-r.Context().Done() }),
+		)
 		defer server.Close()
 		client := New(Config{AppID: "app", Secret: "private-secret"})
 		client.endpoint = server.URL
 		client.http.Timeout = 20 * time.Millisecond
-		if _, err := client.ExchangeCode(context.Background(), "private-code"); err != errcode.ErrWechatLogin {
+		if _, err := client.ExchangeCode(
+			context.Background(),
+			"private-code",
+		); err != errcode.ErrWechatLogin {
 			t.Fatalf("timeout error = %v", err)
 		}
 	})
 	t.Run("redirect", func(t *testing.T) {
-		target := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { t.Error("followed provider redirect") }))
+		target := httptest.NewServer(
+			http.HandlerFunc(
+				func(w http.ResponseWriter, r *http.Request) { t.Error("followed provider redirect") },
+			),
+		)
 		defer target.Close()
-		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { http.Redirect(w, r, target.URL, http.StatusFound) }))
+		server := httptest.NewServer(
+			http.HandlerFunc(
+				func(w http.ResponseWriter, r *http.Request) { http.Redirect(w, r, target.URL, http.StatusFound) },
+			),
+		)
 		defer server.Close()
 		client := New(Config{AppID: "app", Secret: "private-secret"})
 		client.endpoint = server.URL
-		if _, err := client.ExchangeCode(context.Background(), "private-code"); err != errcode.ErrWechatLogin {
+		if _, err := client.ExchangeCode(
+			context.Background(),
+			"private-code",
+		); err != errcode.ErrWechatLogin {
 			t.Fatalf("redirect error = %v", err)
 		}
 	})

@@ -6,6 +6,8 @@ import (
 	"context"
 	"io"
 
+	"github.com/miebyte/authkit"
+
 	"github.com/superwhys/one-more-round/internal/domain/diary"
 	"github.com/superwhys/one-more-round/internal/domain/game"
 	"github.com/superwhys/one-more-round/internal/domain/group"
@@ -19,11 +21,8 @@ import (
 // bound to one database transaction, so application code owns transaction scope
 // while the adapter owns the SQL.
 type Repositories interface {
-	User() identity.IUserRepository
-	VerifyCode() identity.IVerifyCodeRepository
-	Rate() identity.IRateRepository
+	Auth() authkit.Repositories
 	Trial() identity.ITrialRepository
-	Session() identity.ISessionRepository
 
 	Group() group.IGroupRepository
 	Player() group.IPlayerRepository

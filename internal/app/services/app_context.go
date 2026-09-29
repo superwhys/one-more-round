@@ -6,7 +6,6 @@ import (
 	"github.com/superwhys/one-more-round/internal/app/ports"
 	"github.com/superwhys/one-more-round/internal/domain/game"
 	"github.com/superwhys/one-more-round/internal/domain/group"
-	"github.com/superwhys/one-more-round/internal/domain/identity"
 )
 
 // AppContext carries the dependencies every application service shares.
@@ -16,17 +15,6 @@ type AppContext struct {
 	Photos    ports.PhotoFiles
 	Catalogue ports.ExternalCatalogue
 	Wechat    ports.WechatLogin
-}
-
-// identityService builds the identity domain service on top of a unit of work.
-func identityService(repos ports.Repositories) identity.IService {
-	return identity.NewService(
-		repos.User(),
-		repos.VerifyCode(),
-		repos.Rate(),
-		repos.Trial(),
-		repos.Session(),
-	)
 }
 
 // groupService builds the group domain service on top of a unit of work.

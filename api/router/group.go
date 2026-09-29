@@ -311,7 +311,12 @@ func syncCoverHandler(groupApp *services.GroupApp) gin.HandlerFunc {
 // @Router /v1/groups/{group}/games/{game}/merge [post]
 func mergeGameHandler(groupApp *services.GroupApp) gin.HandlerFunc {
 	return ginutils.RequestHandler(func(ctx *gin.Context, req *dto.MergeGameReq) {
-		merged, err := groupApp.MergeGame(ctx.Request.Context(), req.GroupID, common.UserID(ctx), req)
+		merged, err := groupApp.MergeGame(
+			ctx.Request.Context(),
+			req.GroupID,
+			common.UserID(ctx),
+			req,
+		)
 		if common.HandleRouterError(ctx, err, "merge game failed", errcode.ErrGameSave) {
 			return
 		}

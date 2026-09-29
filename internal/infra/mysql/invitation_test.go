@@ -11,6 +11,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/miebyte/authkit"
+
 	"github.com/superwhys/one-more-round/api"
 	"github.com/superwhys/one-more-round/config"
 	"github.com/superwhys/one-more-round/internal/app/dto"
@@ -64,7 +66,7 @@ func TestGroupInvitationRegistrationAndReuse(t *testing.T) {
 			t,
 			handler,
 			"/auth/code",
-			map[string]string{"email": email, "group_token": token},
+			map[string]string{"email": email},
 		)
 		if rec.Code != http.StatusOK {
 			t.Fatalf("send code: %d", rec.Code)
@@ -131,7 +133,7 @@ func TestGroupInvitationExistingAccountLogin(t *testing.T) {
 	_, g, _, token := invitationFixture(t, s)
 	user, _ := s.signup(t, "existing@example.com")
 	if err := s.client.Gorm.Exec(
-		"UPDATE omr_challenges SET sent=? WHERE email=?",
+		"UPDATE auth_challenges SET sent=? WHERE email=?",
 		time.Now().Add(-time.Minute),
 		user.Email,
 	).Error; err != nil {
@@ -143,7 +145,7 @@ func TestGroupInvitationExistingAccountLogin(t *testing.T) {
 		t,
 		handler,
 		"/auth/code",
-		map[string]string{"email": user.Email, "group_token": token},
+		map[string]string{"email": user.Email},
 	)
 	if rec.Code != http.StatusOK {
 		t.Fatalf("send: %d", rec.Code)
@@ -161,8 +163,35 @@ func TestGroupInvitationExistingAccountLogin(t *testing.T) {
 	if rec.Code != http.StatusOK {
 		t.Fatalf("login: %d %s", rec.Code, rec.Body.String())
 	}
+	var result struct {
+		Data dto.LoginResp `json:"data"`
+	}
+	if err := json.Unmarshal(rec.Body.Bytes(), &result); err != nil {
+		t.Fatal(err)
+	}
+	if result.Data.ID != user.ID || result.Data.GroupID != "" {
+		t.Fatalf("existing account login joined a group implicitly: %#v", result.Data)
+	}
+	if _, err := s.groups.Snapshot(context.Background(), g.ID, user.ID); err != errcode.ErrForbidden {
+		t.Fatalf("login granted group access without an explicit join: %v", err)
+	}
+	body, err := json.Marshal(dto.JoinReq{Token: token})
+	if err != nil {
+		t.Fatal(err)
+	}
+	join := httptest.NewRequest(http.MethodPost, "/v1/join", bytes.NewReader(body))
+	join.Header.Set("Origin", testOrigin)
+	join.Header.Set("Content-Type", "application/json")
+	for _, cookie := range rec.Result().Cookies() {
+		join.AddCookie(cookie)
+	}
+	rec = httptest.NewRecorder()
+	handler.ServeHTTP(rec, join)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("authenticated join: %d %s", rec.Code, rec.Body.String())
+	}
 	if _, err := s.groups.Snapshot(context.Background(), g.ID, user.ID); err != nil {
-		t.Fatal("existing account was not joined:", err)
+		t.Fatal("explicit join did not grant group access:", err)
 	}
 }
 
@@ -197,7 +226,7 @@ func TestGroupInvitationPreviewAndInvalidation(t *testing.T) {
 				t,
 				handler,
 				"/auth/code",
-				map[string]string{"email": email, "group_token": token},
+				map[string]string{"email": email},
 			)
 			if rec.Code != http.StatusOK {
 				t.Fatalf("send: %d", rec.Code)
@@ -231,7 +260,6 @@ func TestGroupInvitationPreviewAndInvalidation(t *testing.T) {
 				body any
 			}{
 				{"/auth/group-invite", map[string]string{"token": token}},
-				{"/auth/code", map[string]string{"email": "another@example.com", "group_token": token}},
 				{"/auth/login", map[string]string{"email": email, "code": s.inbox.code(email), "group_token": token}},
 			} {
 				rec = invitationRequest(t, handler, request.path, request.body)
@@ -248,10 +276,10 @@ func TestGroupInvitationPreviewAndInvalidation(t *testing.T) {
 					t.Fatal("failed login issued a session")
 				}
 			}
-			if _, err := s.repos.User().
+			if _, err := s.repos.Auth().Accounts().
 				GetByEmail(context.Background(), email); !errors.Is(
 				err,
-				errcode.ErrNotFound,
+				authkit.ErrNotFound,
 			) {
 				t.Fatal("invalid invitation registered an account", err)
 			}
@@ -305,10 +333,10 @@ func TestGroupInvitationRegistrationRollsBackOnJoinFailure(t *testing.T) {
 	if _, _, err := auth.Login(context.Background(), &request); !errors.Is(err, errJoinFailure) {
 		t.Fatalf("expected injected failure: %v", err)
 	}
-	if _, err := s.repos.User().
+	if _, err := s.repos.Auth().Accounts().
 		GetByEmail(context.Background(), email); !errors.Is(
 		err,
-		errcode.ErrNotFound,
+		authkit.ErrNotFound,
 	) {
 		t.Fatal("registration was not rolled back", err)
 	}
@@ -325,7 +353,7 @@ func TestGroupInvitationConcurrentLoginAndAttemptLimit(t *testing.T) {
 	email := "concurrent-invite@example.com"
 	if err := s.auth.SendCode(
 		ctx,
-		&dto.SendCodeReq{Email: email, GroupToken: token},
+		&dto.SendCodeReq{Email: email},
 		"local",
 	); err != nil {
 		t.Fatal(err)
@@ -353,7 +381,7 @@ func TestGroupInvitationConcurrentLoginAndAttemptLimit(t *testing.T) {
 	email = "attempt-limit-invite@example.com"
 	if err := s.auth.SendCode(
 		ctx,
-		&dto.SendCodeReq{Email: email, GroupToken: token},
+		&dto.SendCodeReq{Email: email},
 		"local",
 	); err != nil {
 		t.Fatal(err)
@@ -412,7 +440,7 @@ func TestGroupInvitationConcurrentRevokeBlocksRegistration(t *testing.T) {
 	email := "revoke-race@example.com"
 	if err := s.auth.SendCode(
 		ctx,
-		&dto.SendCodeReq{Email: email, GroupToken: token},
+		&dto.SendCodeReq{Email: email},
 		"local",
 	); err != nil {
 		t.Fatal(err)
@@ -450,7 +478,12 @@ func TestGroupInvitationConcurrentRevokeBlocksRegistration(t *testing.T) {
 	if err = <-result; err != errcode.ErrInviteRevoked {
 		t.Fatalf("concurrent revocation: %v", err)
 	}
-	if _, err = s.repos.User().GetByEmail(ctx, email); !errors.Is(err, errcode.ErrNotFound) {
+	if _, err = s.repos.Auth().
+		Accounts().
+		GetByEmail(ctx, email); !errors.Is(
+		err,
+		authkit.ErrNotFound,
+	) {
 		t.Fatal("revoked invitation registered an account", err)
 	}
 }

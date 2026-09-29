@@ -5,129 +5,126 @@ import (
 	"errors"
 	"time"
 
+	"github.com/miebyte/authkit"
+
 	"github.com/superwhys/one-more-round/internal/app/dto"
 	"github.com/superwhys/one-more-round/internal/app/mapper"
 	"github.com/superwhys/one-more-round/internal/app/ports"
-	"github.com/superwhys/one-more-round/internal/domain/identity"
 	"github.com/superwhys/one-more-round/internal/errcode"
+	"github.com/superwhys/one-more-round/internal/pkg/secure"
 )
 
-// AuthApp handles verification codes and sessions.
+// AuthApp delegates identity verification to authkit and owns registration admission.
 type AuthApp struct {
-	repos  ports.Repositories
-	mailer ports.Mailer
-	wechat ports.WechatLogin
+	repos ports.Repositories
+	auth  *authkit.Service
 }
 
-// NewAuthApp builds the authentication application service.
+// NewAuthApp validates the authentication dependencies once during assembly.
 func NewAuthApp(ctx *AppContext) *AuthApp {
-	return &AuthApp{repos: ctx.Repos, mailer: ctx.Mailer, wechat: ctx.Wechat}
+	var wechat authkit.WechatExchanger
+	if ctx.Wechat != nil {
+		wechat = wechatExchanger{ctx.Wechat}
+	}
+	service, err := authkit.NewService(newAuthStore(ctx.Repos), ctx.Mailer, wechat, nil)
+	if err != nil {
+		panic(err)
+	}
+	return &AuthApp{repos: ctx.Repos, auth: service}
 }
 
-// SendCode stores a fresh verification code and mails it. The stored code is
-// only activated once the mail was handed to the provider.
+// SendCode delegates verification-code delivery without inspecting invitations.
 func (a *AuthApp) SendCode(ctx context.Context, req *dto.SendCodeReq, ip string) error {
-	email, err := identity.NormalizeEmail(req.Email)
-	if err != nil {
+	return mapAuthError(a.auth.SendCode(ctx, authkit.SendCodeInput{Email: req.Email, IP: ip}))
+}
+
+// Login applies invitation admission only to new accounts. Registered accounts
+// authenticate independently of invitations, including stale supplied tokens.
+func (a *AuthApp) Login(ctx context.Context, req *dto.LoginReq) (*dto.LoginResp, string, error) {
+	var outcome authkit.Outcome
+	var groupID string
+	err := a.repos.WithTransaction(ctx, func(repos ports.Repositories) error {
+		var err error
+		outcome, err = a.auth.
+			InTransaction(repos.Auth(), registrationPolicy(repos, req.GroupToken, req.Invite)).
+			LoginEmail(ctx, authkit.EmailLoginInput{Email: req.Email, Code: req.Code})
+		if err != nil || outcome.Rejected != nil {
+			return err
+		}
+		if outcome.Login.Created {
+			groupID, err = joinLoginGroup(ctx, repos, outcome.Login.Account.ID, req.GroupToken)
+		}
 		return err
+	})
+	if err != nil {
+		return nil, "", mapAuthError(err)
+	}
+	if outcome.Rejected != nil {
+		return nil, "", mapAuthError(outcome.Rejected)
+	}
+	return &dto.LoginResp{
+		User:    *mapper.AccountDomainToDTO(&outcome.Login.Account),
+		GroupID: groupID,
+	}, outcome.Login.Token, nil
+}
+
+// Authenticate resolves the live account without caching group membership.
+func (a *AuthApp) Authenticate(ctx context.Context, token string) (*dto.User, error) {
+	account, err := a.auth.Authenticate(ctx, token)
+	if err != nil {
+		return nil, mapAuthError(err)
+	}
+	return mapper.AccountDomainToDTO(account), nil
+}
+
+// Logout revokes only the supplied application session.
+func (a *AuthApp) Logout(ctx context.Context, token string) error {
+	return mapAuthError(a.auth.Logout(ctx, token))
+}
+
+// registrationPolicy grants admission only when authkit creates a new account;
+// the resulting account never depends on the invitation for later logins.
+func registrationPolicy(
+	repos ports.Repositories,
+	groupToken, invite string,
+) authkit.RegistrationPolicy {
+	return authkit.RegistrationPolicyFunc(
+		func(ctx context.Context, _ authkit.Registration) error {
+			if groupToken != "" {
+				_, err := groupService(repos).InvitedGroup(ctx, groupToken, time.Now().UTC())
+				return err
+			}
+			if invite == "" {
+				return errcode.ErrTrialInvalid
+			}
+			return repos.Trial().Consume(ctx, secure.Hash(invite), time.Now().UTC())
+		},
+	)
+}
+
+// joinLoginGroup preserves atomic membership and the owner's join notification.
+func joinLoginGroup(
+	ctx context.Context,
+	repos ports.Repositories,
+	userID, token string,
+) (string, error) {
+	if token == "" {
+		return "", nil
 	}
 	now := time.Now().UTC()
-	var code, digest string
-	if err = a.repos.WithTransaction(ctx, func(repos ports.Repositories) error {
-		if req.GroupToken != "" {
-			if _, e := groupService(repos).InvitedGroup(ctx, req.GroupToken, now); e != nil {
-				return e
-			}
-		}
-		var e error
-		code, digest, e = identityService(repos).SendCode(ctx, email, req.Invite, ip, now)
-		return e
-	}); err != nil {
-		return err
-	}
-	if err = a.mailer.SendCode(ctx, email, code); err != nil {
-		return errcode.ErrMailFailed
-	}
-	return a.repos.WithTransaction(ctx, func(repos ports.Repositories) error {
-		return identityService(repos).MarkCodeSent(ctx, email, digest)
-	})
-}
-
-// Login verifies the code and atomically registers, joins the invited group and
-// opens a session. Without a group invitation, registration consumes a trial.
-func (a *AuthApp) Login(ctx context.Context, req *dto.LoginReq) (*dto.LoginResp, string, error) {
-	email, err := identity.NormalizeEmail(req.Email)
+	groups := groupService(repos)
+	invited, err := groups.InvitedGroup(ctx, token, now)
 	if err != nil {
-		return nil, "", err
+		return "", err
 	}
-	var (
-		user     *identity.User
-		token    string
-		rejected error
-		groupID  string
-	)
-	err = a.repos.WithTransaction(ctx, func(repos ports.Repositories) error {
-		var invitedOwner string
-		var invitedGroupID string
-		var alreadyMember bool
-		if req.GroupToken != "" {
-			invited, e := groupService(repos).InvitedGroup(ctx, req.GroupToken, time.Now().UTC())
-			if e != nil {
-				return e
-			}
-			invitedOwner = invited.Owner
-			invitedGroupID = invited.ID
-		}
-		var e error
-		user, token, rejected, e = identityService(
-			repos,
-		).Login(ctx, email, req.Code, req.GroupToken != "", time.Now().UTC())
-		if e != nil || rejected != nil {
-			return e
-		}
-		if req.GroupToken != "" {
-			_, memberErr := groupService(repos).RequireMember(ctx, invitedGroupID, user.ID)
-			alreadyMember = memberErr == nil
-			if memberErr != nil && !errors.Is(memberErr, errcode.ErrForbidden) {
-				return memberErr
-			}
-			groupID, e = groupService(repos).Join(ctx, user.ID, req.GroupToken, time.Now().UTC())
-			if e == nil && !alreadyMember && invitedOwner != user.ID {
-				e = createNotification(
-					ctx,
-					repos,
-					invitedOwner,
-					groupID,
-					"member_joined",
-					"有朋友加入了小组",
-					"一位新成员通过邀请加入了你的小组。",
-					"/group",
-					"member-joined:"+groupID+":"+user.ID,
-					time.Now().UTC(),
-				)
-			}
-		}
-		return e
-	})
-	if err != nil {
-		return nil, "", err
+	_, memberErr := groups.RequireMember(ctx, invited.ID, userID)
+	if memberErr != nil && !errors.Is(memberErr, errcode.ErrForbidden) {
+		return "", memberErr
 	}
-	if rejected != nil {
-		return nil, "", rejected
+	groupID, err := groups.Join(ctx, userID, token, now)
+	if err == nil && memberErr != nil && invited.Owner != userID {
+		err = createNotification(ctx, repos, invited.Owner, groupID, "member_joined", "有朋友加入了小组",
+			"一位新成员通过邀请加入了你的小组。", "/group", "member-joined:"+groupID+":"+userID, now)
 	}
-	return &dto.LoginResp{User: *mapper.UserDomainToDTO(user), GroupID: groupID}, token, nil
-}
-
-// Authenticate resolves a session token into the current account.
-func (a *AuthApp) Authenticate(ctx context.Context, token string) (*dto.User, error) {
-	user, err := identityService(a.repos).Authenticate(ctx, token)
-	if err != nil {
-		return nil, err
-	}
-	return mapper.UserDomainToDTO(user), nil
-}
-
-// Logout revokes the session of the token.
-func (a *AuthApp) Logout(ctx context.Context, token string) error {
-	return identityService(a.repos).Logout(ctx, token)
+	return groupID, err
 }

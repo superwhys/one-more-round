@@ -4,44 +4,12 @@ package models
 
 import "time"
 
-type User struct {
-	ID    string  `gorm:"column:id;type:varchar(64);primaryKey"`
-	Email *string `gorm:"column:email;type:varchar(254);uniqueIndex:email"`
+// MemberAccount is a query projection of an authkit account and its optional email.
+// It is not a persistent table and is excluded from AllModels.
+type MemberAccount struct {
+	ID    string
+	Email *string
 }
-
-func (User) TableName() string { return "omr_users" }
-
-// WechatAccount locks each application-scoped identity during registration.
-// OpenID is stored as a digest; a nullable owner permits a transactional lock
-// before the corresponding application account has been selected or created.
-type WechatAccount struct {
-	AppID      string  `gorm:"column:app_id;type:varchar(64);primaryKey;uniqueIndex:app_user,priority:1"`
-	OpenIDHash string  `gorm:"column:openid_hash;type:char(64);primaryKey"`
-	UserID     *string `gorm:"column:user_id;type:varchar(64);uniqueIndex:app_user,priority:2;index:user_id"`
-}
-
-// TableName returns the table of application-scoped WeChat bindings.
-func (WechatAccount) TableName() string { return "omr_wechat_accounts" }
-
-type Challenge struct {
-	Email      string    `gorm:"column:email;type:varchar(254);primaryKey"`
-	Hash       string    `gorm:"column:hash;type:char(64);not null"`
-	InviteHash string    `gorm:"column:invite_hash;type:char(64);not null"`
-	Expires    time.Time `gorm:"column:expires;type:datetime(6);not null"`
-	Sent       time.Time `gorm:"column:sent;type:datetime(6);not null"`
-	Attempts   int       `gorm:"column:attempts;type:int;not null"`
-	Ready      bool      `gorm:"column:ready;type:tinyint(1);not null"`
-}
-
-func (Challenge) TableName() string { return "omr_challenges" }
-
-type Rate struct {
-	ID     string    `gorm:"column:id;type:char(64);primaryKey"`
-	Starts time.Time `gorm:"column:starts;type:datetime(6);not null"`
-	Hits   int       `gorm:"column:count;type:int;not null"`
-}
-
-func (Rate) TableName() string { return "omr_rates" }
 
 type Trial struct {
 	Hash     string    `gorm:"column:hash;type:char(64);primaryKey"`
@@ -50,14 +18,6 @@ type Trial struct {
 }
 
 func (Trial) TableName() string { return "omr_trials" }
-
-type Session struct {
-	Hash    string    `gorm:"column:hash;type:char(64);primaryKey"`
-	UserID  string    `gorm:"column:user_id;type:varchar(64);not null;index:user_id"`
-	Expires time.Time `gorm:"column:expires;type:datetime(6);not null;index:expires"`
-}
-
-func (Session) TableName() string { return "omr_sessions" }
 
 type Group struct {
 	ID    string `gorm:"column:id;type:varchar(64);primaryKey"`
@@ -208,10 +168,7 @@ func (Notification) TableName() string { return "omr_notifications" }
 // AllModels lists every table in the order AutoMigrate should create them.
 func AllModels() []any {
 	return []any{
-		&User{},
-		&WechatAccount{},
 		&Group{},
-		&Session{},
 		&Member{},
 		&Player{},
 		&Game{},
@@ -220,8 +177,6 @@ func AllModels() []any {
 		&RoundShare{},
 		&RoundComment{},
 		&CommentIdempotency{},
-		&Challenge{},
-		&Rate{},
 		&Trial{},
 		&Idempotency{},
 		&Invite{},

@@ -82,15 +82,30 @@ func TestAttachCoverLinksWithoutExternalCover(t *testing.T) {
 
 func TestAttachCoverKeepsExistingAssociationAndCover(t *testing.T) {
 	id := 13
-	repo := &memGames{items: []*Game{{
-		ID: "linked", Name: "本组名字", BGGID: &id, Original: "Catan", Cover: "https://example.com/cover.jpg",
-	}}}
+	repo := &memGames{items: []*Game{
+		{
+			ID:       "linked",
+			Name:     "本组名字",
+			BGGID:    &id,
+			Original: "Catan",
+			Cover:    "https://example.com/cover.jpg",
+		},
+	}}
 	svc := NewService(repo)
 	linked, err := svc.AttachCover(context.Background(), "g", "linked", id, "Catan", "")
 	if err != nil || linked.Cover != "https://example.com/cover.jpg" {
 		t.Fatalf("linked = %+v, err = %v", linked, err)
 	}
-	if _, err = svc.AttachCover(context.Background(), "g", "linked", 14, "Other", ""); !errcode.ErrConflict.Is(err) {
+	if _, err = svc.AttachCover(
+		context.Background(),
+		"g",
+		"linked",
+		14,
+		"Other",
+		"",
+	); !errcode.ErrConflict.Is(
+		err,
+	) {
 		t.Fatalf("different BGG ID should conflict: %v", err)
 	}
 }

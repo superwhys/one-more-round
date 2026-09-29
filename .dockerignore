@@ -1,5 +1,7 @@
 .git
 .github
+go.work
+go.work.sum
 .DS_Store
 bin
 data

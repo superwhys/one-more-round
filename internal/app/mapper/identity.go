@@ -3,12 +3,13 @@
 package mapper
 
 import (
+	"github.com/miebyte/authkit"
+
 	"github.com/superwhys/one-more-round/internal/app/dto"
-	"github.com/superwhys/one-more-round/internal/domain/identity"
 )
 
-// UserDomainToDTO converts the account entity into the API DTO.
-func UserDomainToDTO(u *identity.User) *dto.User {
+// AccountDomainToDTO converts the account entity into the API DTO.
+func AccountDomainToDTO(u *authkit.Account) *dto.User {
 	if u == nil {
 		return nil
 	}

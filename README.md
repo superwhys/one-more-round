@@ -154,6 +154,8 @@ docs/               # PRD、接口契约、设计稿与实施记录
 
 需要 Go 1.27.1、Node.js >= 22.12、pnpm 11.22.0、MySQL（本地验证版本 9.0.1）及 SMTP。
 
+认证已接入 `github.com/miebyte/authkit`，当前 `go.work` 使用相邻目录 `../../miebyte/authkit` 的源码。本机路径为 `/Users/hoven/programes/go/src/github.com/miebyte/authkit`；其他机器可检出该包并调整 `go.work use` 路径，或设置 `GOWORK=off` 使用 `go.mod` 锁定版本。使用 authkit 原生接口，无需本地扩展；Docker 构建忽略工作区文件。旧数据库必须先停写并执行[认证数据迁移](docs/AUTHKIT_MIGRATION.md)，再启动新版；AutoMigrate 只建表，不自动搬运旧账号。
+
 1. 将 `config.example.json` 复制为 `config.json`，填写 `app.mysql`、`app.smtp`、`app.origin`、`app.oss` 和 `app.bgg.token`。该文件已被 Git 忽略，真实凭证只放在私有配置中。`app.bgg.token` 留空时外部搜索返回明确提示，手动添加仍然可用。
 2. `app.origin` 必须是浏览器实际访问的源，例如 `http://127.0.0.1:8080`，不能带末尾斜杠。公网部署要求 HTTPS，Cookie 会自动启用 Secure。
 3. 构建并启动：

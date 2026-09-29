@@ -18,7 +18,8 @@ import (
 func Use(db *gorm.DB, opts ...gen.DOOption) *Query {
 	return &Query{
 		db:                 db,
-		Challenge:          newChallenge(db, opts...),
+		Account:            newAccount(db, opts...),
+		Binding:            newBinding(db, opts...),
 		Claim:              newClaim(db, opts...),
 		CommentIdempotency: newCommentIdempotency(db, opts...),
 		Game:               newGame(db, opts...),
@@ -30,21 +31,18 @@ func Use(db *gorm.DB, opts ...gen.DOOption) *Query {
 		Notification:       newNotification(db, opts...),
 		Photo:              newPhoto(db, opts...),
 		Player:             newPlayer(db, opts...),
-		Rate:               newRate(db, opts...),
 		Round:              newRound(db, opts...),
 		RoundComment:       newRoundComment(db, opts...),
 		RoundShare:         newRoundShare(db, opts...),
-		Session:            newSession(db, opts...),
 		Trial:              newTrial(db, opts...),
-		User:               newUser(db, opts...),
-		WechatAccount:      newWechatAccount(db, opts...),
 	}
 }
 
 type Query struct {
 	db *gorm.DB
 
-	Challenge          challenge
+	Account            account
+	Binding            binding
 	Claim              claim
 	CommentIdempotency commentIdempotency
 	Game               game
@@ -56,14 +54,10 @@ type Query struct {
 	Notification       notification
 	Photo              photo
 	Player             player
-	Rate               rate
 	Round              round
 	RoundComment       roundComment
 	RoundShare         roundShare
-	Session            session
 	Trial              trial
-	User               user
-	WechatAccount      wechatAccount
 }
 
 func (q *Query) Available() bool { return q.db != nil }
@@ -73,7 +67,8 @@ func (q *Query) UnderlyingDB() *gorm.DB { return q.db }
 func (q *Query) clone(db *gorm.DB) *Query {
 	return &Query{
 		db:                 db,
-		Challenge:          q.Challenge.clone(db),
+		Account:            q.Account.clone(db),
+		Binding:            q.Binding.clone(db),
 		Claim:              q.Claim.clone(db),
 		CommentIdempotency: q.CommentIdempotency.clone(db),
 		Game:               q.Game.clone(db),
@@ -85,14 +80,10 @@ func (q *Query) clone(db *gorm.DB) *Query {
 		Notification:       q.Notification.clone(db),
 		Photo:              q.Photo.clone(db),
 		Player:             q.Player.clone(db),
-		Rate:               q.Rate.clone(db),
 		Round:              q.Round.clone(db),
 		RoundComment:       q.RoundComment.clone(db),
 		RoundShare:         q.RoundShare.clone(db),
-		Session:            q.Session.clone(db),
 		Trial:              q.Trial.clone(db),
-		User:               q.User.clone(db),
-		WechatAccount:      q.WechatAccount.clone(db),
 	}
 }
 
@@ -107,7 +98,8 @@ func (q *Query) WriteDB() *Query {
 func (q *Query) ReplaceDB(db *gorm.DB) *Query {
 	return &Query{
 		db:                 db,
-		Challenge:          q.Challenge.replaceDB(db),
+		Account:            q.Account.replaceDB(db),
+		Binding:            q.Binding.replaceDB(db),
 		Claim:              q.Claim.replaceDB(db),
 		CommentIdempotency: q.CommentIdempotency.replaceDB(db),
 		Game:               q.Game.replaceDB(db),
@@ -119,19 +111,16 @@ func (q *Query) ReplaceDB(db *gorm.DB) *Query {
 		Notification:       q.Notification.replaceDB(db),
 		Photo:              q.Photo.replaceDB(db),
 		Player:             q.Player.replaceDB(db),
-		Rate:               q.Rate.replaceDB(db),
 		Round:              q.Round.replaceDB(db),
 		RoundComment:       q.RoundComment.replaceDB(db),
 		RoundShare:         q.RoundShare.replaceDB(db),
-		Session:            q.Session.replaceDB(db),
 		Trial:              q.Trial.replaceDB(db),
-		User:               q.User.replaceDB(db),
-		WechatAccount:      q.WechatAccount.replaceDB(db),
 	}
 }
 
 type queryCtx struct {
-	Challenge          IChallengeDo
+	Account            IAccountDo
+	Binding            IBindingDo
 	Claim              IClaimDo
 	CommentIdempotency ICommentIdempotencyDo
 	Game               IGameDo
@@ -143,19 +132,16 @@ type queryCtx struct {
 	Notification       INotificationDo
 	Photo              IPhotoDo
 	Player             IPlayerDo
-	Rate               IRateDo
 	Round              IRoundDo
 	RoundComment       IRoundCommentDo
 	RoundShare         IRoundShareDo
-	Session            ISessionDo
 	Trial              ITrialDo
-	User               IUserDo
-	WechatAccount      IWechatAccountDo
 }
 
 func (q *Query) WithContext(ctx context.Context) *queryCtx {
 	return &queryCtx{
-		Challenge:          q.Challenge.WithContext(ctx),
+		Account:            q.Account.WithContext(ctx),
+		Binding:            q.Binding.WithContext(ctx),
 		Claim:              q.Claim.WithContext(ctx),
 		CommentIdempotency: q.CommentIdempotency.WithContext(ctx),
 		Game:               q.Game.WithContext(ctx),
@@ -167,14 +153,10 @@ func (q *Query) WithContext(ctx context.Context) *queryCtx {
 		Notification:       q.Notification.WithContext(ctx),
 		Photo:              q.Photo.WithContext(ctx),
 		Player:             q.Player.WithContext(ctx),
-		Rate:               q.Rate.WithContext(ctx),
 		Round:              q.Round.WithContext(ctx),
 		RoundComment:       q.RoundComment.WithContext(ctx),
 		RoundShare:         q.RoundShare.WithContext(ctx),
-		Session:            q.Session.WithContext(ctx),
 		Trial:              q.Trial.WithContext(ctx),
-		User:               q.User.WithContext(ctx),
-		WechatAccount:      q.WechatAccount.WithContext(ctx),
 	}
 }
 

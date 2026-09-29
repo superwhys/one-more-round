@@ -59,8 +59,10 @@ func (c *Client) ExchangeCode(ctx context.Context, code string) (ports.WechatIde
 	if strings.TrimSpace(code) == "" || len(code) > 512 {
 		return ports.WechatIdentity{}, errcode.ErrWechatCode
 	}
-	query := url.Values{"appid": {c.config.AppID}, "secret": {c.config.Secret},
-		"js_code": {code}, "grant_type": {"authorization_code"}}
+	query := url.Values{
+		"appid": {c.config.AppID}, "secret": {c.config.Secret},
+		"js_code": {code}, "grant_type": {"authorization_code"},
+	}
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.endpoint+"?"+query.Encode(), nil)
 	if err != nil {
 		return ports.WechatIdentity{}, errcode.ErrWechatLogin

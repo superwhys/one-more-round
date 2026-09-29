@@ -60,9 +60,9 @@ function changeEmail() {
   code.value = ''
   clearLogin()
 }
+// cancelInvite keeps the mailbox proof because admission is checked only at login.
 function cancelInvite() {
   session.clearInvitations()
-  changeEmail()
   error.value = ''
 }
 async function run(action: () => Promise<void>) {
@@ -78,9 +78,8 @@ async function run(action: () => Promise<void>) {
   }
 }
 function sendCode() {
-  if (joinToken.value && !preview.value) return
   return run(async () => {
-    await sendLoginCode(email.value, invitation.value, joinToken.value)
+    await sendLoginCode(email.value)
     sent.value = true
     seconds.value = 60
     try {
@@ -91,20 +90,20 @@ function sendCode() {
   })
 }
 function login() {
-  if (joinToken.value && !preview.value) return
   return run(async () => {
-    const result = await loginRequest(email.value, code.value, joinToken.value)
-    session.clearInvitations()
+    const result = await loginRequest(email.value, code.value, invitation.value, joinToken.value)
+    invitation.value = ''
+    if (result.group_id) joinToken.value = ''
     clearLogin()
-    // Authentication and membership have already committed. A failed list
-    // refresh must not leave the user retrying an already-consumed code.
+    // Authentication has committed. Existing accounts confirm a pending group
+    // invitation after login, even when its preview is currently unavailable.
     try {
       await session.acceptUser(result)
     } catch {
       session.error.value = '已登录，但小组列表加载失败，请重新加载'
     }
     if (result.group_id) session.selectGroup(result.group_id)
-    await router.replace(result.group_id ? '/group' : session.selected.value ? '/' : '/join')
+    await router.replace(result.group_id ? '/group' : joinToken.value || !session.selected.value ? '/join' : '/')
   })
 }
 </script>
@@ -119,18 +118,19 @@ function login() {
       <div v-else-if="preview" class="j-notice">
         <strong>你收到了一份小组邀请</strong>
         <p>加入「{{ preview.name }}」，一起记下每一局。</p>
-        <p class="d-note">验证邮箱即可加入；首次使用会自动创建账号，无需另外填写邀请码。</p>
+        <p class="d-note">首次使用验证邮箱即可注册并加入；已有账号登录后确认加入，无需另外填写邀请码。</p>
       </div>
       <p v-if="inviteError" class="j-error" role="alert">
-        {{ inviteError }} <button type="button" class="d-text-link" @click="refresh">重新检查</button>
+        {{ inviteError }}，已有账号仍可继续登录。
+        <button type="button" class="d-text-link" @click="refresh">重新检查</button>
       </p>
     </template>
     <p v-else>记下每一局的输赢与相聚。</p>
-    <form v-if="!joinToken || preview" @submit.prevent="sent ? login() : sendCode()">
+    <form @submit.prevent="sent ? login() : sendCode()">
       <label class="d-field"
         >邮箱<input v-model="email" type="email" autocomplete="email" required :readonly="sent || busy"
       /></label>
-      <label v-if="!sent && !joinToken" class="d-field"
+      <label v-if="!joinToken" class="d-field"
         >试用邀请码（首次注册必填）<input v-model="invitation" autocomplete="off" :disabled="busy" /><small
           >已有账号无需填写。朋友邀请你加入小组时，直接打开小组邀请链接即可。</small
         ></label
@@ -146,7 +146,7 @@ function login() {
       >
       <p v-if="error" class="j-error" role="alert">{{ error }}</p>
       <button class="d-button full" :disabled="busy">
-        {{ busy ? '请稍候…' : sent ? (joinToken ? '登录并加入小组' : '登录') : '发送验证码' }}
+        {{ busy ? '请稍候…' : sent ? '登录' : '发送验证码' }}
       </button>
       <div v-if="sent" class="j-actions">
         <button type="button" class="d-text-link" :disabled="busy || seconds > 0" @click="sendCode">

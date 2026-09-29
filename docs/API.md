@@ -4,22 +4,22 @@
 
 ## 身份与安全
 
-- POST `/auth/code`：`email`，普通注册传 `invite`（试用邀请密钥）；通过小组邀请进入时传 `group_token`，先检查其有效性，无需试用邀请。验证码 10 分钟有效、60 秒重发、5 次尝试；每邮箱每小时最多 10 次、每来源 IP 每小时最多 30 次发送请求。失败邮件不返回验证码。
-- POST `/auth/login`：`email`、`code`，可选 `group_token`。携带小组邀请时，在同一事务内锁定小组、校验邀请、验证邮箱、必要时注册、加入小组和创建会话；任一步失败整体回滚，错误验证码的尝试次数仍提交。小组邀请不会被消费，返回 `{id,email,group_id}`。不携带小组邀请时保留原有一次性试用注册/已有账号登录，返回 `{id,email}`。数据库只保存验证码摘要、会话摘要和邀请摘要。
+- POST `/auth/code`：只提交 `email`，不判断账号是否存在，不校验或保存邀请码。验证码 10 分钟有效、60 秒重发、5 次尝试；每邮箱每小时最多 10 次、每来源 IP 每小时最多 30 次发送请求。失败邮件不返回验证码。
+- POST `/auth/login`：`email`、`code`，可选 `invite`（试用邀请）或 `group_token`。已有账号只验证邮箱验证码；即使携带的邀请已失效也不影响登录，返回 `{id,email}`。新账号必须携带有效邀请：小组邀请注册时，将账号、成员关系、通知和会话原子提交，返回 `{id,email,group_id}`；试用邀请注册时原子消费试用资格并创建账号/会话。任一步失败整体回滚，错误验证码的尝试次数仍提交。邀请码不再绑定发码过程，客户端需随登录提交；已注册账号的登录资格不受原邀请后续状态影响。已有账号加入新组应在登录后单独调用 `/join`。
 - POST `/auth/group-invite`：无需登录，Body 为 `{token}`，仅返回有效邀请的小组 `{group_id,name}`。不返回组主、成员、记录或其他组内数据；令牌不放在请求 URL 中。
 - GET `/me`：当前账号；POST `/auth/logout`：撤销服务端会话。
 - `omr_session` Cookie 使用 HttpOnly、SameSite=Strict、生产 Secure；有效期固定 30 天，退出立即失效，不自动续期。localStorage 只保存草稿和当前小组偏好；sessionStorage 保存当前标签页的待处理邀请（最多 7 天）及邮箱/验证码发送时间（恢复期 10 分钟），不保存验证码。成功/取消清除相应邀请，退出清除邀请及登录进度。
 - 浏览器非 GET/HEAD 请求的 Origin 必须与 `app.origin` 完全一致。小程序使用 `Authorization: Bearer <token>`，无 Cookie、无 Origin 时允许写入；非法 Authorization 不回退 Cookie。无会话的小程序仅 `/auth/wx-login`、`/auth/code`、`/auth/group-invite` 允许无 Origin，必须 POST JSON 并带 `X-OMR-Client: wechat-mini`。带 Cookie 或其他 Origin 的请求仍校验本站来源，不开放 CORS。
-- POST `/auth/wx-login`：`{code,invite?,group_token?,email?,email_code?}`。`code` 必须来自 `wx.login`，后端使用配置的 AppID/Secret 调用微信 `code2Session`（8 秒超时）；不接受客户端 OpenID，不保存或返回微信 session_key。首次微信登录可同时证明已注册邮箱，直接复用该账号、小组、玩家与历史记录；邮箱和验证码必须成对提供。首次创建独立账号仍需试用或小组邀请，注册、微信绑定、加入小组及会话同事务提交。返回 `{id,email,group_id?,token}`，无邮箱时 `email` 是空字符串，不创建虚假邮箱；不设置 Cookie。
+- POST `/auth/wx-login`：`{code,invite?,group_token?,email?,email_code?}`。`code` 必须来自 `wx.login`，后端使用配置的 AppID/Secret 调用微信 `code2Session`（8 秒超时）；不接受客户端 OpenID，不保存或返回微信 session_key。首次微信登录可同时证明已注册邮箱，直接复用该账号、小组、玩家与历史记录；邮箱和验证码必须成对提供。首次创建独立账号仍需试用或小组邀请，注册、微信绑定、加入小组及会话同事务提交；已有微信账号或首次绑定已有邮箱账号只验证身份，不校验携带的邀请，加入新小组在登录后独立确认。返回 `{id,email,group_id?,token}`，无邮箱时 `email` 是空字符串，不创建虚假邮箱；不设置 Cookie。
 - POST `/auth/wx-bind-email`：已登录微信账号提交 `{email,code}` 补绑邮箱，返回 `{id,email,token}`，原子轮换并撤销当前会话。目标邮箱属于另一账号时返回 409，不合并或迁移任何数据；当前账号已经有其他邮箱时也返回 409，不支持更换邮箱。邮箱验证码仍通过 `/auth/code` 发送，沿用 10 分钟/5 次/一次性规则，绑定与邮箱登录共用验证码消费锁。
-- 同一小程序的一个微信身份只能绑定一个账号，一个账号也只能绑定一个微信身份；数据库使用 `(app_id,openid_hash)` 主键和 `(app_id,user_id)` 唯一索引，首次并发注册锁定身份后仅创建一个账号。OpenID 只保存摘要，邮箱允许 NULL 且保留唯一索引；现有邮箱数据不变。不同小程序的身份不按 UnionID 自动合并。
+- 同一小程序的一个微信身份只能绑定一个账号，一个账号也只能绑定一个微信身份；authkit 的 `auth_bindings` 使用 `(method,identifier)` 主键和 `(account_id,method)` 唯一索引，首次并发注册锁定身份后仅创建一个账号。OpenID 只保存摘要，无邮箱账号不建立 email 绑定；现有邮箱数据不变。不同小程序的身份不按 UnionID 自动合并。
 - 小程序会话同样固定 30 天，只把原始 token 放在运行期内存；冷启动进入登录页或组内页面时自动 `wx.login` 并仅提交 code 恢复已有账号，不写本地 Storage。首次注册显示邀请/邮箱表单，自动恢复不提交邀请，不自动注册或加入小组；待处理邀请保留到加入确认流程。所有组内与照片请求继续经过相同服务端成员校验，退出调用 `/auth/logout` 撤销当前 token，仅持久化非敏感退出标记，直到用户再次主动登录才恢复自动登录。
 - 业务错误：400 输入无效、401 未登录、403 权限/来源失败、404 不存在、409 并发/重复/关联冲突、429 请求过多、502 邮件失败、503 BGG 未配置或暂时不可用。
 
 ## 小组与资料
 
 - GET/POST `/groups`：列出所属小组 / 以 `name`、`player_name` 创建小组，并在同一事务创建、关联组主的玩家档案。
-- POST `/join`：已登录账号凭 `token` 加入小组；重复加入幂等。未登录账号使用 `/auth/login` 的 `group_token` 完成注册/登录并加入。
+- POST `/join`：已登录账号凭 `token` 加入小组；重复加入幂等。首次注册使用 `/auth/login` 的 `group_token` 原子完成注册并加入；已有账号先登录再调用 `/join`，加入失败不影响已建立的登录状态。
 - GET `/groups/:group`：小组、成员、玩家、游戏和可见的关联申请。游戏与玩家按近期参与顺序优先。
 - POST `/groups/:group/players`、`/games`：以 `name` 添加玩家或手动桌游。
 - GET `/groups/:group/bgg/search?q=`：成员搜索 BoardGameGeek 基础游戏，返回名称、年份、BGG ID、封面地址和来源标识。封面来自详情接口的 `thumbnail`，没有则省略。令牌只在服务端使用，结果缓存一小时。
@@ -85,7 +85,7 @@
 
 `app.wechat.app_id` 和 `app.wechat.secret` 必须同时配置；均为空时只关闭微信登录，保留 Web 邮箱登录。Secret 只放服务端私有配置，不能填写进小程序工程。小程序平台需配置与后端 HTTPS 地址相同的 request、uploadFile、downloadFile 合法域名。
 
-表结构在启动时由 GORM `AutoMigrate` 按 Model 补齐缺失的表、列和索引，不使用版本化 SQL 迁移。运行时使用 goutils 的生命周期与关闭机制。
+表结构在启动时由 GORM `AutoMigrate` 按 Model 补齐缺失的表、列和索引。认证使用 authkit 原生 `auth_accounts`、`auth_bindings`、`auth_challenges`、`auth_rates`、`auth_sessions`；试用准入保留在宿主表。旧版认证数据须先执行[显式迁移脚本](AUTHKIT_MIGRATION.md)，AutoMigrate 不搬运数据、不删除旧表。运行时使用 goutils 的生命周期与关闭机制。
 
 响应统一为 `{code, data, message}`：成功业务码为 `0`；失败返回稳定业务码（`1004xx`/`1005xx`），同时用 HTTP 状态表达协议语义（401 未登录、403 无权限、404 不存在、405 方法不支持、409 冲突、429 限流、502 邮件失败、503 外部依赖不可用）。业务码与 HTTP 状态是两套语义，前端以业务码判断成败、以 HTTP 状态处理传输层失败。
 

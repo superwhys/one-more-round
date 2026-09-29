@@ -6,6 +6,8 @@ import (
 	"errors"
 
 	driver "github.com/go-sql-driver/mysql"
+	"github.com/miebyte/authkit"
+	authmysql "github.com/miebyte/authkit/mysql"
 	"gorm.io/gorm"
 
 	"github.com/superwhys/one-more-round/internal/app/ports"
@@ -44,29 +46,14 @@ func (f *RepositoryFactory) WithTransaction(
 	}, &sql.TxOptions{Isolation: sql.LevelReadCommitted}))
 }
 
-// User returns the account repository.
-func (f *RepositoryFactory) User() identity.IUserRepository {
-	return &userRepository{db: f.db}
-}
-
-// VerifyCode returns the verification code repository.
-func (f *RepositoryFactory) VerifyCode() identity.IVerifyCodeRepository {
-	return &verifyCodeRepository{db: f.db}
-}
-
-// Rate returns the send rate repository.
-func (f *RepositoryFactory) Rate() identity.IRateRepository {
-	return &rateRepository{db: f.db}
+// Auth returns authkit repositories bound to this unit of work.
+func (f *RepositoryFactory) Auth() authkit.Repositories {
+	return authmysql.Bind(f.db)
 }
 
 // Trial returns the trial invitation repository.
 func (f *RepositoryFactory) Trial() identity.ITrialRepository {
 	return &trialRepository{db: f.db}
-}
-
-// Session returns the session repository.
-func (f *RepositoryFactory) Session() identity.ISessionRepository {
-	return &sessionRepository{db: f.db}
 }
 
 // Group returns the group repository.

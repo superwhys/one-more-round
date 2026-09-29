@@ -5,6 +5,7 @@ import (
 	"errors"
 	"time"
 
+	"github.com/miebyte/authkit"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 
@@ -87,18 +88,20 @@ func (r *groupRepository) Snapshot(ctx context.Context, id string) (*group.Snaps
 	}
 	s.Group = g
 	q := queryOf(r.db)
-	users, member := q.User, q.Member
-	rows, err := users.WithContext(ctx).
-		Select(users.ALL).
-		Join(member, member.UserID.EqCol(users.ID)).
+	accounts, binding, member := q.Account, q.Binding, q.Member
+	var rows []*models.MemberAccount
+	err = accounts.WithContext(ctx).
+		Select(accounts.ID, binding.Identifier.As("email")).
+		Join(member, member.UserID.EqCol(accounts.ID)).
+		LeftJoin(binding, binding.AccountID.EqCol(accounts.ID), binding.Method.Eq(authkit.MethodEmail)).
 		Where(member.GroupID.Eq(id)).
-		Order(users.ID).
-		Find()
+		Order(accounts.ID).
+		Scan(&rows)
 	if err != nil {
 		return nil, mapErr(err)
 	}
 	for _, m := range rows {
-		s.Members = append(s.Members, mapper.MemberUserModelToDomain(m))
+		s.Members = append(s.Members, mapper.MemberAccountModelToDomain(m))
 	}
 	players, err := q.Player.WithContext(ctx).
 		Where(q.Player.GroupID.Eq(id)).

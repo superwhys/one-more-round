@@ -28,7 +28,11 @@ func (a *GroupApp) ListWishlist(ctx context.Context, groupID, userID string) (dt
 }
 
 // SetGameWanted marks or clears a group game as wanted by a current member.
-func (a *GroupApp) SetGameWanted(ctx context.Context, groupID, userID, gameID string, wanted bool) error {
+func (a *GroupApp) SetGameWanted(
+	ctx context.Context,
+	groupID, userID, gameID string,
+	wanted bool,
+) error {
 	return a.repos.WithTransaction(ctx, func(repos ports.Repositories) error {
 		current, err := groupService(repos).RequireMember(ctx, groupID, userID)
 		if err != nil {

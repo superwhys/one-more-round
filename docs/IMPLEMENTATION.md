@@ -33,7 +33,17 @@
 
 用户确认新增微信小程序入口，并保留既有 Web 邮箱登录。首次微信登录时验证已有邮箱，直接使用同一账号；分别注册过的微信、邮箱账号暂不合并。独立微信账号注册仍要求邀请，可稍后验证码补绑未注册邮箱，不支持替换已有绑定。小程序复用现有应用服务和组内权限模型，运行期持有不透明 Bearer 会话，服务端仅保存摘要；浏览器继续使用受 Origin 校验保护的 HttpOnly Cookie。
 
-微信调用单独放在 Infrastructure adapter，组合根按 `app.wechat` 注入；AppSecret 与 session_key 不进入前端或日志。邮箱列改为可空以支持多个真实无邮箱账号，新表按 AppID 隔离并对微信身份、账号双向唯一。启动时 AutoMigrate 仅调整邮箱 nullable 并添加微信身份表，不删除现有数据；Model/Query 由 `make generate` 同步。接口细节见 API.md。
+微信调用单独放在 Infrastructure adapter，组合根按 `app.wechat` 注入；AppSecret 与 session_key 不进入前端或日志。2026-09-25 版本通过可空邮箱列和按 AppID 隔离的微信表支持无邮箱账号；这些认证表在下述 authkit 接入中替换。接口细节见 API.md。
+
+## authkit 认证接入（2026-09-29）
+
+用户要求统一使用本地 `github.com/miebyte/authkit`，当前通过 `go.work` 引入。验证码、账号、邮箱/微信绑定、限流与会话直接使用包内 Service、MySQL Store 和 Models；应用不再维护旧认证实现。认证库自身负责认证持久化，宿主业务仓储继续使用 Gen Query；小组成员查询从包内 Account/Binding Model 生成 Query。
+
+注册资格在账号创建时永久取得，后续登录不再依赖原邀请是否过期、撤销或已使用。验证码发送不查询或保存任何邀请码。`/auth/login` 新增 `invite` 字段，客户端只在登录时提交试用邀请码或 `group_token`。authkit 的 `RegistrationPolicy` 仅在账号不存在、即将注册时触发：新账号无邀请不能注册；通过小组邀请创建账号时，在同一事务内完成注册、加入小组、通知和会话创建；试用邀请仍按现有规则授予一次新账号注册资格。已有账号登录忽略请求携带的邀请码，返回有效会话后通过独立 `/join` 接口确认加入新小组，邀请错误不会回滚已有账号的登录。退出/移除成员仍由现有成员权限控制，不改变账号登录资格。
+
+`AuthApp` 只在构造时创建一个 `authkit.Service`，发码直接复用原生 `SendCode`，登录复用原生 `InTransaction`。移除本次接入中新增的 `SendCodeWithStore` / `SendCodeWithIssuance` 扩展和 `omr_registration_intents` Model、仓储与 Query；authkit 恢复原接口及行为。若开发数据库此前已经创建上下文表，启动不会自动删除表，但应用已不再读写；部署仍使用 `go.mod` 锁定的原包版本。
+
+authkit 的微信绑定按 OpenID 摘要唯一、每账号一份，不保存 AppID；本应用仍只配置一个微信小程序。旧库若存在其他 AppID 的数据，迁移会停止，需先明确处理方案。认证表结构直接采用包内定义；[迁移脚本与操作顺序](AUTHKIT_MIGRATION.md)保留账号 ID、会话、在途验证码与限流状态，旧表不会自动删除。
 
 ## 交付顺序与验证
 

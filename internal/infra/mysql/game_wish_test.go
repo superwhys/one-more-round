@@ -15,11 +15,19 @@ func TestGroupWishlist(t *testing.T) {
 	ctx := context.Background()
 	owner, _ := s.signup(t, "wish-owner@example.com")
 	outsider, _ := s.signup(t, "wish-outsider@example.com")
-	first, err := s.groups.Create(ctx, owner.ID, &dto.CreateGroupReq{Name: "想玩小组", PlayerName: "组主"})
+	first, err := s.groups.Create(
+		ctx,
+		owner.ID,
+		&dto.CreateGroupReq{Name: "想玩小组", PlayerName: "组主"},
+	)
 	if err != nil {
 		t.Fatal(err)
 	}
-	second, err := s.groups.Create(ctx, owner.ID, &dto.CreateGroupReq{Name: "其他小组", PlayerName: "组主"})
+	second, err := s.groups.Create(
+		ctx,
+		owner.ID,
+		&dto.CreateGroupReq{Name: "其他小组", PlayerName: "组主"},
+	)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -31,13 +39,38 @@ func TestGroupWishlist(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err = s.groups.SetGameWanted(ctx, first.ID, outsider.ID, game.ID, true); !errors.Is(err, errcode.ErrForbidden) {
+	if err = s.groups.SetGameWanted(
+		ctx,
+		first.ID,
+		outsider.ID,
+		game.ID,
+		true,
+	); !errors.Is(
+		err,
+		errcode.ErrForbidden,
+	) {
 		t.Fatalf("outsider update: %v", err)
 	}
-	if _, err = s.groups.ListWishlist(ctx, first.ID, outsider.ID); !errors.Is(err, errcode.ErrForbidden) {
+	if _, err = s.groups.ListWishlist(
+		ctx,
+		first.ID,
+		outsider.ID,
+	); !errors.Is(
+		err,
+		errcode.ErrForbidden,
+	) {
 		t.Fatalf("outsider list: %v", err)
 	}
-	if err = s.groups.SetGameWanted(ctx, first.ID, owner.ID, other.ID, true); !errors.Is(err, errcode.ErrNotFound) {
+	if err = s.groups.SetGameWanted(
+		ctx,
+		first.ID,
+		owner.ID,
+		other.ID,
+		true,
+	); !errors.Is(
+		err,
+		errcode.ErrNotFound,
+	) {
 		t.Fatalf("cross-group game: %v", err)
 	}
 	for i := 0; i < 2; i++ {

@@ -32,16 +32,26 @@ func (testWechat) ExchangeCode(_ context.Context, code string) (ports.WechatIden
 
 // wechatAuth wires the real transaction adapter with a deterministic provider.
 func wechatAuth(s *stack) *services.AuthApp {
-	return services.NewAuthApp(&services.AppContext{Repos: s.repos, Mailer: s.inbox, Wechat: testWechat{}})
+	return services.NewAuthApp(
+		&services.AppContext{Repos: s.repos, Mailer: s.inbox, Wechat: testWechat{}},
+	)
 }
 
 // freshEmailCode resets only the fixture clock before requesting a real code.
 func freshEmailCode(t *testing.T, s *stack, email string) string {
 	t.Helper()
-	if err := s.client.Gorm.Exec("UPDATE omr_challenges SET sent=? WHERE email=?", time.Now().Add(-time.Minute), email).Error; err != nil {
+	if err := s.client.Gorm.Exec(
+		"UPDATE auth_challenges SET sent=? WHERE email=?",
+		time.Now().Add(-time.Minute),
+		email,
+	).Error; err != nil {
 		t.Fatal(err)
 	}
-	if err := s.auth.SendCode(context.Background(), &dto.SendCodeReq{Email: email}, "wechat-test"); err != nil {
+	if err := s.auth.SendCode(
+		context.Background(),
+		&dto.SendCodeReq{Email: email},
+		"wechat-test",
+	); err != nil {
 		t.Fatal(err)
 	}
 	return s.inbox.code(email)
@@ -51,7 +61,8 @@ func freshEmailCode(t *testing.T, s *stack, email string) string {
 func trialToken(t *testing.T, s *stack) string {
 	t.Helper()
 	token := secure.NewID()
-	if err := s.repos.Trial().Create(context.Background(), secure.Hash(token), time.Now().Add(time.Hour)); err != nil {
+	if err := s.repos.Trial().
+		Create(context.Background(), secure.Hash(token), time.Now().Add(time.Hour)); err != nil {
 		t.Fatal(err)
 	}
 	return token
@@ -64,12 +75,25 @@ func TestWechatFirstLoginBindsExistingEmail(t *testing.T) {
 	auth := wechatAuth(s)
 	ctx := context.Background()
 	owner, _ := s.signup(t, "existing-wx@example.com")
-	group, err := s.groups.Create(ctx, owner.ID, &dto.CreateGroupReq{Name: "原有记录小组", PlayerName: "我"})
+	group, err := s.groups.Create(
+		ctx,
+		owner.ID,
+		&dto.CreateGroupReq{Name: "原有记录小组", PlayerName: "我"},
+	)
 	if err != nil {
 		t.Fatal(err)
 	}
 	code := freshEmailCode(t, s, owner.Email)
-	result, err := auth.WechatLogin(ctx, &dto.WechatLoginReq{Code: "wechat-one", Email: strings.ToUpper(owner.Email), EmailCode: code})
+	result, err := auth.WechatLogin(
+		ctx,
+		&dto.WechatLoginReq{
+			Code:       "wechat-one",
+			Email:      strings.ToUpper(owner.Email),
+			EmailCode:  code,
+			Invite:     "stale-trial",
+			GroupToken: "stale-group-token",
+		},
+	)
 	if err != nil || result.ID != owner.ID || result.Email != owner.Email {
 		t.Fatalf("existing account = %#v, %v", result, err)
 	}
@@ -79,18 +103,32 @@ func TestWechatFirstLoginBindsExistingEmail(t *testing.T) {
 	if current, err := auth.Authenticate(ctx, result.Token); err != nil || current.ID != owner.ID {
 		t.Fatalf("session = %#v, %v", current, err)
 	}
-	if _, err = auth.WechatLogin(ctx, &dto.WechatLoginReq{Code: "wechat-two", Email: owner.Email, EmailCode: code}); err != errcode.ErrChallengeInvalid {
+	if _, err = auth.WechatLogin(
+		ctx,
+		&dto.WechatLoginReq{Code: "wechat-two", Email: owner.Email, EmailCode: code},
+	); err != errcode.ErrChallengeInvalid {
 		t.Fatalf("reused email code = %v", err)
 	}
 	code = freshEmailCode(t, s, owner.Email)
-	if _, err = auth.WechatLogin(ctx, &dto.WechatLoginReq{Code: "wechat-two", Email: owner.Email, EmailCode: code}); err != errcode.ErrWechatBound {
+	if _, err = auth.WechatLogin(
+		ctx,
+		&dto.WechatLoginReq{Code: "wechat-two", Email: owner.Email, EmailCode: code},
+	); err != errcode.ErrWechatBound {
 		t.Fatalf("second WeChat identity = %v", err)
 	}
 	// Failed binding must not consume the proof or alter email login.
-	if existing, _, err := s.auth.Login(ctx, &dto.LoginReq{Email: owner.Email, Code: code}); err != nil || existing.ID != owner.ID {
+	if existing, _, err := s.auth.Login(
+		ctx,
+		&dto.LoginReq{Email: owner.Email, Code: code},
+	); err != nil ||
+		existing.ID != owner.ID {
 		t.Fatalf("email login = %#v, %v", existing, err)
 	}
-	if again, err := auth.WechatLogin(ctx, &dto.WechatLoginReq{Code: "wechat-one"}); err != nil || again.ID != owner.ID {
+	if again, err := auth.WechatLogin(
+		ctx,
+		&dto.WechatLoginReq{Code: "wechat-one"},
+	); err != nil ||
+		again.ID != owner.ID {
 		t.Fatalf("repeat WeChat login = %#v, %v", again, err)
 	}
 }
@@ -101,7 +139,10 @@ func TestWechatInvitationAndConcurrentRegistration(t *testing.T) {
 	s := setup(t)
 	auth := wechatAuth(s)
 	ctx := context.Background()
-	if _, err := auth.WechatLogin(ctx, &dto.WechatLoginReq{Code: "no-invitation"}); err != errcode.ErrTrialInvalid {
+	if _, err := auth.WechatLogin(
+		ctx,
+		&dto.WechatLoginReq{Code: "no-invitation"},
+	); err != errcode.ErrTrialInvalid {
 		t.Fatalf("uninvited registration = %v", err)
 	}
 	invite := trialToken(t, s)
@@ -112,7 +153,10 @@ func TestWechatInvitationAndConcurrentRegistration(t *testing.T) {
 	results := make(chan loginResult, 6)
 	for range cap(results) {
 		go func() {
-			result, err := auth.WechatLogin(ctx, &dto.WechatLoginReq{Code: "concurrent-wx", Invite: invite})
+			result, err := auth.WechatLogin(
+				ctx,
+				&dto.WechatLoginReq{Code: "concurrent-wx", Invite: invite},
+			)
 			results <- loginResult{result, err}
 		}()
 	}
@@ -128,13 +172,19 @@ func TestWechatInvitationAndConcurrentRegistration(t *testing.T) {
 		id = result.result.ID
 	}
 	var count int64
-	if err := s.client.Gorm.Table("omr_users").Count(&count).Error; err != nil || count != 1 {
+	if err := s.client.Gorm.Table("auth_accounts").Count(&count).Error; err != nil || count != 1 {
 		t.Fatalf("users = %d, %v", count, err)
 	}
-	if _, err := auth.WechatLogin(ctx, &dto.WechatLoginReq{Code: "other-wx", Invite: invite}); err != errcode.ErrTrialInvalid {
+	if _, err := auth.WechatLogin(
+		ctx,
+		&dto.WechatLoginReq{Code: "other-wx", Invite: invite},
+	); err != errcode.ErrTrialInvalid {
 		t.Fatalf("reused invitation = %v", err)
 	}
-	if _, err := auth.WechatLogin(ctx, &dto.WechatLoginReq{Code: "another-wx", Invite: trialToken(t, s)}); err != nil {
+	if _, err := auth.WechatLogin(
+		ctx,
+		&dto.WechatLoginReq{Code: "another-wx", Invite: trialToken(t, s)},
+	); err != nil {
 		t.Fatalf("second nullable-email account: %v", err)
 	}
 }
@@ -145,28 +195,55 @@ func TestWechatGroupInvitationAtomicity(t *testing.T) {
 	auth := wechatAuth(s)
 	ctx := context.Background()
 	owner, g, inv, invite := invitationFixture(t, s)
-	result, err := auth.WechatLogin(ctx, &dto.WechatLoginReq{Code: "group-friend", GroupToken: invite})
+	result, err := auth.WechatLogin(
+		ctx,
+		&dto.WechatLoginReq{Code: "group-friend", GroupToken: invite},
+	)
 	if err != nil || result.GroupID != g.ID {
 		t.Fatalf("joined account = %#v, %v", result, err)
 	}
 	if _, err = s.groups.Snapshot(ctx, g.ID, result.ID); err != nil {
 		t.Fatal(err)
 	}
-	broken := services.NewAuthApp(&services.AppContext{Repos: failingJoinRepos{s.repos}, Mailer: s.inbox, Wechat: testWechat{}})
-	if _, err = broken.WechatLogin(ctx, &dto.WechatLoginReq{Code: "rollback-wx", GroupToken: invite}); err != errJoinFailure {
+	broken := services.NewAuthApp(
+		&services.AppContext{
+			Repos:  failingJoinRepos{s.repos},
+			Mailer: s.inbox,
+			Wechat: testWechat{},
+		},
+	)
+	if _, err = broken.WechatLogin(
+		ctx,
+		&dto.WechatLoginReq{Code: "rollback-wx", GroupToken: invite},
+	); err != errJoinFailure {
 		t.Fatalf("join failure = %v", err)
 	}
 	var count int64
-	if err = s.client.Gorm.Table("omr_wechat_accounts").Where("openid_hash = ?", secure.Hash("rollback-wx")).Count(&count).Error; err != nil || count != 0 {
+	if err = s.client.Gorm.Table("auth_bindings").
+		Where("method = ? AND identifier = ?", "wechat", secure.Hash("rollback-wx")).
+		Count(&count).
+		Error; err != nil ||
+		count != 0 {
 		t.Fatalf("rolled back identity = %d, %v", count, err)
 	}
-	if _, err = auth.WechatLogin(ctx, &dto.WechatLoginReq{Code: "rollback-wx", GroupToken: invite}); err != nil {
+	if _, err = auth.WechatLogin(
+		ctx,
+		&dto.WechatLoginReq{Code: "rollback-wx", GroupToken: invite},
+	); err != nil {
 		t.Fatal(err)
 	}
-	if err = s.groups.Manage(ctx, g.ID, owner.ID, &dto.ManageReq{Action: "revoke", Target: inv.ID}); err != nil {
+	if err = s.groups.Manage(
+		ctx,
+		g.ID,
+		owner.ID,
+		&dto.ManageReq{Action: "revoke", Target: inv.ID},
+	); err != nil {
 		t.Fatal(err)
 	}
-	if _, err = auth.WechatLogin(ctx, &dto.WechatLoginReq{Code: "revoked-wx", GroupToken: invite}); err != errcode.ErrInviteRevoked {
+	if _, err = auth.WechatLogin(
+		ctx,
+		&dto.WechatLoginReq{Code: "revoked-wx", GroupToken: invite},
+	); err != errcode.ErrInviteRevoked {
 		t.Fatalf("revoked registration = %v", err)
 	}
 }
@@ -178,7 +255,10 @@ func TestWechatBindEmailNeverMerges(t *testing.T) {
 	auth := wechatAuth(s)
 	ctx := context.Background()
 	existing, _ := s.signup(t, "separate@example.com")
-	wx, err := auth.WechatLogin(ctx, &dto.WechatLoginReq{Code: "independent", Invite: trialToken(t, s)})
+	wx, err := auth.WechatLogin(
+		ctx,
+		&dto.WechatLoginReq{Code: "independent", Invite: trialToken(t, s)},
+	)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -187,10 +267,18 @@ func TestWechatBindEmailNeverMerges(t *testing.T) {
 		t.Fatal(err)
 	}
 	code := freshEmailCode(t, s, existing.Email)
-	if _, err = auth.BindWechatEmail(ctx, wx.ID, wx.Token, &dto.BindEmailReq{Email: existing.Email, Code: code}); err != errcode.ErrEmailAccountConflict {
+	if _, err = auth.BindWechatEmail(
+		ctx,
+		wx.ID,
+		wx.Token,
+		&dto.BindEmailReq{Email: existing.Email, Code: code},
+	); err != errcode.ErrEmailAccountConflict {
 		t.Fatalf("independent binding = %v", err)
 	}
-	if _, err = auth.WechatLogin(ctx, &dto.WechatLoginReq{Code: "independent", Email: existing.Email, EmailCode: code}); err != errcode.ErrEmailAccountConflict {
+	if _, err = auth.WechatLogin(
+		ctx,
+		&dto.WechatLoginReq{Code: "independent", Email: existing.Email, EmailCode: code},
+	); err != errcode.ErrEmailAccountConflict {
 		t.Fatalf("login merge = %v", err)
 	}
 	if _, err = s.groups.Snapshot(ctx, g.ID, existing.ID); !errors.Is(err, errcode.ErrForbidden) {
@@ -198,7 +286,12 @@ func TestWechatBindEmailNeverMerges(t *testing.T) {
 	}
 	newEmail := "newly-bound@example.com"
 	code = freshEmailCode(t, s, newEmail)
-	bound, err := auth.BindWechatEmail(ctx, wx.ID, wx.Token, &dto.BindEmailReq{Email: newEmail, Code: code})
+	bound, err := auth.BindWechatEmail(
+		ctx,
+		wx.ID,
+		wx.Token,
+		&dto.BindEmailReq{Email: newEmail, Code: code},
+	)
 	if err != nil || bound.ID != wx.ID || bound.Email != newEmail || bound.Token == wx.Token {
 		t.Fatalf("bound account = %#v, %v", bound, err)
 	}
@@ -208,11 +301,20 @@ func TestWechatBindEmailNeverMerges(t *testing.T) {
 	if _, err = auth.Authenticate(ctx, bound.Token); err != nil {
 		t.Fatal(err)
 	}
-	if _, err = auth.BindWechatEmail(ctx, bound.ID, bound.Token, &dto.BindEmailReq{Email: newEmail, Code: code}); err != errcode.ErrChallengeInvalid {
+	if _, err = auth.BindWechatEmail(
+		ctx,
+		bound.ID,
+		bound.Token,
+		&dto.BindEmailReq{Email: newEmail, Code: code},
+	); err != errcode.ErrChallengeInvalid {
 		t.Fatalf("binding proof reused: %v", err)
 	}
 	code = freshEmailCode(t, s, newEmail)
-	if login, _, err := s.auth.Login(ctx, &dto.LoginReq{Email: newEmail, Code: code}); err != nil || login.ID != wx.ID {
+	if login, _, err := s.auth.Login(
+		ctx,
+		&dto.LoginReq{Email: newEmail, Code: code},
+	); err != nil ||
+		login.ID != wx.ID {
 		t.Fatalf("new email login = %#v, %v", login, err)
 	}
 }
@@ -226,17 +328,29 @@ func TestWechatVerificationLimitAndProviderFailures(t *testing.T) {
 	owner, _ := s.signup(t, "wrong-proof@example.com")
 	code := freshEmailCode(t, s, owner.Email)
 	for range 5 {
-		if _, err := auth.WechatLogin(ctx, &dto.WechatLoginReq{Code: "proof-wx", Email: owner.Email, EmailCode: "wrong"}); err != errcode.ErrChallengeMismatch {
+		if _, err := auth.WechatLogin(
+			ctx,
+			&dto.WechatLoginReq{Code: "proof-wx", Email: owner.Email, EmailCode: "wrong"},
+		); err != errcode.ErrChallengeMismatch {
 			t.Fatalf("wrong code = %v", err)
 		}
 	}
-	if _, err := auth.WechatLogin(ctx, &dto.WechatLoginReq{Code: "proof-wx", Email: owner.Email, EmailCode: code}); err != errcode.ErrChallengeInvalid {
+	if _, err := auth.WechatLogin(
+		ctx,
+		&dto.WechatLoginReq{Code: "proof-wx", Email: owner.Email, EmailCode: code},
+	); err != errcode.ErrChallengeInvalid {
 		t.Fatalf("attempt limit = %v", err)
 	}
-	if _, err := auth.WechatLogin(ctx, &dto.WechatLoginReq{Code: "provider-failed", Invite: trialToken(t, s)}); err != errcode.ErrWechatLogin {
+	if _, err := auth.WechatLogin(
+		ctx,
+		&dto.WechatLoginReq{Code: "provider-failed", Invite: trialToken(t, s)},
+	); err != errcode.ErrWechatLogin {
 		t.Fatalf("provider failure = %v", err)
 	}
-	if _, err := s.auth.WechatLogin(ctx, &dto.WechatLoginReq{Code: "disabled"}); err != errcode.ErrWechatUnavailable {
+	if _, err := s.auth.WechatLogin(
+		ctx,
+		&dto.WechatLoginReq{Code: "disabled"},
+	); err != errcode.ErrWechatUnavailable {
 		t.Fatalf("disabled integration = %v", err)
 	}
 	for _, req := range []*dto.WechatLoginReq{{Code: ""}, {Code: "some", Email: owner.Email}, {Code: "some", EmailCode: "123456"}} {
@@ -251,8 +365,13 @@ func TestWechatVerificationLimitAndProviderFailures(t *testing.T) {
 func TestWechatHTTPBearerSession(t *testing.T) {
 	s := setup(t)
 	auth := wechatAuth(s)
-	handler := api.NewAPI("test", &config.Runtime{Origin: testOrigin}, auth, s.groups, s.rounds, s.photos, s.notifications, s.comments).SetupRouter()
-	request := httptest.NewRequest(http.MethodPost, "/v1/auth/wx-login", strings.NewReader(`{"code":"http-wx","invite":"`+trialToken(t, s)+`"}`))
+	handler := api.NewAPI("test", &config.Runtime{Origin: testOrigin}, auth, s.groups, s.rounds, s.photos, s.notifications, s.comments).
+		SetupRouter()
+	request := httptest.NewRequest(
+		http.MethodPost,
+		"/v1/auth/wx-login",
+		strings.NewReader(`{"code":"http-wx","invite":"`+trialToken(t, s)+`"}`),
+	)
 	request.Header.Set("X-OMR-Client", "wechat-mini")
 	request.Header.Set("Content-Type", "application/json")
 	rec := httptest.NewRecorder()
@@ -286,14 +405,11 @@ func TestWechatHTTPBearerSession(t *testing.T) {
 	}
 }
 
-// TestWechatMigrationPreservesExistingEmails verifies a legacy NOT NULL email
-// schema can evolve without rewriting old addresses or inventing new ones.
-func TestWechatMigrationPreservesExistingEmails(t *testing.T) {
+// TestAuthkitSchemaPreservesEmailAndWechatAccounts verifies repeat migrations
+// retain credential bindings and support accounts with no mailbox.
+func TestAuthkitSchemaPreservesEmailAndWechatAccounts(t *testing.T) {
 	s := setup(t)
 	ctx := context.Background()
-	if err := s.client.Gorm.Exec("ALTER TABLE omr_users MODIFY email varchar(254) NOT NULL").Error; err != nil {
-		t.Fatal(err)
-	}
 	owner, _ := s.signup(t, "legacy-account@example.com")
 	if err := s.client.AutoMigrate(); err != nil {
 		t.Fatal(err)
@@ -301,14 +417,58 @@ func TestWechatMigrationPreservesExistingEmails(t *testing.T) {
 	if err := s.client.AutoMigrate(); err != nil {
 		t.Fatal("repeat migration:", err)
 	}
-	existing, err := s.repos.User().GetByEmail(ctx, owner.Email)
+	existing, err := s.repos.Auth().Accounts().GetByEmail(ctx, owner.Email)
 	if err != nil || existing.ID != owner.ID {
 		t.Fatalf("legacy email changed = %#v, %v", existing, err)
 	}
 	auth := wechatAuth(s)
 	for _, code := range []string{"nullable-one", "nullable-two"} {
-		if _, err := auth.WechatLogin(ctx, &dto.WechatLoginReq{Code: code, Invite: trialToken(t, s)}); err != nil {
+		if _, err := auth.WechatLogin(
+			ctx,
+			&dto.WechatLoginReq{Code: code, Invite: trialToken(t, s)},
+		); err != nil {
 			t.Fatalf("new nullable email: %v", err)
 		}
+	}
+}
+
+// countingWechat observes whether malformed requests consume a one-use provider code.
+type countingWechat struct {
+	calls int
+}
+
+// ExchangeCode records an unexpected exchange and fails before account writes.
+func (p *countingWechat) ExchangeCode(context.Context, string) (ports.WechatIdentity, error) {
+	p.calls++
+	return ports.WechatIdentity{}, errcode.ErrWechatLogin
+}
+
+// TestWechatValidatesInputBeforeExchange keeps incomplete email proof and invalid
+// email addresses from consuming an otherwise reusable provider login code.
+func TestWechatValidatesInputBeforeExchange(t *testing.T) {
+	s := setup(t)
+	provider := &countingWechat{}
+	auth := services.NewAuthApp(
+		&services.AppContext{Repos: s.repos, Mailer: s.inbox, Wechat: provider},
+	)
+	for _, test := range []struct {
+		name string
+		req  dto.WechatLoginReq
+		want error
+	}{
+		{"empty provider code", dto.WechatLoginReq{}, errcode.ErrBadRequest},
+		{"long provider code", dto.WechatLoginReq{Code: strings.Repeat("x", 513)}, errcode.ErrBadRequest},
+		{"missing email proof", dto.WechatLoginReq{Code: "valid-provider-code", Email: "friend@example.com"}, errcode.ErrBadRequest},
+		{"missing email", dto.WechatLoginReq{Code: "valid-provider-code", EmailCode: "123456"}, errcode.ErrBadRequest},
+		{"invalid email", dto.WechatLoginReq{Code: "valid-provider-code", Email: "not-an-address", EmailCode: "123456"}, errcode.ErrInvalidEmail},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			if _, err := auth.WechatLogin(context.Background(), &test.req); err != test.want {
+				t.Fatalf("input rejection = %v, want %v", err, test.want)
+			}
+		})
+	}
+	if provider.calls != 0 {
+		t.Fatalf("malformed input consumed %d provider code exchanges", provider.calls)
 	}
 }
