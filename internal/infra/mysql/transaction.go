@@ -56,6 +56,11 @@ func (f *RepositoryFactory) Trial() identity.ITrialRepository {
 	return &trialRepository{db: f.db}
 }
 
+// Credential returns the application's account-credential repository.
+func (f *RepositoryFactory) Credential() identity.ICredentialRepository {
+	return &credentialRepository{db: f.db}
+}
+
 // Group returns the group repository.
 func (f *RepositoryFactory) Group() group.IGroupRepository {
 	return &groupRepository{db: f.db}

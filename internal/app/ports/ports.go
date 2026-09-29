@@ -23,6 +23,7 @@ import (
 type Repositories interface {
 	Auth() authkit.Store
 	Trial() identity.ITrialRepository
+	Credential() identity.ICredentialRepository
 
 	Group() group.IGroupRepository
 	Player() group.IPlayerRepository

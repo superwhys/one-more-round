@@ -57,10 +57,6 @@ func mapAuthError(err error) error {
 		{authkit.ErrWechatUnavailable, errcode.ErrWechatUnavailable},
 		{authkit.ErrWechatLogin, errcode.ErrWechatLogin},
 		{authkit.ErrWechatCode, errcode.ErrWechatCode},
-		{authkit.ErrWechatBound, errcode.ErrWechatBound},
-		{authkit.ErrEmailAccountConflict, errcode.ErrEmailAccountConflict},
-		{authkit.ErrEmailBound, errcode.ErrEmailBound},
-		{authkit.ErrWechatRequired, errcode.ErrWechatRequired},
 	} {
 		if errors.Is(err, mapping.source) {
 			return mapping.target
