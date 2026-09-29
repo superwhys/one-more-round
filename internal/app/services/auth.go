@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/miebyte/authkit"
-	"github.com/miebyte/goutils/logging"
 
 	"github.com/superwhys/one-more-round/internal/app/dto"
 	"github.com/superwhys/one-more-round/internal/app/mapper"
@@ -22,15 +21,8 @@ type AuthApp struct {
 }
 
 // NewAuthApp validates the authentication dependencies once during assembly.
-func NewAuthApp(ctx *AppContext) *AuthApp {
-	var wechat authkit.WechatExchanger
-	if ctx.Wechat != nil {
-		wechat = wechatExchanger{ctx.Wechat}
-	}
-	service, err := authkit.NewService(newAuthStore(ctx.Repos), ctx.Mailer, wechat, nil)
-	logging.PanicError(err)
-
-	return &AuthApp{repos: ctx.Repos, auth: service}
+func NewAuthApp(ctx *AppContext, authkitSrv *authkit.Service) *AuthApp {
+	return &AuthApp{repos: ctx.Repos, auth: authkitSrv}
 }
 
 // SendCode delegates verification-code delivery without inspecting invitations.

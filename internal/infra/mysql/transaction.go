@@ -47,7 +47,7 @@ func (f *RepositoryFactory) WithTransaction(
 }
 
 // Auth returns authkit repositories bound to this unit of work.
-func (f *RepositoryFactory) Auth() authkit.Repositories {
+func (f *RepositoryFactory) Auth() authkit.Store {
 	return authmysql.Bind(f.db)
 }
 

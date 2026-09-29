@@ -13,3 +13,4 @@
 /mini/node_modules/
 /mini/dist/
 /mini/project.private.config.json
+go.work*

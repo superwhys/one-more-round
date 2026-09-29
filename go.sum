@@ -114,8 +114,8 @@ github.com/mattn/go-sqlite3 v1.14.22 h1:2gZY6PC6kBnID23Tichd1K+Z0oS6nE/XwU+Vz/5o
 github.com/mattn/go-sqlite3 v1.14.22/go.mod h1:Uh1q+B4BYcTPb+yiD3kU8Ct7aC0hY9fxUwlHK0RXw+Y=
 github.com/microsoft/go-mssqldb v0.17.0 h1:Fto83dMZPnYv1Zwx5vHHxpNraeEaUlQ/hhHLgZiaenE=
 github.com/microsoft/go-mssqldb v0.17.0/go.mod h1:OkoNGhGEs8EZqchVTtochlXruEhEOaO4S0d2sB5aeGQ=
-github.com/miebyte/authkit v1.1.0 h1:3kbBFx2oVP98xq3hoYCZ56bFyY8mCH2rWU7iRXh7LnM=
-github.com/miebyte/authkit v1.1.0/go.mod h1:B5fHnaa5odRxZ4eMiQfvPYJvgyutOaRwG4458s5mvS0=
+github.com/miebyte/authkit v1.2.0 h1:C1g/aAkqNyE61sAZ7ymRsi676hIXnpkdCbm36HJ6ltM=
+github.com/miebyte/authkit v1.2.0/go.mod h1:/a4soWpXDMjCWsd/bFzkMSJeOf7w6REHSvCh810MT9A=
 github.com/miebyte/goutils v1.3.1 h1:4X17BAr+AMLlRDOKFJ+fd/AhNX72x4akN/QOtFUlG/Y=
 github.com/miebyte/goutils v1.3.1/go.mod h1:eZOdfBx1gvTSU4CvsJuHcSJXUYyVrpr83+z+Sw/Nptk=
 github.com/modern-go/concurrent v0.0.0-20180228061459-e0a39a4cb421/go.mod h1:6dJC0mAP4ikYIbvyc7fijjWJddQyLn8Ig3JB5CqoB9Q=

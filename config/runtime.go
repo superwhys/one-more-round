@@ -14,14 +14,15 @@ import (
 )
 
 type Runtime struct {
-	Listen string                 `json:"-"`
-	IsProd bool                   `json:"is_prod"`
-	MySQL  mysqlutils.MysqlConfig `json:"mysql"`
-	SMTP   smtp.Config            `json:"smtp"`
-	Origin string                 `json:"origin"`
-	OSS    photos.OSSConfig       `json:"oss"`
-	Wechat wechat.Config          `json:"wechat"`
-	BGG    BGGConfig              `json:"bgg"`
+	Listen  string                 `json:"-"`
+	AdminID string                 `json:"admin_id"`
+	IsProd  bool                   `json:"is_prod"`
+	MySQL   mysqlutils.MysqlConfig `json:"mysql"`
+	SMTP    smtp.Config            `json:"smtp"`
+	Origin  string                 `json:"origin"`
+	OSS     photos.OSSConfig       `json:"oss"`
+	Wechat  wechat.Config          `json:"wechat"`
+	BGG     BGGConfig              `json:"bgg"`
 }
 
 // BGGConfig holds the server-side BoardGameGeek application token. An empty

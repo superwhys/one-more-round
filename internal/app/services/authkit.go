@@ -10,29 +10,22 @@ import (
 	"github.com/superwhys/one-more-round/internal/errcode"
 )
 
-// authStore binds authkit to the application's existing transaction boundary.
-type authStore struct {
-	authkit.Repositories
-	host ports.Repositories
-}
+// NewAuthkitService uses the existing authkit store. Login and binding still
+// join host transactions through Service.InTransaction in their use cases.
+func NewAuthkitService(ctx *AppContext) (*authkit.Service, error) {
+	store := ctx.Repos.Auth()
 
-// newAuthStore exposes the root identity repositories and host transactions.
-func newAuthStore(repos ports.Repositories) *authStore {
-	return &authStore{Repositories: repos.Auth(), host: repos}
-}
-
-// WithTransaction ensures identity repositories use the host's transaction.
-func (s *authStore) WithTransaction(
-	ctx context.Context,
-	fn func(authkit.Repositories) error,
-) error {
-	return s.host.WithTransaction(ctx, func(repos ports.Repositories) error {
-		return fn(repos.Auth())
-	})
+	var wechat authkit.WechatExchanger
+	if ctx.Wechat != nil {
+		wechat = wechatExchanger{ctx.Wechat}
+	}
+	return authkit.NewService(store, ctx.Mailer, wechat, nil)
 }
 
 // wechatExchanger adapts the existing configured provider to authkit.
-type wechatExchanger struct{ ports.WechatLogin }
+type wechatExchanger struct {
+	ports.WechatLogin
+}
 
 // ExchangeCode keeps provider credentials in the existing infrastructure adapter.
 func (w wechatExchanger) ExchangeCode(

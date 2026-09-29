@@ -12,6 +12,7 @@ import (
 	"context"
 	"time"
 
+	"github.com/miebyte/authkit/admin"
 	"github.com/miebyte/goutils/cores"
 	"github.com/miebyte/goutils/flags"
 	"github.com/miebyte/goutils/logging"
@@ -67,7 +68,11 @@ func main() {
 	if runtime.BGG.Enabled() {
 		appCtx.Catalogue = bgg.New(runtime.BGG.Token)
 	}
-	authApp := services.NewAuthApp(appCtx)
+
+	authkitSrv, err := services.NewAuthkitService(appCtx)
+	logging.PanicError(err)
+
+	authApp := services.NewAuthApp(appCtx, authkitSrv)
 	groupApp := services.NewGroupApp(appCtx)
 	roundApp := services.NewRoundApp(appCtx)
 	photoApp := services.NewPhotoApp(appCtx)
@@ -86,16 +91,21 @@ func main() {
 	frontend, err := web.NewHandler()
 	logging.PanicError(err)
 
+	adminHandler, err := admin.NewHTTPHandler(authkitSrv, runtime.AdminID)
+	logging.PanicError(err)
+
 	httpConfig := &cores.HttpServerConfig{}
 	httpConfig.SetDefault()
 	// Allow the bounded OSS upload and compensation to finish before responding.
 	httpConfig.WriteTimeout = time.Minute
 	srv := cores.NewCores(
 		cores.WithHttpServerConfig(httpConfig),
-		cores.WithNameWorker("photo-cleanup", worker.PhotoCleanup(repos, photoFiles)),
 		cores.WithHttpHandler("/", frontend),
 		cores.WithHttpHandler("/api", backend.SetupRouter()),
+		cores.WithHttpHandler("/admin", adminHandler),
 		cores.WithHttpHandler("/swagger", backend.SwaggerRouter(runtime.IsProd)),
+		// worker
+		cores.WithNameWorker("photo-cleanup", worker.PhotoCleanup(repos, photoFiles)),
 	)
 
 	logging.PanicError(cores.Start(srv, runtime.Listen))

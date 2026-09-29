@@ -21,7 +21,7 @@ import (
 // bound to one database transaction, so application code owns transaction scope
 // while the adapter owns the SQL.
 type Repositories interface {
-	Auth() authkit.Repositories
+	Auth() authkit.Store
 	Trial() identity.ITrialRepository
 
 	Group() group.IGroupRepository

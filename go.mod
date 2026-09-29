@@ -6,7 +6,7 @@ require (
 	github.com/aliyun/alibabacloud-oss-go-sdk-v2 v1.6.0
 	github.com/gin-gonic/gin v1.12.0
 	github.com/go-sql-driver/mysql v1.8.1
-	github.com/miebyte/authkit v1.1.0
+	github.com/miebyte/authkit v1.2.0
 	github.com/miebyte/goutils v1.3.1
 	github.com/swaggo/http-swagger/v2 v2.0.2
 	github.com/swaggo/swag v1.16.6
