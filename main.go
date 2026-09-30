@@ -91,7 +91,11 @@ func main() {
 	frontend, err := web.NewHandler()
 	logging.PanicError(err)
 
-	adminHandler, err := admin.NewHTTPHandler(authkitSrv, runtime.AdminID)
+	adminHandler, err := admin.NewHTTPHandler(
+		authkitSrv,
+		runtime.AdminID,
+		admin.Config{Title: "OMR"},
+	)
 	logging.PanicError(err)
 
 	httpConfig := &cores.HttpServerConfig{}
