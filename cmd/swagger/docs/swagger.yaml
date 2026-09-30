@@ -174,6 +174,8 @@ definitions:
         type: string
       id:
         type: string
+      username:
+        type: string
     type: object
   dto.ManageReq:
     properties:
@@ -193,6 +195,8 @@ definitions:
       email:
         type: string
       user_id:
+        type: string
+      username:
         type: string
     type: object
   dto.MergeGameReq:
@@ -259,6 +263,35 @@ definitions:
         type: array
       total:
         type: integer
+    type: object
+  dto.PasswordLoginReq:
+    properties:
+      identifier:
+        maxLength: 254
+        type: string
+      password:
+        maxLength: 128
+        type: string
+    required:
+    - identifier
+    - password
+    type: object
+  dto.PasswordRegisterReq:
+    properties:
+      group_token:
+        maxLength: 128
+        type: string
+      invite:
+        maxLength: 128
+        type: string
+      password:
+        maxLength: 128
+        type: string
+      username:
+        type: string
+    required:
+    - password
+    - username
     type: object
   dto.Player:
     properties:
@@ -448,6 +481,16 @@ definitions:
     required:
     - email
     type: object
+  dto.SetPasswordReq:
+    properties:
+      password:
+        maxLength: 128
+        type: string
+      username:
+        type: string
+    required:
+    - password
+    type: object
   dto.Snapshot:
     properties:
       claims:
@@ -515,6 +558,8 @@ definitions:
         type: string
       id:
         type: string
+      username:
+        type: string
     type: object
   dto.WechatLoginReq:
     properties:
@@ -545,6 +590,8 @@ definitions:
       id:
         type: string
       token:
+        type: string
+      username:
         type: string
     type: object
   dto.Wishlist:
@@ -846,6 +893,74 @@ paths:
       security:
       - SessionCookie: []
       summary: 退出登录
+      tags:
+      - Auth
+  /v1/auth/password/login:
+    post:
+      consumes:
+      - application/json
+      description: 使用用户名或已绑定邮箱登录已有密码账号；不会自动注册，也不需要邀请码
+      parameters:
+      - description: 账号密码登录请求
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.PasswordLoginReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/ginutils.Ret-dto_LoginResp'
+      summary: 账号密码登录
+      tags:
+      - Auth
+  /v1/auth/password/register:
+    post:
+      consumes:
+      - application/json
+      description: 使用有效试用邀请或小组邀请创建用户名账号；注册、受邀入组和会话在同一事务提交
+      parameters:
+      - description: 账号密码注册请求
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.PasswordRegisterReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/ginutils.Ret-dto_LoginResp'
+      summary: 邀请注册账号密码
+      tags:
+      - Auth
+  /v1/auth/password/set:
+    post:
+      consumes:
+      - application/json
+      description: 首次开通需用户名；已有用户名不可更改。设置成功撤销原有会话，并续签当前浏览器
+      parameters:
+      - description: 设置密码请求
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.SetPasswordReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/ginutils.Ret-dto_User'
+      security:
+      - SessionCookie: []
+      summary: 设置账号密码
       tags:
       - Auth
   /v1/auth/wx-bind-email:

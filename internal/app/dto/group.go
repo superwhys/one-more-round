@@ -11,8 +11,9 @@ type Group struct {
 
 // Member is an account belonging to the group.
 type Member struct {
-	UserID string `json:"user_id"`
-	Email  string `json:"email"`
+	UserID   string `json:"user_id"`
+	Email    string `json:"email"`
+	Username string `json:"username,omitempty"`
 }
 
 // Player is a nickname profile of the group.

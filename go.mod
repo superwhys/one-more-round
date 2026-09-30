@@ -6,7 +6,7 @@ require (
 	github.com/aliyun/alibabacloud-oss-go-sdk-v2 v1.6.0
 	github.com/gin-gonic/gin v1.12.0
 	github.com/go-sql-driver/mysql v1.8.1
-	github.com/miebyte/authkit v1.3.0
+	github.com/miebyte/authkit v1.4.0
 	github.com/miebyte/goutils v1.3.1
 	github.com/swaggo/http-swagger/v2 v2.0.2
 	github.com/swaggo/swag v1.16.6
@@ -71,7 +71,7 @@ require (
 	github.com/ugorji/go/codec v1.3.2 // indirect
 	go.mongodb.org/mongo-driver/v2 v2.8.2 // indirect
 	golang.org/x/arch v0.30.0 // indirect
-	golang.org/x/crypto v0.56.0 // indirect
+	golang.org/x/crypto v0.57.0 // indirect
 	golang.org/x/exp v0.0.0-20250718183923-645b1fa84792 // indirect
 	golang.org/x/mod v0.41.0 // indirect
 	golang.org/x/net v0.58.0 // indirect
@@ -83,6 +83,6 @@ require (
 	google.golang.org/protobuf v1.36.12 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gorm.io/datatypes v1.2.4 // indirect
-	gorm.io/driver/mysql v1.5.7 // indirect
+	gorm.io/driver/mysql v1.6.0 // indirect
 	gorm.io/hints v1.1.0 // indirect
 )

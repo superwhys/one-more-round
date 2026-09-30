@@ -31,6 +31,9 @@ func MemberAccountModelToDomain(m *models.MemberAccount) *group.Member {
 	if m.Email != nil {
 		member.Email = *m.Email
 	}
+	if m.Username != nil {
+		member.Username = *m.Username
+	}
 	return member
 }
 

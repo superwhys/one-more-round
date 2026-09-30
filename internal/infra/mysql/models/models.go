@@ -7,8 +7,9 @@ import "time"
 // MemberAccount is a query projection of an authkit account and its optional email.
 // It is not a persistent table and is excluded from AllModels.
 type MemberAccount struct {
-	ID    string
-	Email *string
+	ID       string
+	Email    *string
+	Username *string
 }
 
 type Trial struct {

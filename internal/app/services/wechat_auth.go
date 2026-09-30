@@ -118,7 +118,7 @@ func loginWechatWithEmail(
 				return authkit.Outcome{}, err
 			}
 		}
-		login, loginErr := createWechatSession(ctx, authRepos, account, now)
+		login, loginErr := createSession(ctx, authRepos, account, now)
 		if loginErr != nil {
 			return authkit.Outcome{}, loginErr
 		}
@@ -143,7 +143,7 @@ func loginWechatWithEmail(
 			}
 			return authkit.Outcome{}, err
 		}
-		login, loginErr := createWechatSession(ctx, authRepos, emailAccount, now)
+		login, loginErr := createSession(ctx, authRepos, emailAccount, now)
 		if loginErr != nil {
 			return authkit.Outcome{}, loginErr
 		}
@@ -239,7 +239,7 @@ func (a *AuthApp) BindWechatEmail(
 		}
 
 		// 绑定成功后轮换发起请求的会话，防止旧令牌继续使用；其他设备会话不受影响。
-		login, txErr = createWechatSession(ctx, authRepos, account, now)
+		login, txErr = createSession(ctx, authRepos, account, now)
 		if txErr != nil {
 			return txErr
 		}
@@ -336,8 +336,8 @@ func consumeEmailChallenge(
 	return repos.Challenges().Save(ctx, challenge)
 }
 
-// createWechatSession 为已有账号创建一个新的小程序内存会话。
-func createWechatSession(
+// createSession 为已通过准入或身份验证的账号创建会话，提交后才能交付令牌。
+func createSession(
 	ctx context.Context,
 	repos authkit.Repositories,
 	account *authkit.Account,

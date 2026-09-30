@@ -31,6 +31,8 @@ func AuthRouter(authApp *services.AuthApp, opts SessionOptions) authRouterFn {
 	return func(router gin.IRouter) {
 		router.POST("/code", sendCodeHandler(authApp))
 		router.POST("/login", loginHandler(authApp, opts))
+		router.POST("/password/login", passwordLoginHandler(authApp, opts))
+		router.POST("/password/register", passwordRegisterHandler(authApp, opts))
 		router.POST("/wx-login", wechatLoginHandler(authApp))
 		router.POST("/logout", logoutHandler(authApp, opts))
 	}
@@ -75,6 +77,46 @@ func loginHandler(authApp *services.AuthApp, opts SessionOptions) gin.HandlerFun
 	})
 }
 
+// passwordLoginHandler verifies a password and issues the existing browser cookie.
+// @Summary 账号密码登录
+// @Description 使用用户名或已绑定邮箱登录已有密码账号；不会自动注册，也不需要邀请码
+// @Tags Auth
+// @Accept json
+// @Produce json
+// @Param request body dto.PasswordLoginReq true "账号密码登录请求"
+// @Success 200 {object} ginutils.Ret[dto.LoginResp]
+// @Router /v1/auth/password/login [post]
+func passwordLoginHandler(authApp *services.AuthApp, opts SessionOptions) gin.HandlerFunc {
+	return ginutils.RequestHandler(func(ctx *gin.Context, req *dto.PasswordLoginReq) {
+		user, token, err := authApp.LoginPassword(ctx.Request.Context(), req, ctx.ClientIP())
+		if common.HandleRouterError(ctx, err, "password login failed", errcode.ErrLogin) {
+			return
+		}
+		common.SetSessionCookie(ctx, token, opts.MaxAge, opts.Secure)
+		ctx.JSON(http.StatusOK, dto.ResponseWithData(user))
+	})
+}
+
+// passwordRegisterHandler creates an invited account before issuing its cookie.
+// @Summary 邀请注册账号密码
+// @Description 使用有效试用邀请或小组邀请创建用户名账号；注册、受邀入组和会话在同一事务提交
+// @Tags Auth
+// @Accept json
+// @Produce json
+// @Param request body dto.PasswordRegisterReq true "账号密码注册请求"
+// @Success 200 {object} ginutils.Ret[dto.LoginResp]
+// @Router /v1/auth/password/register [post]
+func passwordRegisterHandler(authApp *services.AuthApp, opts SessionOptions) gin.HandlerFunc {
+	return ginutils.RequestHandler(func(ctx *gin.Context, req *dto.PasswordRegisterReq) {
+		user, token, err := authApp.RegisterPassword(ctx.Request.Context(), req)
+		if common.HandleRouterError(ctx, err, "password registration failed", errcode.ErrRegister) {
+			return
+		}
+		common.SetSessionCookie(ctx, token, opts.MaxAge, opts.Secure)
+		ctx.JSON(http.StatusOK, dto.ResponseWithData(user))
+	})
+}
+
 // logoutHandler 退出登录
 // @Summary 退出登录
 // @Description 撤销当前会话并清除会话 Cookie
@@ -99,6 +141,36 @@ func MeRouter() authRouterFn {
 	return func(router gin.IRouter) {
 		router.GET("/me", meHandler())
 	}
+}
+
+// PasswordAccountRouter registers password changes behind session authentication.
+func PasswordAccountRouter(authApp *services.AuthApp, opts SessionOptions) authRouterFn {
+	return func(router gin.IRouter) {
+		router.POST("/auth/password/set", setPasswordHandler(authApp, opts))
+	}
+}
+
+// setPasswordHandler updates the current account and replaces its browser cookie.
+// @Summary 设置账号密码
+// @Description 首次开通需用户名；已有用户名不可更改。设置成功撤销原有会话，并续签当前浏览器
+// @Tags Auth
+// @Accept json
+// @Produce json
+// @Security SessionCookie
+// @Param request body dto.SetPasswordReq true "设置密码请求"
+// @Success 200 {object} ginutils.Ret[dto.User]
+// @Router /v1/auth/password/set [post]
+func setPasswordHandler(authApp *services.AuthApp, opts SessionOptions) gin.HandlerFunc {
+	return ginutils.RequestHandler(func(ctx *gin.Context, req *dto.SetPasswordReq) {
+		user, token, err := authApp.SetPassword(
+			ctx.Request.Context(), common.UserID(ctx), common.SessionToken(ctx), req,
+		)
+		if common.HandleRouterError(ctx, err, "set password failed", errcode.ErrSetPassword) {
+			return
+		}
+		common.SetSessionCookie(ctx, token, opts.MaxAge, opts.Secure)
+		ctx.JSON(http.StatusOK, dto.ResponseWithData(user))
+	})
 }
 
 // meHandler 获取当前账号

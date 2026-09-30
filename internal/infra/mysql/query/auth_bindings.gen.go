@@ -31,6 +31,7 @@ func newBinding(db *gorm.DB, opts ...gen.DOOption) binding {
 	_binding.Method = field.NewString(tableName, "method")
 	_binding.Identifier = field.NewString(tableName, "identifier")
 	_binding.AccountID = field.NewString(tableName, "account_id")
+	_binding.PasswordHash = field.NewString(tableName, "password_hash")
 
 	_binding.fillFieldMap()
 
@@ -40,10 +41,11 @@ func newBinding(db *gorm.DB, opts ...gen.DOOption) binding {
 type binding struct {
 	bindingDo bindingDo
 
-	ALL        field.Asterisk
-	Method     field.String
-	Identifier field.String
-	AccountID  field.String
+	ALL          field.Asterisk
+	Method       field.String
+	Identifier   field.String
+	AccountID    field.String
+	PasswordHash field.String
 
 	fieldMap map[string]field.Expr
 }
@@ -63,6 +65,7 @@ func (b *binding) updateTableName(table string) *binding {
 	b.Method = field.NewString(table, "method")
 	b.Identifier = field.NewString(table, "identifier")
 	b.AccountID = field.NewString(table, "account_id")
+	b.PasswordHash = field.NewString(table, "password_hash")
 
 	b.fillFieldMap()
 
@@ -87,10 +90,11 @@ func (b *binding) GetFieldByName(fieldName string) (field.OrderExpr, bool) {
 }
 
 func (b *binding) fillFieldMap() {
-	b.fieldMap = make(map[string]field.Expr, 3)
+	b.fieldMap = make(map[string]field.Expr, 4)
 	b.fieldMap["method"] = b.Method
 	b.fieldMap["identifier"] = b.Identifier
 	b.fieldMap["account_id"] = b.AccountID
+	b.fieldMap["password_hash"] = b.PasswordHash
 }
 
 func (b binding) clone(db *gorm.DB) binding {

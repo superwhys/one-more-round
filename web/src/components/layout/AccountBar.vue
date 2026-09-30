@@ -2,6 +2,7 @@
 import { computed, onBeforeUnmount, onMounted, ref, useId, watch } from 'vue'
 import { RouterLink, useRoute } from 'vue-router'
 import Icon from '@/components/common/AppIcon.vue'
+import SetPasswordDialog from '@/components/auth/SetPasswordDialog.vue'
 import favicon from '@/assets/favicon.svg'
 import { listNotifications } from '@/api/notification'
 import type { Group, User } from '@/types/journal'
@@ -16,10 +17,12 @@ const props = defineProps<{
 const emit = defineEmits<{ select: [id: string]; setup: []; logout: [] }>()
 const route = useRoute()
 const accountOpen = ref(false)
+const passwordOpen = ref(false)
 const account = ref<HTMLElement>()
 const trigger = ref<HTMLButtonElement>()
 const panelID = useId()
-const initial = computed(() => Array.from(props.user.email)[0]?.toUpperCase() ?? '我')
+const accountName = computed(() => props.user.email || props.user.username || '微信账号')
+const initial = computed(() => Array.from(accountName.value)[0]?.toUpperCase() ?? '我')
 const groupName = computed(() => props.groups.find(group => group.id === props.selected)?.name ?? '创建 / 加入小组')
 const unread = ref(0)
 async function refreshNotifications() {
@@ -36,6 +39,12 @@ async function refreshNotifications() {
 function openSetup() {
   accountOpen.value = false
   emit('setup')
+}
+
+// openPassword keeps password settings in the authenticated account menu.
+function openPassword() {
+  accountOpen.value = false
+  passwordOpen.value = true
 }
 
 function dismiss(event: Event) {
@@ -114,11 +123,14 @@ onBeforeUnmount(() => {
       </button>
       <div v-if="accountOpen" :id="panelID" class="j-account-panel" role="region" aria-label="账号选项">
         <div class="j-account-identity">
-          <span>当前账号</span><strong>{{ user.email || '微信账号' }}</strong
+          <span>当前账号</span><strong>{{ accountName }}</strong
           ><small>邀请试用 · 记下每一次相聚</small>
         </div>
         <button type="button" class="j-account-action" @click="openSetup">
           <Icon name="plus" :size="18" />创建 / 加入小组<Icon name="arrow" :size="16" />
+        </button>
+        <button type="button" class="j-account-action" :disabled="busy" @click="openPassword">
+          <Icon name="lock" :size="18" />设置密码
         </button>
         <div class="j-account-signout">
           <button type="button" class="j-account-action" :disabled="busy" @click="$emit('logout')">
@@ -128,4 +140,5 @@ onBeforeUnmount(() => {
       </div>
     </div>
   </header>
+  <SetPasswordDialog v-if="passwordOpen" :user="user" @close="passwordOpen = false" />
 </template>

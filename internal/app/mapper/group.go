@@ -33,7 +33,7 @@ func MemberDomainToDTO(m *group.Member) dto.Member {
 	if m == nil {
 		return dto.Member{}
 	}
-	return dto.Member{UserID: m.UserID, Email: m.Email}
+	return dto.Member{UserID: m.UserID, Email: m.Email, Username: m.Username}
 }
 
 // MemberDomainListToDTOList converts member entries into API DTOs.

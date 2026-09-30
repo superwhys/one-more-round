@@ -91,7 +91,7 @@ func (r *groupRepository) Snapshot(ctx context.Context, id string) (*group.Snaps
 	accounts, binding, member := q.Account, q.Binding, q.Member
 	var rows []*models.MemberAccount
 	err = accounts.WithContext(ctx).
-		Select(accounts.ID, binding.Identifier.As("email")).
+		Select(accounts.ID, accounts.Username, binding.Identifier.As("email")).
 		Join(member, member.UserID.EqCol(accounts.ID)).
 		LeftJoin(binding, binding.AccountID.EqCol(accounts.ID), binding.Method.Eq(authkit.MethodEmail)).
 		Where(member.GroupID.Eq(id)).

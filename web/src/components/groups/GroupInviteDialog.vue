@@ -56,7 +56,7 @@ onMounted(load)
   <Modal title="给朋友留个位置。" @close="$emit('close')"
     ><p>
       链接 7
-      天有效，可邀请多位朋友。朋友验证邮箱即可注册并加入，无需额外邀请码。获得或被转发此链接的人都可加入并查看组内记录，请只分享给信任的朋友。
+      天有效，可邀请多位朋友。朋友可验证邮箱或使用账号密码注册并加入，无需额外邀请码。获得或被转发此链接的人都可加入并查看组内记录，请只分享给信任的朋友。
     </p>
     <button class="d-button full" :disabled="busy" @click="createInvite">生成小组邀请</button
     ><label v-if="inviteURL" class="d-field"

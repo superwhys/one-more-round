@@ -2,8 +2,9 @@ package dto
 
 // User is the logged-in account.
 type User struct {
-	ID    string `json:"id"`
-	Email string `json:"email"`
+	ID       string `json:"id"`
+	Email    string `json:"email"`
+	Username string `json:"username,omitempty"`
 }
 
 // SendCodeReq asks for verification proof without making a registration decision.
@@ -17,6 +18,26 @@ type LoginReq struct {
 	Code       string `json:"code"        validate:"required"`
 	Invite     string `json:"invite"      validate:"max=128"`
 	GroupToken string `json:"group_token"`
+}
+
+// PasswordLoginReq verifies an existing account with its username or bound email.
+type PasswordLoginReq struct {
+	Identifier string `json:"identifier" validate:"required,max=254"`
+	Password   string `json:"password" mod:"-" validate:"required,max=128"`
+}
+
+// PasswordRegisterReq creates an invited username account and its first session.
+type PasswordRegisterReq struct {
+	Username   string `json:"username" validate:"required"`
+	Password   string `json:"password" mod:"-" validate:"required,max=128"`
+	Invite     string `json:"invite" validate:"max=128"`
+	GroupToken string `json:"group_token" validate:"max=128"`
+}
+
+// SetPasswordReq opens or changes password access for the current account.
+type SetPasswordReq struct {
+	Username string `json:"username"`
+	Password string `json:"password" mod:"-" validate:"required,max=128"`
 }
 
 // LoginResp includes the group joined atomically during a new registration.

@@ -6,9 +6,12 @@
 
 - POST `/auth/code`：只提交 `email`，不判断账号是否存在，不校验或保存邀请码。验证码 10 分钟有效、60 秒重发、5 次尝试；每邮箱每小时最多 10 次、每来源 IP 每小时最多 30 次发送请求。失败邮件不返回验证码。
 - POST `/auth/login`：`email`、`code`，可选 `invite`（试用邀请）或 `group_token`。已有账号只验证邮箱验证码；即使携带的邀请已失效也不影响登录，返回 `{id,email}`。新账号必须携带有效邀请：小组邀请注册时，将账号、成员关系、通知和会话原子提交，返回 `{id,email,group_id}`；试用邀请注册时原子消费试用资格并创建账号/会话。任一步失败整体回滚，错误验证码的尝试次数仍提交。邀请码不再绑定发码过程，客户端需随登录提交；已注册账号的登录资格不受原邀请后续状态影响。已有账号加入新组应在登录后单独调用 `/join`。
+- POST `/auth/password/register`：`{username,password,invite?,group_token?}`。必须提供有效试用邀请或小组邀请；小组邀请优先，不消费试用邀请。用户名账号没有邮箱，返回 `{id,email:"",username,group_id?}` 并设置会话 Cookie。邀请准入、账号与密码绑定、入组与通知、会话在同一事务提交，失败全部回滚。用户名去除首尾 Unicode 空白后为 3–64 个 Unicode 字符，禁止内部空白、控制字符与 `@`，区分大小写、全局唯一。密码为 8–128 个 Unicode 字符，保留首尾空白，不要求字符组合；确认密码仅用于前端校验。
+- POST `/auth/password/login`：`{identifier,password}`。`identifier` 为用户名或该账号已经验证并绑定的邮箱，返回 `{id,email,username}` 并设置 Cookie；不自动注册，不接受或校验邀请码。未开通密码、账号不存在与密码错误均返回 401/`100401`（账号或密码不正确）；超限返回 429。每账号一小时最多 20 次、每来源 IP 最多 100 次，成功与失败均计数，用户名与邮箱别名共用账号额度。失败尝试的计数独立提交；组邀请登录后仍走独立 `/join` 确认。
+- POST `/auth/password/set`：已登录账号提交 `{username?,password}`，首次开通密码必须指定用户名，之后省略或填写原用户名，不能改名。服务端在事务内重新验证当前会话，设置密码并撤销账号全部旧会话，再为当前浏览器创建会话 Cookie，返回 `{id,email,username}`。邮箱、账号 ID、小组及记录不变；失败不撤销现有会话。用户名冲突返回 409；无会话或已撤销会话返回 401。前端从「我的账号 → 设置密码」进入，密码成功保存后其他设备需要重新登录。
 - POST `/auth/group-invite`：无需登录，Body 为 `{token}`，仅返回有效邀请的小组 `{group_id,name}`。不返回组主、成员、记录或其他组内数据；令牌不放在请求 URL 中。
-- GET `/me`：当前账号；POST `/auth/logout`：撤销服务端会话。
-- `omr_session` Cookie 使用 HttpOnly、SameSite=Strict、生产 Secure；有效期固定 30 天，退出立即失效，不自动续期。localStorage 只保存草稿和当前小组偏好；sessionStorage 保存当前标签页的待处理邀请（最多 7 天）及邮箱/验证码发送时间（恢复期 10 分钟），不保存验证码。成功/取消清除相应邀请，退出清除邀请及登录进度。
+- GET `/me`：当前账号 `{id,email,username?}`，没有用户名时省略 `username`；POST `/auth/logout`：撤销服务端会话。
+- `omr_session` Cookie 使用 HttpOnly、SameSite=Strict、生产 Secure；有效期固定 30 天，退出立即失效，不自动续期。localStorage 只保存草稿和当前小组偏好；sessionStorage 保存当前标签页的待处理邀请（最多 7 天）及邮箱/验证码发送时间（恢复期 10 分钟），不保存验证码或密码。成功/取消清除相应邀请，退出清除邀请及登录进度。
 - 浏览器非 GET/HEAD 请求的 Origin 必须与 `app.origin` 完全一致。小程序使用 `Authorization: Bearer <token>`，无 Cookie、无 Origin 时允许写入；非法 Authorization 不回退 Cookie。无会话的小程序仅 `/auth/wx-login`、`/auth/code`、`/auth/group-invite` 允许无 Origin，必须 POST JSON 并带 `X-OMR-Client: wechat-mini`。带 Cookie 或其他 Origin 的请求仍校验本站来源，不开放 CORS。
 - POST `/auth/wx-login`：`{code,invite?,group_token?,email?,email_code?}`。`code` 必须来自 `wx.login`，后端使用配置的 AppID/Secret 调用微信 `code2Session`（8 秒超时）；不接受客户端 OpenID，不保存或返回微信 session_key。首次微信登录可同时证明已注册邮箱，直接复用该账号、小组、玩家与历史记录；邮箱和验证码必须成对提供。首次创建独立账号仍需试用或小组邀请，注册、微信绑定、加入小组及会话同事务提交；已有微信账号或首次绑定已有邮箱账号只验证身份，不校验携带的邀请，加入新小组在登录后独立确认。返回 `{id,email,group_id?,token}`，无邮箱时 `email` 是空字符串，不创建虚假邮箱；不设置 Cookie。
 - POST `/auth/wx-bind-email`：已登录微信账号提交 `{email,code}` 补绑邮箱，返回 `{id,email,token}`，原子轮换并撤销当前会话。目标邮箱属于另一账号时返回 409，不合并或迁移任何数据；当前账号已经有其他邮箱时也返回 409，不支持更换邮箱。邮箱验证码仍通过 `/auth/code` 发送，沿用 10 分钟/5 次/一次性规则，绑定与邮箱登录共用验证码消费锁。
@@ -19,8 +22,8 @@
 ## 小组与资料
 
 - GET/POST `/groups`：列出所属小组 / 以 `name`、`player_name` 创建小组，并在同一事务创建、关联组主的玩家档案。
-- POST `/join`：已登录账号凭 `token` 加入小组；重复加入幂等。首次注册使用 `/auth/login` 的 `group_token` 原子完成注册并加入；已有账号先登录再调用 `/join`，加入失败不影响已建立的登录状态。
-- GET `/groups/:group`：小组、成员、玩家、游戏和可见的关联申请。游戏与玩家按近期参与顺序优先。
+- POST `/join`：已登录账号凭 `token` 加入小组；重复加入幂等。首次注册使用 `/auth/login` 或 `/auth/password/register` 的 `group_token` 原子完成注册并加入；已有账号先登录再调用 `/join`，加入失败不影响已建立的登录状态。
+- GET `/groups/:group`：小组、成员、玩家、游戏和可见的关联申请。成员包括 `{user_id,email,username?}`，用户名用于辨认无邮箱账号。游戏与玩家按近期参与顺序优先。
 - POST `/groups/:group/players`、`/games`：以 `name` 添加玩家或手动桌游。
 - GET `/groups/:group/bgg/search?q=`：成员搜索 BoardGameGeek 基础游戏，返回名称、年份、BGG ID、封面地址和来源标识。封面来自详情接口的 `thumbnail`，没有则省略。令牌只在服务端使用，结果缓存一小时。
 - POST `/groups/:group/games/import`：`bgg_id` 与可选 `name`。服务端读取外部原名；`name` 作为本组名称，留空则使用原名。同组相同 BGG ID 复用已有条目，不覆盖已有本组名称。同名但不同条目返回 409。

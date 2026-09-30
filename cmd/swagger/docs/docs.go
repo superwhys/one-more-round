@@ -142,6 +142,113 @@ const docTemplate = `{
                 }
             }
         },
+        "/v1/auth/password/login": {
+            "post": {
+                "description": "使用用户名或已绑定邮箱登录已有密码账号；不会自动注册，也不需要邀请码",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Auth"
+                ],
+                "summary": "账号密码登录",
+                "parameters": [
+                    {
+                        "description": "账号密码登录请求",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.PasswordLoginReq"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/ginutils.Ret-dto_LoginResp"
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/auth/password/register": {
+            "post": {
+                "description": "使用有效试用邀请或小组邀请创建用户名账号；注册、受邀入组和会话在同一事务提交",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Auth"
+                ],
+                "summary": "邀请注册账号密码",
+                "parameters": [
+                    {
+                        "description": "账号密码注册请求",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.PasswordRegisterReq"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/ginutils.Ret-dto_LoginResp"
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/auth/password/set": {
+            "post": {
+                "security": [
+                    {
+                        "SessionCookie": []
+                    }
+                ],
+                "description": "首次开通需用户名；已有用户名不可更改。设置成功撤销原有会话，并续签当前浏览器",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Auth"
+                ],
+                "summary": "设置账号密码",
+                "parameters": [
+                    {
+                        "description": "设置密码请求",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.SetPasswordReq"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/ginutils.Ret-dto_User"
+                        }
+                    }
+                }
+            }
+        },
         "/v1/auth/wx-bind-email": {
             "post": {
                 "security": [
@@ -2037,6 +2144,9 @@ const docTemplate = `{
                 },
                 "id": {
                     "type": "string"
+                },
+                "username": {
+                    "type": "string"
                 }
             }
         },
@@ -2067,6 +2177,9 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "user_id": {
+                    "type": "string"
+                },
+                "username": {
                     "type": "string"
                 }
             }
@@ -2168,6 +2281,47 @@ const docTemplate = `{
                 },
                 "total": {
                     "type": "integer"
+                }
+            }
+        },
+        "dto.PasswordLoginReq": {
+            "type": "object",
+            "required": [
+                "identifier",
+                "password"
+            ],
+            "properties": {
+                "identifier": {
+                    "type": "string",
+                    "maxLength": 254
+                },
+                "password": {
+                    "type": "string",
+                    "maxLength": 128
+                }
+            }
+        },
+        "dto.PasswordRegisterReq": {
+            "type": "object",
+            "required": [
+                "password",
+                "username"
+            ],
+            "properties": {
+                "group_token": {
+                    "type": "string",
+                    "maxLength": 128
+                },
+                "invite": {
+                    "type": "string",
+                    "maxLength": 128
+                },
+                "password": {
+                    "type": "string",
+                    "maxLength": 128
+                },
+                "username": {
+                    "type": "string"
                 }
             }
         },
@@ -2459,6 +2613,21 @@ const docTemplate = `{
                 }
             }
         },
+        "dto.SetPasswordReq": {
+            "type": "object",
+            "required": [
+                "password"
+            ],
+            "properties": {
+                "password": {
+                    "type": "string",
+                    "maxLength": 128
+                },
+                "username": {
+                    "type": "string"
+                }
+            }
+        },
         "dto.Snapshot": {
             "type": "object",
             "properties": {
@@ -2561,6 +2730,9 @@ const docTemplate = `{
                 },
                 "id": {
                     "type": "string"
+                },
+                "username": {
+                    "type": "string"
                 }
             }
         },
@@ -2605,6 +2777,9 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "token": {
+                    "type": "string"
+                },
+                "username": {
                     "type": "string"
                 }
             }

@@ -20,8 +20,9 @@ type Group struct {
 
 // Member is an account that belongs to the group.
 type Member struct {
-	UserID string
-	Email  string
+	UserID   string
+	Email    string
+	Username string
 }
 
 // Player is a nickname profile that takes part in rounds; it is isolated per

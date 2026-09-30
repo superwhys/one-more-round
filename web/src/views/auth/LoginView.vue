@@ -1,15 +1,17 @@
 <script setup lang="ts">
 import { ref, watch, onMounted, onUnmounted } from 'vue'
-import { useRouter } from 'vue-router'
-import { sendLoginCode, login as loginRequest } from '@/api/auth'
-import { useInvitePreview } from '@/composables/useInvitePreview'
+import { RouterLink } from 'vue-router'
+import { sendLoginCode, login as loginRequest, loginPassword } from '@/api/auth'
+import AuthPanel from '@/components/auth/AuthPanel.vue'
+import { useAuthCompletion } from '@/composables/useAuthCompletion'
 import { useSession } from '@/stores/session'
 import { message } from '@/utils/error'
-import favicon from '@/assets/favicon.svg'
-const router = useRouter()
+const completeLogin = useAuthCompletion()
 const session = useSession()
 const { invitation, joinToken } = session
-const { preview, loading, error: inviteError, refresh } = useInvitePreview(joinToken)
+const method = ref<'email' | 'password'>('email')
+const identifier = ref('')
+const password = ref('')
 const email = ref('')
 const code = ref('')
 const error = ref('')
@@ -48,6 +50,7 @@ onUnmounted(() => clearInterval(timer))
 watch(joinToken, () => {
   error.value = ''
 })
+// clearLogin discards only the optional mailbox recovery state.
 function clearLogin() {
   try {
     sessionStorage.removeItem(loginKey)
@@ -55,16 +58,20 @@ function clearLogin() {
     /* optional recovery */
   }
 }
+// changeEmail starts a new mailbox proof without discarding the invitation.
 function changeEmail() {
   sent.value = false
   code.value = ''
   clearLogin()
 }
-// cancelInvite keeps the mailbox proof because admission is checked only at login.
-function cancelInvite() {
-  session.clearInvitations()
+// changeMethod clears secrets when switching between authentication methods.
+function changeMethod(next: 'email' | 'password') {
+  method.value = next
+  password.value = ''
+  code.value = ''
   error.value = ''
 }
+// run prevents concurrent submissions and leaves failed form inputs available for retry.
 async function run(action: () => Promise<void>) {
   if (busy.value) return
   busy.value = true
@@ -77,6 +84,7 @@ async function run(action: () => Promise<void>) {
     busy.value = false
   }
 }
+// sendCode preserves the address and cooldown for refresh recovery.
 function sendCode() {
   return run(async () => {
     await sendLoginCode(email.value)
@@ -89,73 +97,110 @@ function sendCode() {
     }
   })
 }
+// login exchanges the selected proof for the existing account and group flow.
 function login() {
   return run(async () => {
-    const result = await loginRequest(email.value, code.value, invitation.value, joinToken.value)
-    invitation.value = ''
-    if (result.group_id) joinToken.value = ''
-    clearLogin()
-    // Authentication has committed. Existing accounts confirm a pending group
-    // invitation after login, even when its preview is currently unavailable.
-    try {
-      await session.acceptUser(result)
-    } catch {
-      session.error.value = '已登录，但小组列表加载失败，请重新加载'
-    }
-    if (result.group_id) session.selectGroup(result.group_id)
-    await router.replace(result.group_id ? '/group' : joinToken.value || !session.selected.value ? '/join' : '/')
+    const result =
+      method.value === 'password'
+        ? await loginPassword(identifier.value, password.value)
+        : await loginRequest(email.value, code.value, invitation.value, joinToken.value)
+    password.value = ''
+    code.value = ''
+    await completeLogin(result)
   })
 }
 </script>
 
 <template>
-  <section class="j-auth d-surface">
-    <img :src="favicon" width="48" height="48" alt="" />
-    <p class="d-eyebrow">ONE MORE ROUND</p>
-    <h1>这桌，就等你了<span class="d-title-dot">。</span></h1>
-    <template v-if="joinToken">
-      <p v-if="loading" role="status">正在确认小组邀请…</p>
-      <div v-else-if="preview" class="j-notice">
-        <strong>你收到了一份小组邀请</strong>
-        <p>加入「{{ preview.name }}」，一起记下每一局。</p>
-        <p class="d-note">首次使用验证邮箱即可注册并加入；已有账号登录后确认加入，无需另外填写邀请码。</p>
-      </div>
-      <p v-if="inviteError" class="j-error" role="alert">
-        {{ inviteError }}，已有账号仍可继续登录。
-        <button type="button" class="d-text-link" @click="refresh">重新检查</button>
-      </p>
-    </template>
-    <p v-else>记下每一局的输赢与相聚。</p>
-    <form @submit.prevent="sent ? login() : sendCode()">
-      <label class="d-field"
-        >邮箱<input v-model="email" type="email" autocomplete="email" required :readonly="sent || busy"
-      /></label>
-      <label v-if="!joinToken" class="d-field"
-        >试用邀请码（首次注册必填）<input v-model="invitation" autocomplete="off" :disabled="busy" /><small
-          >已有账号无需填写。朋友邀请你加入小组时，直接打开小组邀请链接即可。</small
-        ></label
+  <AuthPanel title="这桌，就等你了" :busy="busy" @cancel="error = ''">
+    <div class="d-segment auth-method" role="group" aria-label="登录方式">
+      <button
+        type="button"
+        :class="{ active: method === 'email' }"
+        :aria-pressed="method === 'email'"
+        :disabled="busy"
+        @click="changeMethod('email')"
       >
-      <label v-if="sent" class="d-field"
-        >邮箱验证码<input
-          v-model="code"
-          inputmode="numeric"
-          autocomplete="one-time-code"
-          maxlength="6"
-          required
-        /><small>10 分钟内有效，最多尝试 5 次。</small></label
+        邮箱验证码
+      </button>
+      <button
+        type="button"
+        :class="{ active: method === 'password' }"
+        :aria-pressed="method === 'password'"
+        :disabled="busy"
+        @click="changeMethod('password')"
       >
+        账号密码
+      </button>
+    </div>
+    <form @submit.prevent="method === 'password' || sent ? login() : sendCode()">
+      <template v-if="method === 'password'">
+        <label class="d-field"
+          >用户名或邮箱<input
+            v-model="identifier"
+            autocomplete="username"
+            autocapitalize="none"
+            :spellcheck="false"
+            required
+            :disabled="busy"
+        /></label>
+        <label class="d-field"
+          >密码<input
+            v-model="password"
+            type="password"
+            autocomplete="current-password"
+            required
+            :disabled="busy"
+          /><small>已有邮箱账号可先用验证码登录，在「我的账号」中设置密码。</small></label
+        >
+      </template>
+      <template v-else>
+        <label class="d-field"
+          >邮箱<input v-model="email" type="email" autocomplete="email" required :readonly="sent || busy"
+        /></label>
+        <label v-if="!joinToken" class="d-field"
+          >试用邀请码（首次注册必填）<input v-model="invitation" autocomplete="off" :disabled="busy" /><small
+            >已有账号无需填写。朋友邀请你加入小组时，直接打开小组邀请链接即可。</small
+          ></label
+        >
+        <label v-if="sent" class="d-field"
+          >邮箱验证码<input
+            v-model="code"
+            inputmode="numeric"
+            autocomplete="one-time-code"
+            maxlength="6"
+            required
+            :disabled="busy"
+          /><small>10 分钟内有效，最多尝试 5 次。</small></label
+        >
+      </template>
       <p v-if="error" class="j-error" role="alert">{{ error }}</p>
       <button class="d-button full" :disabled="busy">
-        {{ busy ? '请稍候…' : sent ? '登录' : '发送验证码' }}
+        {{ busy ? '请稍候…' : method === 'password' || sent ? '登录' : '发送验证码' }}
       </button>
-      <div v-if="sent" class="j-actions">
+      <div v-if="method === 'email' && sent" class="j-actions">
         <button type="button" class="d-text-link" :disabled="busy || seconds > 0" @click="sendCode">
           {{ seconds ? `${seconds} 秒后可重发` : '重新发送' }}</button
         ><button type="button" class="d-text-link" :disabled="busy" @click="changeEmail">更换邮箱</button>
       </div>
     </form>
-    <button v-if="joinToken" type="button" class="d-text-link" :disabled="busy" @click="cancelInvite">
-      暂不加入，返回普通登录
-    </button>
-  </section>
+    <p class="d-note auth-register">
+      第一次来？<RouterLink
+        to="/register"
+        class="d-text-link"
+        :aria-disabled="busy"
+        @click="busy && $event.preventDefault()"
+        >用账号密码注册</RouterLink
+      >
+    </p>
+  </AuthPanel>
 </template>
+
+<style scoped>
+.auth-method {
+  margin-top: 24px;
+}
+.auth-register {
+  margin: 24px 0;
+}
+</style>

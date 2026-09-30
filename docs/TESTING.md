@@ -39,6 +39,7 @@ OMR_TEST_MYSQL=127.0.0.1:端口 go test -race ./...
 | `OMR_BROWSER_TEST=1` | 小组邀请流程：新邮箱注册入组、刷新恢复、已有成员进入、加入第二个组、注销清理及邀请失效提示 |
 | `OMR_PHOTO_BROWSER_TEST=1` | 照片限制与上传：每局最多 3 张、单张原始文件最多 2 MiB；覆盖前端 1600px 预压缩、顺序上传、繁忙重试、损坏图片、统一图片 URL、批量选择、编辑替换、旧草稿、直接 API 拦截，以及 320/390px 与桌面布局 |
 | `OMR_SHARE_BROWSER_TEST=1` | 对局公开分享：已登录的分享控件与匿名响应式分享页 |
+| `OMR_PASSWORD_BROWSER_TEST=1` | 账号密码：试用与小组邀请注册、失败输入保留、密码登录重试、切换与刷新清除密码、现有邮箱账号设置密码，以及 320/390/1280px 布局 |
 
 前两项通过 `make integration` 调用：
 
@@ -46,6 +47,7 @@ OMR_TEST_MYSQL=127.0.0.1:端口 go test -race ./...
 OMR_BROWSER_TEST=1 make integration
 OMR_PHOTO_BROWSER_TEST=1 make integration
 OMR_SHARE_BROWSER_TEST=1 make integration
+OMR_PASSWORD_BROWSER_TEST=1 make integration
 ```
 
 小组邀请回归还需要已构建的二进制，用于验证前端资源嵌入：
@@ -67,6 +69,17 @@ OMR_BROWSER_TEST=1 OMR_TEST_BINARY="$PWD/bin/one-more-round" make integration
 | `OMR_BROWSER_ARTIFACTS` | 指定一个**已存在**的目录，测试会把截图写入其中 |
 
 浏览器测试使用隔离数据库和仅在测试服务器中存在的内存收件箱，**不向外部邮箱发信**，照片写入隔离的临时目录，**不访问 OSS**。
+
+账号密码用例位于 `internal/infra/mysql/password_auth_test.go`，通过真实 MySQL、应用服务和 API 验证邀请准入、用户名冲突、Unicode 输入边界（7 字符拒绝、8 字符接受）、密码空白保留、注册事务回滚、错误密码限流计数、Cookie 登录与注销，以及现有邮箱账号设置密码后的身份/小组/历史对局保留与会话轮换。浏览器入口 `scripts/test-password-auth.mjs` 由测试专用服务器运行，使用 8 字符密码验证注册、设置密码和登录，生产二进制不包含测试收件箱。
+
+只跑账号密码回归时，先完成前端构建，再执行：
+
+```sh
+make web-build
+OMR_PASSWORD_BROWSER_TEST=1 ./scripts/test-mysql.sh -run '^TestPassword' -v
+```
+
+2026-09-30 已通过账号密码的隔离 MySQL 竞态测试与真实 API/Chrome 浏览器流程，包括 320/390/1280px 页面无横向溢出。验证使用开发者 `go.work` 中刚增加密码能力的本地 authkit；当前 `go.mod` 锁定版本的发布包尚未包含该能力，干净检出需升级到包含密码 API 的正式版本后重新验收。
 
 ## 照片内存回归
 

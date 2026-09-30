@@ -91,6 +91,7 @@ func (api *API) SetupRouter() http.Handler {
 			),
 			ginutils.WithRouterHandler(
 				router.MeRouter(),
+				router.PasswordAccountRouter(api.authApp, api.sessionOptions()),
 				router.WechatAccountRouter(api.authApp),
 				router.GroupRouter(api.groupApp),
 				router.NotificationRouter(api.notificationApp),

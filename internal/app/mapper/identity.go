@@ -13,5 +13,5 @@ func AccountDomainToDTO(u *authkit.Account) *dto.User {
 	if u == nil {
 		return nil
 	}
-	return &dto.User{ID: u.ID, Email: u.Email}
+	return &dto.User{ID: u.ID, Email: u.Email, Username: u.Username}
 }
