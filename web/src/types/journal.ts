@@ -2,6 +2,7 @@ export interface User {
   id: string
   email: string
   username?: string
+  password_identifier?: string
 }
 export interface Group {
   id: string

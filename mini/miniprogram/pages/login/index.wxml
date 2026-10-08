@@ -12,8 +12,9 @@
     <block wx:if="{{existing}}">
       <label class="field"
         ><text class="label">邮箱</text
-        ><input class="input" value="{{email}}" data-field="email" bindinput="input" placeholder="你注册时的邮箱"
+        ><input class="input" value="{{email}}" data-field="email" bindinput="input" placeholder="已验证并绑定的邮箱"
       /></label>
+      <view class="muted">邮箱格式的密码登录标识不会自动绑定邮箱，这里需验证账号已绑定的邮箱。</view>
       <label class="field"
         ><text class="label">邮箱验证码</text
         ><input

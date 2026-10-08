@@ -32,6 +32,8 @@ func newBinding(db *gorm.DB, opts ...gen.DOOption) binding {
 	_binding.Identifier = field.NewString(tableName, "identifier")
 	_binding.AccountID = field.NewString(tableName, "account_id")
 	_binding.PasswordHash = field.NewString(tableName, "password_hash")
+	_binding.CreatedAt = field.NewTime(tableName, "created_at")
+	_binding.UpdatedAt = field.NewTime(tableName, "updated_at")
 
 	_binding.fillFieldMap()
 
@@ -46,6 +48,8 @@ type binding struct {
 	Identifier   field.String
 	AccountID    field.String
 	PasswordHash field.String
+	CreatedAt    field.Time
+	UpdatedAt    field.Time
 
 	fieldMap map[string]field.Expr
 }
@@ -66,6 +70,8 @@ func (b *binding) updateTableName(table string) *binding {
 	b.Identifier = field.NewString(table, "identifier")
 	b.AccountID = field.NewString(table, "account_id")
 	b.PasswordHash = field.NewString(table, "password_hash")
+	b.CreatedAt = field.NewTime(table, "created_at")
+	b.UpdatedAt = field.NewTime(table, "updated_at")
 
 	b.fillFieldMap()
 
@@ -90,11 +96,13 @@ func (b *binding) GetFieldByName(fieldName string) (field.OrderExpr, bool) {
 }
 
 func (b *binding) fillFieldMap() {
-	b.fieldMap = make(map[string]field.Expr, 4)
+	b.fieldMap = make(map[string]field.Expr, 6)
 	b.fieldMap["method"] = b.Method
 	b.fieldMap["identifier"] = b.Identifier
 	b.fieldMap["account_id"] = b.AccountID
 	b.fieldMap["password_hash"] = b.PasswordHash
+	b.fieldMap["created_at"] = b.CreatedAt
+	b.fieldMap["updated_at"] = b.UpdatedAt
 }
 
 func (b binding) clone(db *gorm.DB) binding {

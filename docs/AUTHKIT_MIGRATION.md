@@ -1,5 +1,13 @@
 # authkit 身份认证迁移
 
+## authkit v1.4 → v1.8（2026-10-08）
+
+当前 `go.mod` 锁定 `github.com/miebyte/authkit v1.8.0`。该版本把 `auth_accounts.username` 改为可重复展示名，登录使用 `auth_bindings` 中的密码标识；保留现有密码绑定，不按展示名重写凭据。旧密码用户继续使用原绑定标识，已验证邮箱不再自动成为密码登录别名。旧客户端需刷新，注册和设密请求改用 `identifier` 字段；具体契约见 [API.md](API.md)。
+
+启动时 AutoMigrate 按新版 Model 增加认证审计时间、会话方式及父会话字段，但不会移除旧 `username` 唯一索引。升级前在备份恢复出的数据库演练并确认实际索引名，然后停写，在目标数据库手动执行独立的 [v1.8 升级 SQL](../scripts/migrations/20261008-authkit-v1.8.sql)。该 SQL 仅移除旧展示名唯一约束，不删除账号或密码绑定；不能未经核对直接用于其他版本或重复执行。全新数据库按新版 Model 建表，不需要该 SQL。
+
+下面记录的是早期从宿主认证表迁入 authkit 的流程，已有 authkit 数据库不应重新导入。
+
 本次使用本地 `github.com/miebyte/authkit`，通过仓库根目录 `go.work` 引用 `../../miebyte/authkit`。认证数据使用该包的 MySQL Model；邀请资格、小组成员和业务数据仍由「又一局」维护。
 
 迁移脚本入口是 [`scripts/migrations/authkit/main.go`](../scripts/migrations/authkit/main.go)，用 `go run ./scripts/migrations/authkit` 执行。脚本直接引用 authkit 的 Model 创建新表，避免另抄一份 SQL DDL 与包定义漂移。脚本只在显式传入 `-apply` 后写入，默认只读检查。不要在应用接收请求时执行迁移。

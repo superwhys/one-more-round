@@ -136,6 +136,56 @@ test('an existing session does not request another WeChat proof', async () => {
   assert.equal(app.requests.length, 0)
 })
 
+test('login retains display and password binding fields without exposing the session credential as user data', () => {
+  const app = runtime()
+  app.session.acceptLogin({
+    ...member,
+    username: '一起玩',
+    password_identifier: 'separate-login',
+    group_id: 'joined-group',
+  })
+  assert.deepEqual(JSON.parse(JSON.stringify(app.session.getUser())), {
+    id: member.id,
+    email: member.email,
+    username: '一起玩',
+    password_identifier: 'separate-login',
+  })
+  assert.equal(app.credential.getToken(), member.token)
+  assert.equal(app.session.getGroupID(), 'joined-group')
+  assert.ok(![...app.storage.values()].includes(member.token))
+})
+
+test('current account refresh does not treat a display name as a password binding', async () => {
+  const app = runtime()
+  app.session.acceptLogin({ ...member, username: '可重复展示名', password_identifier: 'previous-binding' })
+  const pending = app.session.requireSession()
+  assert.ok(app.requests[0].url.endsWith('/me'))
+  assert.equal(app.requests[0].header.Authorization, 'Bearer private-token')
+  respond(app.requests[0], { id: member.id, email: member.email, username: '可重复展示名' })
+  const user = await pending
+  assert.equal(user.username, '可重复展示名')
+  assert.equal(user.password_identifier, undefined)
+  assert.equal(app.credential.getToken(), member.token)
+})
+
+test('a session revoked by another device clears private state and requires explicit login', async () => {
+  const app = runtime(new Map<string, unknown>([
+    ['omr:draft:member:group', { memory: 'private draft' }],
+  ]))
+  app.session.acceptLogin(member)
+  await app.photo.getPhoto('group', 'photo')
+  const pending = app.session.requireSession()
+  respond(app.requests[0], null, 401, 100401)
+  assert.equal(await pending, null)
+  assert.equal(app.session.getUser(), null)
+  assert.equal(app.credential.getToken(), '')
+  assert.equal(app.storage.has('omr:draft:member:group'), false)
+  assert.deepEqual(app.removedPhotos, ['/tmp/private.jpg'])
+  assert.deepEqual(app.navigation, ['/pages/login/index'])
+  assert.equal(await app.session.restoreSession(), null)
+  assert.equal(app.logins.length, 0)
+})
+
 test('an unregistered WeChat account stays logged out without consuming an invitation', async () => {
   const app = runtime()
   app.session.setInvitation('pending-invitation')

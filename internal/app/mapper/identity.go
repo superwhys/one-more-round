@@ -15,3 +15,12 @@ func AccountDomainToDTO(u *authkit.Account) *dto.User {
 	}
 	return &dto.User{ID: u.ID, Email: u.Email, Username: u.Username}
 }
+
+// CurrentAccountDomainToDTO includes the current account's independent password binding.
+func CurrentAccountDomainToDTO(u *authkit.Account, passwordIdentifier string) *dto.User {
+	user := AccountDomainToDTO(u)
+	if user != nil {
+		user.PasswordIdentifier = passwordIdentifier
+	}
+	return user
+}

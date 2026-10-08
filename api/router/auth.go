@@ -79,7 +79,7 @@ func loginHandler(authApp *services.AuthApp, opts SessionOptions) gin.HandlerFun
 
 // passwordLoginHandler verifies a password and issues the existing browser cookie.
 // @Summary 账号密码登录
-// @Description 使用用户名或已绑定邮箱登录已有密码账号；不会自动注册，也不需要邀请码
+// @Description 使用独立密码登录标识（用户名或邮箱）登录；展示名与验证码邮箱绑定不作为密码凭据，不会自动注册
 // @Tags Auth
 // @Accept json
 // @Produce json
@@ -99,7 +99,7 @@ func passwordLoginHandler(authApp *services.AuthApp, opts SessionOptions) gin.Ha
 
 // passwordRegisterHandler creates an invited account before issuing its cookie.
 // @Summary 邀请注册账号密码
-// @Description 使用有效试用邀请或小组邀请创建用户名账号；注册、受邀入组和会话在同一事务提交
+// @Description 使用有效邀请创建独立密码标识和可选展示名；注册、受邀入组和会话在同一事务提交
 // @Tags Auth
 // @Accept json
 // @Produce json
@@ -152,7 +152,7 @@ func PasswordAccountRouter(authApp *services.AuthApp, opts SessionOptions) authR
 
 // setPasswordHandler updates the current account and replaces its browser cookie.
 // @Summary 设置账号密码
-// @Description 首次开通需用户名；已有用户名不可更改。设置成功撤销原有会话，并续签当前浏览器
+// @Description 首次开通需密码登录标识；已有标识不可更改，不修改展示名。设置成功撤销原有会话，并续签当前浏览器
 // @Tags Auth
 // @Accept json
 // @Produce json

@@ -151,8 +151,9 @@ function login() {
             autocomplete="current-password"
             required
             :disabled="busy"
-          /><small>已有邮箱账号可先用验证码登录，在「我的账号」中设置密码。</small></label
+          /><small>使用设置密码时确定的登录标识。绑定邮箱不会自动成为密码登录标识。</small></label
         >
+        <p class="d-note">已有邮箱账号可先用验证码登录，在「我的账号」中设置密码。</p>
       </template>
       <template v-else>
         <label class="d-field"

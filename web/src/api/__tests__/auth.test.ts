@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { afterEach, mock, test } from 'node:test'
-import { login, loginPassword, registerPassword, sendLoginCode, setPassword } from '../auth.ts'
+import { getCurrentUser, login, loginPassword, registerPassword, sendLoginCode, setPassword } from '../auth.ts'
 
 afterEach(() => mock.restoreAll())
 
@@ -67,6 +67,7 @@ test('password registration keeps the group invitation separate from trial admis
   mock.method(globalThis, 'fetch', async (url: string, options: RequestInit) => {
     assert.equal(url, '/api/v1/auth/password/register')
     assert.deepEqual(JSON.parse(String(options.body)), {
+      identifier: 'alice',
       username: 'alice',
       password: ' a memorable password ',
       invite: '',
@@ -77,6 +78,7 @@ test('password registration keeps the group invitation separate from trial admis
   assert.equal(
     (
       await registerPassword({
+        identifier: 'alice',
         username: 'alice',
         password: ' a memorable password ',
         invite: 'trial',
@@ -87,12 +89,40 @@ test('password registration keeps the group invitation separate from trial admis
   )
 })
 
-test('setting a password reuses the authenticated cookie and returns the original account', async () => {
+test('setting a password submits its identifier separately from the display name', async () => {
   mock.method(globalThis, 'fetch', async (url: string, options: RequestInit) => {
     assert.equal(url, '/api/v1/auth/password/set')
     assert.equal(options.credentials, 'same-origin')
-    assert.deepEqual(JSON.parse(String(options.body)), { username: 'alice', password: ' a memorable password ' })
-    return Response.json({ code: 0, data: { id: 'email-member', email: 'alice@example.test', username: 'alice' } })
+    assert.deepEqual(JSON.parse(String(options.body)), { identifier: 'alice', password: ' a memorable password ' })
+    return Response.json({
+      code: 0,
+      data: {
+        id: 'email-member',
+        email: 'alice@example.test',
+        username: 'Alice Display',
+        password_identifier: 'alice',
+      },
+    })
   })
-  assert.equal((await setPassword('alice', ' a memorable password ')).id, 'email-member')
+  assert.equal((await setPassword('alice', ' a memorable password ')).password_identifier, 'alice')
+})
+
+test('changing a password leaves the existing identifier to the authenticated account', async () => {
+  mock.method(globalThis, 'fetch', async (url: string, options: RequestInit) => {
+    assert.equal(url, '/api/v1/auth/password/set')
+    assert.deepEqual(JSON.parse(String(options.body)), { password: 'another password' })
+    return Response.json({ code: 0, data: { id: 'member', email: '', password_identifier: 'alice' } })
+  })
+  assert.equal((await setPassword(undefined, 'another password')).password_identifier, 'alice')
+})
+
+test('the current account includes the password identifier independently of its display name', async () => {
+  mock.method(globalThis, 'fetch', async (url: string) => {
+    assert.equal(url, '/api/v1/me')
+    return Response.json({
+      code: 0,
+      data: { id: 'member', email: '', username: 'Alice Display', password_identifier: 'alice' },
+    })
+  })
+  assert.equal((await getCurrentUser()).password_identifier, 'alice')
 })

@@ -10,7 +10,7 @@ import { validatePasswordRegistration } from '@/utils/password'
 
 const { invitation, joinToken } = useSession()
 const completeLogin = useAuthCompletion()
-const username = ref('')
+const identifier = ref('')
 const password = ref('')
 const confirmation = ref('')
 const error = ref('')
@@ -22,14 +22,16 @@ watch(joinToken, () => {
 // register requires an invitation and keeps failed inputs available for correction.
 async function register() {
   if (busy.value) return
-  error.value = validatePasswordRegistration(username.value, password.value, confirmation.value)
+  error.value = validatePasswordRegistration(identifier.value, password.value, confirmation.value)
   if (!error.value && !joinToken.value && !invitation.value.trim())
     error.value = '首次注册需要有效的试用邀请码或小组邀请'
   if (error.value) return
   busy.value = true
   try {
+    const loginIdentifier = identifier.value.replace(/^\p{White_Space}+|\p{White_Space}+$/gu, '')
     const result = await registerPassword({
-      username: username.value,
+      identifier: loginIdentifier,
+      username: Array.from(loginIdentifier).length <= 64 ? loginIdentifier : '',
       password: password.value,
       invite: invitation.value,
       group_token: joinToken.value,
@@ -49,15 +51,16 @@ async function register() {
   <AuthPanel title="为下一局，留个名字" :busy="busy" cancel-label="暂不加入，改用试用邀请码" @cancel="error = ''">
     <form @submit.prevent="register">
       <label class="d-field"
-        >用户名<input
-          v-model="username"
+        >登录标识（用户名或邮箱）<input
+          v-model="identifier"
           autocomplete="username"
           autocapitalize="none"
           :spellcheck="false"
           required
           :disabled="busy"
-        /><small>3–64 个字符，区分大小写，不含空白或 @。</small></label
+        /><small>用户名为 3–64 个字符，区分大小写、不含空白；也可使用完整邮箱地址。</small></label
       >
+      <p class="d-note">邮箱格式仅作为密码登录标识，不代表已验证或绑定该邮箱。</p>
       <label class="d-field"
         >密码<input v-model="password" type="password" autocomplete="new-password" required :disabled="busy" /><small
           >8–128 个字符，可使用一句容易记住的长密码。</small

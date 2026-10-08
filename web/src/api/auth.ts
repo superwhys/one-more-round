@@ -9,7 +9,7 @@ export const loginPassword = (identifier: string, password: string) =>
   send<LoginResult>('/auth/password/login', { identifier, password })
 export const registerPassword = (input: PasswordRegistration) =>
   send<LoginResult>('/auth/password/register', { ...input, invite: input.group_token ? '' : input.invite })
-export const setPassword = (username: string, password: string) =>
-  send<User>('/auth/password/set', { username, password })
+export const setPassword = (identifier: string | undefined, password: string) =>
+  send<User>('/auth/password/set', { identifier, password })
 export const previewGroupInvite = (token: string) => send<InvitePreview>('/auth/group-invite', { token })
 export const logout = () => send<void>('/auth/logout', {})

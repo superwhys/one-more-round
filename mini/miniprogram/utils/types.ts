@@ -1,6 +1,8 @@
 export interface User {
   id: string
   email: string
+  username?: string
+  password_identifier?: string
 }
 export interface Group {
   id: string
@@ -22,6 +24,7 @@ export interface Game {
 export interface Member {
   user_id: string
   email: string
+  username?: string
 }
 export interface Snapshot {
   group: Group

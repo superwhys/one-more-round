@@ -3,6 +3,7 @@ package services
 import (
 	"context"
 	"errors"
+	"strings"
 	"time"
 
 	"github.com/miebyte/authkit"
@@ -46,8 +47,9 @@ func (a *AuthApp) RegisterPassword(
 		account, err := a.auth.
 			InTransaction(authRepos, registrationPolicy(repos, req.GroupToken, req.Invite)).
 			CreatePasswordAccount(ctx, authkit.CreatePasswordAccountInput{
-				Username: req.Username,
-				Password: req.Password,
+				Username:   req.Username,
+				Identifier: req.Identifier,
+				Password:   req.Password,
 			})
 		if err != nil {
 			return err
@@ -78,6 +80,7 @@ func (a *AuthApp) SetPassword(
 		return nil, "", errcode.ErrUnauthorized
 	}
 	var login *authkit.LoginResult
+	var identifier string
 	err := a.repos.WithTransaction(ctx, func(repos ports.Repositories) error {
 		authRepos := repos.Auth()
 		now := time.Now().UTC()
@@ -92,18 +95,31 @@ func (a *AuthApp) SetPassword(
 		if account.ID != userID {
 			return errcode.ErrUnauthorized
 		}
-		username := req.Username
-		if username == "" {
-			username = account.Username
+		identifier = req.Identifier
+		if identifier == "" {
+			identifier, err = authRepos.Accounts().GetPasswordIdentifier(ctx, userID)
+			if errors.Is(err, authkit.ErrNotFound) {
+				return authkit.ErrInvalidInput
+			}
+			if err != nil {
+				return err
+			}
 		}
-		username, err = authkit.NormalizeUsername(username)
+		identifier, err = authkit.NormalizeUsername(identifier)
 		if err != nil {
 			return err
 		}
-		// Follow authkit's credential-before-account lock order, then reject a
-		// session revoked by another password change while this request waited.
+		// Match authkit's email-before-password-before-account lock order to
+		// avoid a cycle with email login, then recheck the waiting session.
+		if strings.Contains(identifier, "@") {
+			if err = authRepos.Blacklist().Check(ctx, authkit.Credential{
+				Method: authkit.MethodEmail, Identifier: identifier,
+			}); err != nil {
+				return err
+			}
+		}
 		if err = authRepos.Blacklist().Check(ctx, authkit.Credential{
-			Method: authkit.MethodPassword, Identifier: username,
+			Method: authkit.MethodPassword, Identifier: identifier,
 		}); err != nil {
 			return err
 		}
@@ -121,9 +137,9 @@ func (a *AuthApp) SetPassword(
 			return errcode.ErrUnauthorized
 		}
 		if err = a.auth.InTransaction(authRepos, nil).SetPassword(ctx, authkit.SetPasswordInput{
-			AccountID: userID,
-			Username:  req.Username,
-			Password:  req.Password,
+			AccountID:  userID,
+			Identifier: req.Identifier,
+			Password:   req.Password,
 		}); err != nil {
 			return err
 		}
@@ -137,5 +153,5 @@ func (a *AuthApp) SetPassword(
 	if err != nil {
 		return nil, "", mapAuthError(err)
 	}
-	return mapper.AccountDomainToDTO(&login.Account), login.Token, nil
+	return mapper.CurrentAccountDomainToDTO(&login.Account, identifier), login.Token, nil
 }

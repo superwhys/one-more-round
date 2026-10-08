@@ -174,6 +174,8 @@ definitions:
         type: string
       id:
         type: string
+      password_identifier:
+        type: string
       username:
         type: string
     type: object
@@ -281,6 +283,9 @@ definitions:
       group_token:
         maxLength: 128
         type: string
+      identifier:
+        maxLength: 254
+        type: string
       invite:
         maxLength: 128
         type: string
@@ -288,10 +293,11 @@ definitions:
         maxLength: 128
         type: string
       username:
+        maxLength: 64
         type: string
     required:
+    - identifier
     - password
-    - username
     type: object
   dto.Player:
     properties:
@@ -483,10 +489,11 @@ definitions:
     type: object
   dto.SetPasswordReq:
     properties:
+      identifier:
+        maxLength: 254
+        type: string
       password:
         maxLength: 128
-        type: string
-      username:
         type: string
     required:
     - password
@@ -558,6 +565,8 @@ definitions:
         type: string
       id:
         type: string
+      password_identifier:
+        type: string
       username:
         type: string
     type: object
@@ -588,6 +597,8 @@ definitions:
       group_id:
         type: string
       id:
+        type: string
+      password_identifier:
         type: string
       token:
         type: string
@@ -899,7 +910,7 @@ paths:
     post:
       consumes:
       - application/json
-      description: 使用用户名或已绑定邮箱登录已有密码账号；不会自动注册，也不需要邀请码
+      description: 使用独立密码登录标识（用户名或邮箱）登录；展示名与验证码邮箱绑定不作为密码凭据，不会自动注册
       parameters:
       - description: 账号密码登录请求
         in: body
@@ -921,7 +932,7 @@ paths:
     post:
       consumes:
       - application/json
-      description: 使用有效试用邀请或小组邀请创建用户名账号；注册、受邀入组和会话在同一事务提交
+      description: 使用有效邀请创建独立密码标识和可选展示名；注册、受邀入组和会话在同一事务提交
       parameters:
       - description: 账号密码注册请求
         in: body
@@ -943,7 +954,7 @@ paths:
     post:
       consumes:
       - application/json
-      description: 首次开通需用户名；已有用户名不可更改。设置成功撤销原有会话，并续签当前浏览器
+      description: 首次开通需密码登录标识；已有标识不可更改，不修改展示名。设置成功撤销原有会话，并续签当前浏览器
       parameters:
       - description: 设置密码请求
         in: body

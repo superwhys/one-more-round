@@ -220,10 +220,12 @@ Page({
   },
   // memberName prefers the group's linked player nickname and handles historical members.
   memberName(id: string): string {
+    const member = this.snapshot?.members.find((member: Member) => member.user_id === id)
     return (
       this.snapshot?.players.find((player: Player) => player.account === id)?.name ||
-      this.snapshot?.members.find((member: Member) => member.user_id === id)?.email ||
-      '历史成员'
+      member?.email ||
+      member?.username ||
+      (member ? '小组成员' : '历史成员')
     )
   },
   // loadPhotos keeps a failed image from hiding the record's text.

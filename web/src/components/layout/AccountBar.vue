@@ -21,7 +21,9 @@ const passwordOpen = ref(false)
 const account = ref<HTMLElement>()
 const trigger = ref<HTMLButtonElement>()
 const panelID = useId()
-const accountName = computed(() => props.user.email || props.user.username || '微信账号')
+const accountName = computed(
+  () => props.user.email || props.user.username || props.user.password_identifier || '我的账号',
+)
 const initial = computed(() => Array.from(accountName.value)[0]?.toUpperCase() ?? '我')
 const groupName = computed(() => props.groups.find(group => group.id === props.selected)?.name ?? '创建 / 加入小组')
 const unread = ref(0)
@@ -140,5 +142,5 @@ onBeforeUnmount(() => {
       </div>
     </div>
   </header>
-  <SetPasswordDialog v-if="passwordOpen" :user="user" @close="passwordOpen = false" />
+  <SetPasswordDialog v-if="passwordOpen" @close="passwordOpen = false" />
 </template>

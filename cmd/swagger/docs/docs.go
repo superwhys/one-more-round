@@ -144,7 +144,7 @@ const docTemplate = `{
         },
         "/v1/auth/password/login": {
             "post": {
-                "description": "使用用户名或已绑定邮箱登录已有密码账号；不会自动注册，也不需要邀请码",
+                "description": "使用独立密码登录标识（用户名或邮箱）登录；展示名与验证码邮箱绑定不作为密码凭据，不会自动注册",
                 "consumes": [
                     "application/json"
                 ],
@@ -178,7 +178,7 @@ const docTemplate = `{
         },
         "/v1/auth/password/register": {
             "post": {
-                "description": "使用有效试用邀请或小组邀请创建用户名账号；注册、受邀入组和会话在同一事务提交",
+                "description": "使用有效邀请创建独立密码标识和可选展示名；注册、受邀入组和会话在同一事务提交",
                 "consumes": [
                     "application/json"
                 ],
@@ -217,7 +217,7 @@ const docTemplate = `{
                         "SessionCookie": []
                     }
                 ],
-                "description": "首次开通需用户名；已有用户名不可更改。设置成功撤销原有会话，并续签当前浏览器",
+                "description": "首次开通需密码登录标识；已有标识不可更改，不修改展示名。设置成功撤销原有会话，并续签当前浏览器",
                 "consumes": [
                     "application/json"
                 ],
@@ -2145,6 +2145,9 @@ const docTemplate = `{
                 "id": {
                     "type": "string"
                 },
+                "password_identifier": {
+                    "type": "string"
+                },
                 "username": {
                     "type": "string"
                 }
@@ -2304,13 +2307,17 @@ const docTemplate = `{
         "dto.PasswordRegisterReq": {
             "type": "object",
             "required": [
-                "password",
-                "username"
+                "identifier",
+                "password"
             ],
             "properties": {
                 "group_token": {
                     "type": "string",
                     "maxLength": 128
+                },
+                "identifier": {
+                    "type": "string",
+                    "maxLength": 254
                 },
                 "invite": {
                     "type": "string",
@@ -2321,7 +2328,8 @@ const docTemplate = `{
                     "maxLength": 128
                 },
                 "username": {
-                    "type": "string"
+                    "type": "string",
+                    "maxLength": 64
                 }
             }
         },
@@ -2619,12 +2627,13 @@ const docTemplate = `{
                 "password"
             ],
             "properties": {
+                "identifier": {
+                    "type": "string",
+                    "maxLength": 254
+                },
                 "password": {
                     "type": "string",
                     "maxLength": 128
-                },
-                "username": {
-                    "type": "string"
                 }
             }
         },
@@ -2731,6 +2740,9 @@ const docTemplate = `{
                 "id": {
                     "type": "string"
                 },
+                "password_identifier": {
+                    "type": "string"
+                },
                 "username": {
                     "type": "string"
                 }
@@ -2774,6 +2786,9 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "id": {
+                    "type": "string"
+                },
+                "password_identifier": {
                     "type": "string"
                 },
                 "token": {

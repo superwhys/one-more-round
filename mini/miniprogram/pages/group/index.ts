@@ -11,7 +11,7 @@ Page({
     snapshot: null as Snapshot | null,
     userID: '',
     owner: false,
-    members: [] as (Member & { playerName: string })[],
+    members: [] as (Member & { name: string; playerName: string })[],
     claims: [] as { user_id: string; name: string; player: string }[],
     unlinked: [] as Player[],
     myPlayer: '',
@@ -48,16 +48,19 @@ Page({
         owner: current.user.id === current.group.owner,
         groupName: current.group.name,
         members: snapshot.members
-          .map(member => ({
-            ...member,
-            playerName: snapshot.players.find(player => player.account === member.user_id)?.name || '',
-          }))
+          .map(member => {
+            const playerName = snapshot.players.find(player => player.account === member.user_id)?.name || ''
+            return { ...member, name: member.email || member.username || playerName || '小组成员', playerName }
+          })
           .sort((a, b) => Number(b.user_id === current.group.owner) - Number(a.user_id === current.group.owner)),
-        claims: snapshot.claims.map(claim => ({
-          ...claim,
-          name: snapshot.members.find(member => member.user_id === claim.user_id)?.email || '微信成员',
-          player: snapshot.players.find(player => player.id === claim.player_id)?.name || '玩家',
-        })),
+        claims: snapshot.claims.map(claim => {
+          const member = snapshot.members.find(member => member.user_id === claim.user_id)
+          return {
+            ...claim,
+            name: member?.email || member?.username || '小组成员',
+            player: snapshot.players.find(player => player.id === claim.player_id)?.name || '玩家',
+          }
+        }),
         unlinked: snapshot.players.filter(player => !player.account),
         myPlayer: snapshot.players.find(player => player.account === current.user.id)?.name || '',
         myClaim: snapshot.claims.some(claim => claim.user_id === current.user.id),

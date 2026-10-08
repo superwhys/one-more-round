@@ -45,6 +45,28 @@ test('round sharing uses only an explicitly available public token', () => {
   assert.match(shared.title, /桌游/)
 })
 
+test('private round account names prefer players and retain current accounts without an email', () => {
+  const page = pageDefinition('round')
+  const context = {
+    snapshot: {
+      players: [{ account: 'linked', name: '玩家昵称' }],
+      members: [
+        { user_id: 'linked', email: 'linked@example.test', username: '展示名' },
+        { user_id: 'email', email: 'member@example.test', username: '展示名' },
+        { user_id: 'first', email: '', username: '桌友' },
+        { user_id: 'second', email: '', username: '桌友' },
+        { user_id: 'unnamed', email: '', username: '' },
+      ],
+    },
+  }
+  assert.equal(page.memberName.call(context, 'linked'), '玩家昵称')
+  assert.equal(page.memberName.call(context, 'email'), 'member@example.test')
+  assert.equal(page.memberName.call(context, 'first'), '桌友')
+  assert.equal(page.memberName.call(context, 'second'), '桌友')
+  assert.equal(page.memberName.call(context, 'unnamed'), '小组成员')
+  assert.equal(page.memberName.call(context, 'removed'), '历史成员')
+})
+
 test('the invitation button keeps its explicit invite while the menu shares home', () => {
   const page = pageDefinition('invites')
   const context = { data: { token: 'invite+/=', name: '朋友小组' } }

@@ -248,7 +248,6 @@ func (a *AuthApp) BindWechatEmail(
 		}
 		return consumeEmailChallenge(ctx, authRepos, challenge)
 	})
-
 	// 事务错误意味着所有写入已经回滚，统一转换为应用层错误。
 	if err != nil {
 		return nil, mapAuthError(err)

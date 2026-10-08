@@ -39,7 +39,12 @@ export function acceptLogin(result: LoginResult): void {
   if (user && user.id !== result.id) clearSession()
   if (wx.getStorageSync(LOGGED_OUT_KEY)) wx.removeStorageSync(LOGGED_OUT_KEY)
   setToken(result.token)
-  user = { id: result.id, email: result.email }
+  user = {
+    id: result.id,
+    email: result.email,
+    username: result.username,
+    password_identifier: result.password_identifier,
+  }
   groupID = result.group_id || wx.getStorageSync(`omr:group:${result.id}`) || ''
   pendingGroupToken = ''
 }

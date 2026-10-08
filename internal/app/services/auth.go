@@ -66,7 +66,11 @@ func (a *AuthApp) Authenticate(ctx context.Context, token string) (*dto.User, er
 	if err != nil {
 		return nil, mapAuthError(err)
 	}
-	return mapper.AccountDomainToDTO(account), nil
+	identifier, err := a.repos.Auth().Accounts().GetPasswordIdentifier(ctx, account.ID)
+	if err != nil && !errors.Is(err, authkit.ErrNotFound) {
+		return nil, mapAuthError(err)
+	}
+	return mapper.CurrentAccountDomainToDTO(account, identifier), nil
 }
 
 // Logout revokes only the supplied application session.

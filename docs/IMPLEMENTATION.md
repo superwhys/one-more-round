@@ -51,7 +51,7 @@ authkit 的微信绑定按 OpenID 摘要唯一、每账号一份，不保存 App
 
 Web 增加独立 `/register` 页面、登录方式切换及已登录账号的设密弹窗。宿主使用 authkit 的 `CreatePasswordAccount`、`LoginPassword`、`SetPassword`；注册准入继续复用现有邀请策略。注册和设密在宿主事务内创建会话，避免注册成功却无法登录；设密先按 authkit 的凭证、账号顺序锁定并再次校验当前会话，保留账号 ID 和组内历史。密码使用 authkit 原生 Argon2id 摘要，前端与 API 均不裁剪密码，不增加密码重置或账号合并流程。
 
-当前密码 API 来自 `go.work` 引用的本地 authkit；已发布的 `v1.3.0` 尚不包含这些 API，因此本次验证使用工作区依赖。发布或干净检出构建前，必须先发布包含密码能力的 authkit 版本，再更新本项目 `go.mod`、`go.sum` 并以 `GOWORK=off` 验证。本次不修改 authkit 仓库、不把本机绝对路径写入模块依赖。
+2026-10-08 已升级锁定 `authkit v1.8.0`，采用独立密码标识与展示名语义。注册传入 `Identifier` 和可选 `Username`，设密仅传 `Identifier`；已有密码省略标识时从真实绑定读取，不能用展示名推断。`/me` 和设密响应增加 `password_identifier`，账号页据此判断开通状态。绑定邮箱不再自动作为密码登录别名。认证 Model 更新后通过 `make generate` 重新生成宿主 Query；旧展示名唯一索引需按 [认证升级说明](AUTHKIT_MIGRATION.md) 手动移除，不在启动过程中执行破坏性迁移。
 
 ### 1. 身份与小组
 

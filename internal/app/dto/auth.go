@@ -2,9 +2,10 @@ package dto
 
 // User is the logged-in account.
 type User struct {
-	ID       string `json:"id"`
-	Email    string `json:"email"`
-	Username string `json:"username,omitempty"`
+	ID                 string `json:"id"`
+	Email              string `json:"email"`
+	Username           string `json:"username,omitempty"`
+	PasswordIdentifier string `json:"password_identifier,omitempty"`
 }
 
 // SendCodeReq asks for verification proof without making a registration decision.
@@ -20,24 +21,25 @@ type LoginReq struct {
 	GroupToken string `json:"group_token"`
 }
 
-// PasswordLoginReq verifies an existing account with its username or bound email.
+// PasswordLoginReq verifies an existing account with its password login identifier.
 type PasswordLoginReq struct {
 	Identifier string `json:"identifier" validate:"required,max=254"`
-	Password   string `json:"password" mod:"-" validate:"required,max=128"`
+	Password   string `json:"password"   validate:"required,max=128" mod:"-"`
 }
 
-// PasswordRegisterReq creates an invited username account and its first session.
+// PasswordRegisterReq creates an invited password account with an optional display name.
 type PasswordRegisterReq struct {
-	Username   string `json:"username" validate:"required"`
-	Password   string `json:"password" mod:"-" validate:"required,max=128"`
-	Invite     string `json:"invite" validate:"max=128"`
+	Identifier string `json:"identifier"  validate:"required,max=254"`
+	Username   string `json:"username"    validate:"max=64"`
+	Password   string `json:"password"    validate:"required,max=128" mod:"-"`
+	Invite     string `json:"invite"      validate:"max=128"`
 	GroupToken string `json:"group_token" validate:"max=128"`
 }
 
 // SetPasswordReq opens or changes password access for the current account.
 type SetPasswordReq struct {
-	Username string `json:"username"`
-	Password string `json:"password" mod:"-" validate:"required,max=128"`
+	Identifier string `json:"identifier" validate:"max=254"`
+	Password   string `json:"password"   validate:"required,max=128" mod:"-"`
 }
 
 // LoginResp includes the group joined atomically during a new registration.
