@@ -1,0 +1,41 @@
+<template name="tab-skeleton">
+  <view class="tab-skeleton" aria-label="正在加载页面">
+    <view aria-hidden="true">
+      <view class="skeleton-block skeleton-eyebrow" />
+      <view class="skeleton-block skeleton-title" />
+      <view class="skeleton-block skeleton-description" />
+      <view wx:if="{{kind === 'review'}}" class="skeleton-stats">
+        <view class="skeleton-block skeleton-stat" />
+        <view class="skeleton-block skeleton-stat" />
+        <view class="skeleton-block skeleton-stat" />
+      </view>
+      <view class="skeleton-actions">
+        <view class="skeleton-block skeleton-action" />
+        <view class="skeleton-block skeleton-action" />
+        <view wx:if="{{kind !== 'games'}}" class="skeleton-block skeleton-action" />
+      </view>
+      <block wx:if="{{kind === 'games'}}">
+        <view class="card skeleton-card">
+          <view class="skeleton-block skeleton-line" />
+          <view class="skeleton-block skeleton-input" />
+        </view>
+        <view class="skeleton-grid">
+          <view wx:for="{{[1, 2]}}" wx:key="*this" class="skeleton-game">
+            <view class="skeleton-block skeleton-cover" />
+            <view class="skeleton-block skeleton-line" />
+            <view class="skeleton-block skeleton-short" />
+          </view>
+        </view>
+      </block>
+      <block wx:else>
+        <view wx:for="{{[1, 2]}}" wx:key="*this" class="card skeleton-card">
+          <view class="skeleton-block skeleton-short" />
+          <view class="skeleton-block skeleton-line" />
+          <view class="skeleton-block skeleton-line" />
+          <view wx:if="{{kind === 'group'}}" class="skeleton-block skeleton-input" />
+        </view>
+      </block>
+    </view>
+    <view class="muted skeleton-caption">正在加载…</view>
+  </view>
+</template>

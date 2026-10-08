@@ -252,6 +252,7 @@ test('native WXML renders catalog modals, errors and shared detail templates con
         '-o',
         output,
         'pages/games/index.wxml',
+        'templates/tab-skeleton.wxml',
         'pages/game/index.wxml',
         'pages/game/history.wxml',
         'pages/wishlist/index.wxml',

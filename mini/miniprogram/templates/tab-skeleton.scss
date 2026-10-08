@@ -1,0 +1,69 @@
+.skeleton-block {
+  background: #e9e5dc;
+  border-radius: 10rpx;
+}
+.skeleton-eyebrow {
+  width: 260rpx;
+  height: 24rpx;
+  margin: 16rpx 0 28rpx;
+}
+.skeleton-title {
+  width: 80%;
+  height: 58rpx;
+  margin-bottom: 24rpx;
+}
+.skeleton-description {
+  width: 90%;
+  height: 26rpx;
+  margin-bottom: 30rpx;
+}
+.skeleton-stats,
+.skeleton-actions,
+.skeleton-grid {
+  display: flex;
+  gap: 16rpx;
+  margin: 30rpx 0;
+}
+.skeleton-stat {
+  flex: 1;
+  height: 132rpx;
+  border-radius: 16rpx;
+}
+.skeleton-action {
+  flex: 1;
+  height: 88rpx;
+  border-radius: 16rpx;
+}
+.skeleton-card .skeleton-block + .skeleton-block {
+  margin-top: 24rpx;
+}
+.skeleton-line {
+  width: 80%;
+  height: 32rpx;
+}
+.skeleton-short {
+  width: 40%;
+  height: 26rpx;
+}
+.skeleton-input {
+  height: 88rpx;
+}
+.skeleton-game {
+  flex: 1;
+  min-width: 0;
+  padding: 12rpx 12rpx 22rpx;
+  border: 1rpx solid #e6dfd1;
+  border-radius: 20rpx;
+  background: #fffdf7;
+}
+.skeleton-cover {
+  height: 290rpx;
+}
+.skeleton-game .skeleton-line,
+.skeleton-game .skeleton-short {
+  margin: 22rpx 6rpx 0;
+}
+.skeleton-caption {
+  text-align: center;
+  margin: 24rpx 0;
+}

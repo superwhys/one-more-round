@@ -1,3 +1,4 @@
+<import src="../../templates/tab-skeleton.wxml" />
 <view class="tab-page">
   <scroll-view
     class="tab-content"
@@ -9,6 +10,8 @@
     lower-threshold="100"
   >
     <view class="page review-page">
+      <template wx:if="{{initialLoading && !error}}" is="tab-skeleton" data="{{kind: 'review'}}" />
+      <block wx:else>
       <view class="between review-heading"
         ><text class="eyebrow">ONE MORE ROUND</text
         ><button class="link group-switch" data-url="/pages/setup/index" bindtap="go">
@@ -66,6 +69,7 @@
       <view wx:if="{{loading}}" class="empty">正在找回桌边的时光…</view
       ><view wx:elif="{{!items.length && !error}}" class="empty">这里还没有回忆。一起记下第一局吧。</view
       ><view wx:elif="{{items.length < total}}" class="muted">继续上滑，查看更早的回忆</view>
+      </block>
     </view>
   </scroll-view>
   <view class="record-bar"><button class="primary record-button" bindtap="record">＋ 记一局</button></view>

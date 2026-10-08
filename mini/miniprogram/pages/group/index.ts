@@ -21,7 +21,7 @@ Page({
     groupName: '',
     claimIndex: 0,
     busy: false,
-    loading: false,
+    loading: true,
     error: '',
   },
   generation: 0,
@@ -32,7 +32,7 @@ Page({
   // onHide invalidates private content when leaving this page.
   onHide() {
     this.generation++
-    this.setData({ snapshot: null })
+    this.setData({ snapshot: null, loading: true, error: '' })
   },
   // load refreshes the authorized data for this page.
   async load() {
@@ -63,9 +63,9 @@ Page({
         myClaim: snapshot.claims.some(claim => claim.user_id === current.user.id),
       })
     } catch (error) {
-      this.setData({ error: errorMessage(error) })
+      if (run === this.generation) this.setData({ error: errorMessage(error) })
     } finally {
-      this.setData({ loading: false })
+      if (run === this.generation) this.setData({ loading: false })
     }
   },
   // input updates the editable field identified by the control.

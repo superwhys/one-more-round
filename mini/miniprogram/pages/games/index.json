@@ -1,5 +1,6 @@
 {
   "navigationBarTitleText": "我们的桌游架",
+  "initialRenderingCache": "static",
   "enablePullDownRefresh": false,
   "usingComponents": {}
 }

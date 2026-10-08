@@ -1,7 +1,10 @@
+<import src="../../templates/tab-skeleton.wxml" />
 <view class="tab-page"
   ><scroll-view class="tab-content" scroll-y
-    ><view class="page group-page"
-      ><view class="between"
+    ><view class="page group-page">
+      <template wx:if="{{loading && !snapshot && !error}}" is="tab-skeleton" data="{{kind: 'group'}}" />
+      <block wx:else>
+      <view class="between"
         ><text class="eyebrow">OUR LITTLE CIRCLE</text
         ><button class="link" data-url="/pages/account/index" bindtap="go">我的账号</button></view
       ><view class="title">{{snapshot.group.name || '小组'}}。</view
@@ -136,6 +139,7 @@
           ><view class="muted">备份包含 JSON、CSV 和照片，请选择可信的接收位置。</view></view
         ></block
       >
+      </block>
     </view></scroll-view
   ><view class="record-bar"
     ><button class="primary record-button" data-url="/pages/round-form/index" bindtap="go">＋ 记一局</button></view

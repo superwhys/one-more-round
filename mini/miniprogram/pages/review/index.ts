@@ -22,6 +22,7 @@ Page({
     gameCount: 0,
     playerCount: 0,
     loading: false,
+    initialLoading: true,
     refreshing: false,
     error: '',
     filterOpen: false,
@@ -46,7 +47,7 @@ Page({
   // onHide invalidates private content when leaving this page.
   onHide() {
     this.generation++
-    this.setData({ items: [], loading: false, refreshing: false })
+    this.setData({ items: [], loading: false, initialLoading: true, refreshing: false })
   },
   // onPullDownRefresh refreshes the timeline and finishes the native pull gesture.
   onPullDownRefresh() {
@@ -61,7 +62,7 @@ Page({
   async load(more = false) {
     if (this.data.loading) return
     const generation = ++this.generation
-    this.setData({ loading: true, error: '' })
+    this.setData({ loading: true, initialLoading: !this.data.items.length, error: '' })
     try {
       const current = await requireGroup()
       if (!current || generation !== this.generation) return
@@ -100,6 +101,7 @@ Page({
         playerCount: page.players,
         games: ['全部桌游', ...current.snapshot.games.map(game => game.name)],
         players: ['全部玩家', ...current.snapshot.players.map(player => player.name)],
+        initialLoading: false,
       })
       for (let index = 0; index < cards.length; index++) {
         if (!cards[index].photos.length) continue
@@ -113,7 +115,7 @@ Page({
     } catch (error) {
       if (generation === this.generation) this.setData({ error: errorMessage(error) })
     } finally {
-      if (generation === this.generation) this.setData({ loading: false })
+      if (generation === this.generation) this.setData({ loading: false, initialLoading: false })
     }
   },
   // input updates the editable field identified by the control.

@@ -1,4 +1,5 @@
 {
   "navigationBarTitleText": "回顾",
+  "initialRenderingCache": "static",
   "enablePullDownRefresh": false
 }
