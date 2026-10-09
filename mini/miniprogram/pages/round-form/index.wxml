@@ -271,7 +271,7 @@
           ><text class="label">时长（分钟，选填）</text
           ><input class="input" type="number" value="{{minutesInput}}" bindinput="inputMinutes" disabled="{{saving}}"
         /></view>
-        <view class="label">照片 · 最多 3 张，每张原文件不超过 2 MiB</view
+        <view class="label">照片 · 最多 3 张，每张原文件不超过 6 MiB</view
         ><view class="photos"
           ><view wx:for="{{photos}}" wx:key="id" class="photo"
             ><image wx:if="{{item.path}}" src="{{item.path}}" mode="aspectFill" /><view

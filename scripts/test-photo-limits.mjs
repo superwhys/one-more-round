@@ -5,7 +5,7 @@ const { chromium } = await import(process.env.OMR_PLAYWRIGHT_MODULE || 'playwrig
 const fixture = JSON.parse(process.env.OMR_PHOTO_BROWSER_FIXTURE)
 const browser = await chromium.launch({ channel: 'chrome', headless: true })
 const photo = Buffer.from(fixture.photo, 'base64')
-const atLimit = Buffer.alloc(2 * 1024 * 1024)
+const atLimit = Buffer.alloc(6 * 1024 * 1024)
 photo.copy(atLimit)
 const tooLarge = Buffer.concat([atLimit, Buffer.alloc(1)])
 const file = (name, buffer = photo) => ({ name, mimeType: 'image/png', buffer })
@@ -42,9 +42,9 @@ try {
   await page.getByLabel('本局结果', { exact: false }).selectOption('unknown')
   await page.getByRole('button', { name: '＋ 添加回忆、照片和更多信息', exact: true }).click()
   assert.equal(await page.getByLabel('地点', { exact: true }).count(), 0, 'round form must not include a location field')
-  const picker = page.getByLabel('照片（最多 3 张，每张不超过 2 MB）', { exact: true })
+  const picker = page.getByLabel('照片（最多 3 张，每张不超过 6 MB）', { exact: true })
   await picker.setInputFiles(file('too-large.png', tooLarge))
-  await page.getByRole('alert').filter({ hasText: '不超过 2 MB' }).waitFor()
+  await page.getByRole('alert').filter({ hasText: '不超过 6 MB' }).waitFor()
   assert.equal(uploads, 0, 'oversized photo must be rejected before upload')
 
   const largePhoto = Buffer.from(await page.evaluate(() => {
@@ -56,7 +56,7 @@ try {
     ctx.fillRect(0, 0, canvas.width, canvas.height)
     return canvas.toDataURL('image/png').split(',')[1]
   }), 'base64')
-  assert.ok(largePhoto.length < 2 * 1024 * 1024)
+  assert.ok(largePhoto.length < 6 * 1024 * 1024)
   // Queue three files, preprocessing and uploading one at a time.
   await picker.setInputFiles([file('one.png', largePhoto), file('two.png'), file('three.png'), file('four.png')])
   await page.getByRole('alert').filter({ hasText: '最多 3 张照片' }).waitFor()
@@ -91,9 +91,9 @@ try {
   assert.equal(uploads, 3, 'editing existing photos must count towards the limit')
   await page.locator('.j-photos').getByRole('button', { name: '移除', exact: true }).first().click()
   const uploadedResponse = page.waitForResponse(response => response.request().method() === 'POST' && new URL(response.url()).pathname.endsWith('/photos'))
-  await picker.setInputFiles(file('exactly-2MiB.png', atLimit))
+  await picker.setInputFiles(file('exactly-6MiB.png', atLimit))
   const uploaded = await (await uploadedResponse).json()
-  assert.equal(uploaded.code, 0, 'exactly 2 MiB must be accepted')
+  assert.equal(uploaded.code, 0, 'exactly 6 MiB originals must be compressed and accepted')
   await page.waitForFunction(() => document.querySelectorAll('img[alt="本局照片"]').length === 3 && Array.from(document.querySelectorAll('img[alt="本局照片"]')).every(img => img.complete && img.naturalWidth > 0) && !document.querySelector('progress'))
   assert.equal(await page.getByRole('alert').count(), 0, 'successful reselection must clear the previous error')
   const editedResponse = page.waitForResponse(response => response.request().method() === 'PUT' && new URL(response.url()).pathname.endsWith(`/rounds/${created.data.id}`))
@@ -103,7 +103,7 @@ try {
   assert.equal(edited.data.photos.length, 3)
   await page.waitForURL(`${fixture.origin}/rounds/${created.data.id}`)
   await page.getByRole('heading', { name: fixture.gameName, exact: true }).waitFor()
-  console.log('PASS: edit counts existing photos; remove and replace works; exact 2 MiB accepted')
+  console.log('PASS: edit counts existing photos; remove and replace works; exact 6 MiB original accepted')
 
   const api = `${fixture.origin}/api/v1/groups/${fixture.groupID}`
   const enrichedResponse = await context.request.put(`${api}/rounds/${edited.data.id}`, { headers: headers(), data: { ...edited.data, memory: '第一次打通的桌边回忆' } })
@@ -163,9 +163,12 @@ try {
   await page.getByRole('heading', { name: '暂时没有新消息。' }).waitFor()
   console.log('PASS: ZIP export, recycle restore and notification center render correctly')
 
+  const acceptedUpload = await context.request.post(`${api}/photos`, { headers: headers(), multipart: { photo: file('exactly-6MiB.png', atLimit) } })
+  assert.equal(acceptedUpload.status(), 200)
+  assert.equal((await acceptedUpload.json()).code, 0, 'direct API must accept exactly 6 MiB uploads')
   const rejectedUpload = await context.request.post(`${api}/photos`, { headers: headers(), multipart: { photo: file('oversized.png', tooLarge) } })
   assert.equal(rejectedUpload.status(), 400)
-  assert.match((await rejectedUpload.json()).message, /不超过 2 MB/)
+  assert.match((await rejectedUpload.json()).message, /不超过 6 MB/)
   const rejectedDimensions = await context.request.post(`${api}/photos`, { headers: headers(), multipart: { photo: file('unprocessed.png', largePhoto) } })
   assert.equal(rejectedDimensions.status(), 400)
   assert.match((await rejectedDimensions.json()).message, /1600/)

@@ -11,7 +11,7 @@ import type { Snapshot, User, Round, Mode, Game, Player } from '@/types/journal'
 import { photoURL } from '@/api/photo'
 const newID = () => crypto.randomUUID()
 const maxPhotos = 3
-const maxPhotoBytes = 2 * 1024 * 1024
+const maxPhotoBytes = 6 * 1024 * 1024
 type RoundWithLegacyLocation = Round & { location?: unknown }
 function copyRound(round: Round): Round {
   const copy = JSON.parse(JSON.stringify(round)) as RoundWithLegacyLocation
@@ -277,7 +277,7 @@ function selectPhotos(event: Event) {
       break
     }
     if (file.size > maxPhotoBytes || !['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
-      localError.value = '请选择不超过 2 MB 的 JPEG、PNG 或 WebP'
+      localError.value = '请选择不超过 6 MB 的 JPEG、PNG 或 WebP'
       continue
     }
     const item = ref<Upload>({ file, id: '', state: 'uploading', error: '', progress: 0 })
@@ -532,7 +532,7 @@ function selectPhotos(event: Event) {
               <label class="d-field">时长（分钟）<input v-model="form.minutes" type="number" min="1" step="1" /></label>
             </div>
             <label class="d-field"
-              >照片（最多 {{ maxPhotos }} 张，每张不超过 2 MB）<input
+              >照片（最多 {{ maxPhotos }} 张，每张不超过 6 MB）<input
                 type="file"
                 multiple
                 accept="image/jpeg,image/png,image/webp"

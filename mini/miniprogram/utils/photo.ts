@@ -4,7 +4,7 @@ import { getGeneration } from './credential'
 
 const localPhotos = new Set<string>()
 let pendingUpload: Promise<unknown> = Promise.resolve()
-const MAX_BYTES = 2 * 1024 * 1024
+const MAX_BYTES = 6 * 1024 * 1024
 // clearPhotos removes private downloads when the active account exits.
 export function clearPhotos(): void {
   for (const path of localPhotos) wx.getFileSystemManager().unlink({ filePath: path })
@@ -27,7 +27,7 @@ async function preparePhoto(path: string): Promise<string> {
   const size = await new Promise<number>((resolve, reject) =>
     wx.getFileSystemManager().getFileInfo({ filePath: path, success: res => resolve(res.size), fail: reject }),
   )
-  if (size > MAX_BYTES) throw new Error('原始照片不能超过 2 MiB，请先缩小后再选择')
+  if (size > MAX_BYTES) throw new Error('原始照片不能超过 6 MiB，请先缩小后再选择')
   const info = await new Promise<WechatMiniprogram.GetImageInfoSuccessCallbackResult>((resolve, reject) =>
     wx.getImageInfo({ src: path, success: resolve, fail: reject }),
   )

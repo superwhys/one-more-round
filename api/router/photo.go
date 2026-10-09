@@ -19,7 +19,7 @@ import (
 )
 
 // maxPhotoRequest bounds the whole multipart request, leaving room for the
-// multipart envelope around the two mebibyte image limit.
+// multipart envelope around the six mebibyte image limit.
 const maxPhotoRequest = photo.MaxUploadBytes + 64*1024
 
 // Admit one upload process-wide before multipart parsing. Busy requests do not
@@ -48,7 +48,7 @@ func PhotoRouter(photoApp *services.PhotoApp) photoRouterFn {
 
 // uploadPhotoHandler 上传照片
 // @Summary 上传照片
-// @Description 上传单张不超过 2 MiB、长边不超过 1600px 的 JPEG/PNG/WebP，重编码后仅保存一张展示图；繁忙返回 503
+// @Description 上传单张不超过 6 MiB、长边不超过 1600px 的 JPEG/PNG/WebP，重编码后仅保存一张展示图；繁忙返回 503
 // @Tags Photo
 // @Accept multipart/form-data
 // @Produce json

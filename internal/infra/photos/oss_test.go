@@ -196,7 +196,7 @@ func TestOSSRejectsInvalidUploadsBeforeNetwork(t *testing.T) {
 	binary.BigEndian.PutUint32(oversized[16:20], 10000)
 	binary.BigEndian.PutUint32(oversized[20:24], 10000)
 	binary.BigEndian.PutUint32(oversized[29:33], crc32.ChecksumIEEE(oversized[12:29]))
-	for name, data := range map[string][]byte{"fake": []byte("fake.jpg"), "too-large": make([]byte, 2*1024*1024+1), "too-many-pixels": oversized} {
+	for name, data := range map[string][]byte{"fake": []byte("fake.jpg"), "too-large": make([]byte, 6*1024*1024+1), "too-many-pixels": oversized} {
 		t.Run(name, func(t *testing.T) {
 			if err := store.Save(
 				context.Background(),
@@ -204,6 +204,8 @@ func TestOSSRejectsInvalidUploadsBeforeNetwork(t *testing.T) {
 				bytes.NewReader(data),
 			); err == nil {
 				t.Fatal("invalid photo accepted")
+			} else if name == "too-large" && !errors.Is(err, errcode.ErrPhotoTooLarge) {
+				t.Fatalf("oversized photo must be rejected by its size: %v", err)
 			}
 		})
 	}

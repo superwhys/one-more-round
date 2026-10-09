@@ -810,7 +810,7 @@ const docTemplate = `{
                         "SessionCookie": []
                     }
                 ],
-                "description": "上传单张不超过 2 MiB、长边不超过 1600px 的 JPEG/PNG/WebP，重编码后仅保存一张展示图；繁忙返回 503",
+                "description": "上传单张不超过 6 MiB、长边不超过 1600px 的 JPEG/PNG/WebP，重编码后仅保存一张展示图；繁忙返回 503",
                 "consumes": [
                     "multipart/form-data"
                 ],

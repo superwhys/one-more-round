@@ -55,19 +55,20 @@ func TestReencodeAndBounds(t *testing.T) {
 	}
 }
 
+// TestUploadSizeBoundary accepts valid files through six mebibytes and rejects the next byte.
 func TestUploadSizeBoundary(t *testing.T) {
 	var encoded bytes.Buffer
 	if err := png.Encode(&encoded, image.NewRGBA(image.Rect(0, 0, 1, 1))); err != nil {
 		t.Fatal(err)
 	}
-	for _, size := range []int{2*1024*1024 - 1, 2 * 1024 * 1024, 2*1024*1024 + 1} {
+	for _, size := range []int{6*1024*1024 - 1, 6 * 1024 * 1024, 6*1024*1024 + 1} {
 		data := make([]byte, size)
 		copy(data, encoded.Bytes())
 		_, err := encodePhoto(context.Background(), bytes.NewReader(data))
-		if size <= 2*1024*1024 && err != nil {
+		if size <= 6*1024*1024 && err != nil {
 			t.Fatalf("valid %d-byte photo rejected: %v", size, err)
 		}
-		if size > 2*1024*1024 && !errors.Is(err, errcode.ErrPhotoTooLarge) {
+		if size > 6*1024*1024 && !errors.Is(err, errcode.ErrPhotoTooLarge) {
 			t.Fatalf("oversized %d-byte photo must be rejected, got %v", size, err)
 		}
 	}

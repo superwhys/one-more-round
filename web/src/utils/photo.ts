@@ -1,10 +1,10 @@
 const maxDimension = 1600
-const maxBytes = 2 * 1024 * 1024
+const maxBytes = 6 * 1024 * 1024
 
 // Resize on the device; the server still validates and strips metadata.
 export async function preparePhoto(file: File): Promise<File> {
   if (file.size > maxBytes || !['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
-    throw new Error('请选择不超过 2 MB 的 JPEG、PNG 或 WebP')
+    throw new Error('请选择不超过 6 MB 的 JPEG、PNG 或 WebP')
   }
   const url = URL.createObjectURL(file)
   const source = new Image()
@@ -34,7 +34,7 @@ export async function preparePhoto(file: File): Promise<File> {
       })
       if (blob.size <= maxBytes) return new File([blob], 'photo.jpg', { type: 'image/jpeg' })
     }
-    throw new Error('照片压缩后仍超过 2 MB，请换一张图片重试')
+    throw new Error('照片压缩后仍超过 6 MB，请换一张图片重试')
   } finally {
     URL.revokeObjectURL(url)
     source.src = ''

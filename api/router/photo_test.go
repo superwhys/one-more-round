@@ -14,8 +14,9 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// TestOversizedPhotoRejectedBeforeApplication rejects files above six mebibytes before application work.
 func TestOversizedPhotoRejectedBeforeApplication(t *testing.T) {
-	for _, size := range []int{2*1024*1024 + 1, 2*1024*1024 + 64*1024 + 1} {
+	for _, size := range []int{6*1024*1024 + 1, 6*1024*1024 + 64*1024 + 1} {
 		var body bytes.Buffer
 		form := multipart.NewWriter(&body)
 		file, err := form.CreateFormFile("photo", "large.png")
@@ -42,8 +43,39 @@ func TestOversizedPhotoRejectedBeforeApplication(t *testing.T) {
 		if err := json.Unmarshal(response.Body.Bytes(), &payload); err != nil {
 			t.Fatal(err)
 		}
-		if response.Code != http.StatusBadRequest || payload.Message != "请选择不超过 2 MB 的图片" {
+		if response.Code != http.StatusBadRequest || payload.Message != "请选择不超过 6 MB 的图片" {
 			t.Fatalf("%d bytes: status=%d message=%q", size, response.Code, payload.Message)
+		}
+	}
+}
+
+// TestPhotoLimitAcceptedByApplication verifies the inclusive six-mebibyte multipart file limit.
+func TestPhotoLimitAcceptedByApplication(t *testing.T) {
+	for _, size := range []int{6*1024*1024 - 1, 6 * 1024 * 1024} {
+		var body bytes.Buffer
+		form := multipart.NewWriter(&body)
+		file, err := form.CreateFormFile("photo", "photo.png")
+		if err != nil {
+			t.Fatal(err)
+		}
+		if _, err = file.Write(make([]byte, size)); err != nil {
+			t.Fatal(err)
+		}
+		if err = form.Close(); err != nil {
+			t.Fatal(err)
+		}
+		var applicationSize int64 = -1
+		engine := gin.New()
+		engine.POST("/photos", uploadPhotoHandler(uploadFunc(func(_ context.Context, _, _ string, r io.Reader) (string, error) {
+			applicationSize, err = io.Copy(io.Discard, r)
+			return "photo", err
+		})))
+		request := httptest.NewRequest(http.MethodPost, "/photos", &body)
+		request.Header.Set("Content-Type", form.FormDataContentType())
+		response := httptest.NewRecorder()
+		engine.ServeHTTP(response, request)
+		if response.Code != http.StatusOK || applicationSize != int64(size) {
+			t.Fatalf("%d-byte photo: status=%d application bytes=%d", size, response.Code, applicationSize)
 		}
 	}
 }

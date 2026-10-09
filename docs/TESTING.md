@@ -37,7 +37,7 @@ OMR_TEST_MYSQL=127.0.0.1:端口 go test -race ./...
 | 变量 | 覆盖内容 |
 | --- | --- |
 | `OMR_BROWSER_TEST=1` | 小组邀请流程：新邮箱注册入组、刷新恢复、已有成员进入、加入第二个组、注销清理及邀请失效提示 |
-| `OMR_PHOTO_BROWSER_TEST=1` | 照片限制与上传：每局最多 3 张、单张原始文件最多 2 MiB；覆盖前端 1600px 预压缩、顺序上传、繁忙重试、损坏图片、统一图片 URL、批量选择、编辑替换、旧草稿、直接 API 拦截，以及 320/390px 与桌面布局 |
+| `OMR_PHOTO_BROWSER_TEST=1` | 照片限制与上传：每局最多 3 张、单张原始文件和压缩后上传均最多 6 MiB；覆盖前端 1600px 预压缩、顺序上传、繁忙重试、损坏图片、统一图片 URL、批量选择、编辑替换、旧草稿、直接 API 拦截，以及 320/390px 与桌面布局 |
 | `OMR_SHARE_BROWSER_TEST=1` | 对局公开分享：已登录的分享控件与匿名响应式分享页 |
 | `OMR_PASSWORD_BROWSER_TEST=1` | 账号密码：试用与小组邀请注册、失败输入保留、密码登录重试、切换与刷新清除密码、现有邮箱账号设置密码，以及 320/390/1280px 布局 |
 
@@ -91,7 +91,7 @@ GOWORK=off OMR_PASSWORD_BROWSER_TEST=1 ./scripts/test-mysql.sh -run '^TestPasswo
 OMR_PHOTO_MEMORY_TEST=1 go test -run '^TestDisplayPhotoMemoryBudget$' -count=1 -v ./internal/infra/photos
 ```
 
-它连续处理三张 1600×1600、16 位、2 MiB 的 PNG，采样额外 Go 堆峰值并要求不超过 100 MiB。这是该处理路径的堆内存预算，**不是整个进程 RSS 或服务器总内存的保证**。
+它连续处理三张 1600×1600、16 位、6 MiB 的 PNG，采样额外 Go 堆峰值并要求不超过 100 MiB。这是该处理路径的堆内存预算，**不是整个进程 RSS 或服务器总内存的保证**。
 
 比较不同格式的处理分配量：
 

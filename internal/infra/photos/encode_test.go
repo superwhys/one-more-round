@@ -72,7 +72,7 @@ func TestDisplayPhotoMemoryBudget(t *testing.T) {
 	if err := png.Encode(&encoded, image.NewNRGBA64(image.Rect(0, 0, 1600, 1600))); err != nil {
 		t.Fatal(err)
 	}
-	data := make([]byte, 2*1024*1024)
+	data := make([]byte, 6*1024*1024)
 	copy(data, encoded.Bytes())
 	encoded = bytes.Buffer{}
 	runtime.GC()
@@ -109,7 +109,7 @@ func TestDisplayPhotoMemoryBudget(t *testing.T) {
 	}
 	delta := peak.Load() - baseline.HeapAlloc
 	t.Logf(
-		"three serial 1600x1600 16-bit PNGs, 2 MiB each: peak additional Go heap %.1f MiB",
+		"three serial 1600x1600 16-bit PNGs, 6 MiB each: peak additional Go heap %.1f MiB",
 		float64(delta)/(1024*1024),
 	)
 	if delta > 100*1024*1024 {
