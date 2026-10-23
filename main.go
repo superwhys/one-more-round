@@ -115,7 +115,7 @@ func main() {
 	opts = append(opts, cores.WithNameWorker("photo-cleanup", worker.PhotoCleanup(repos, photoFiles)))
 
 	srv := cores.NewCores(opts...)
-	logging.PanicError(cores.Start(srv, runtime.Listen))
+	logging.PanicError(cores.Run(srv))
 }
 
 func withPortHttpHandler(addr string, frontend, backend, adminSrv http.Handler) []cores.ServiceOption {
