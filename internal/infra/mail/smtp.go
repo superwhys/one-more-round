@@ -2,6 +2,7 @@ package mail
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/miebyte/emailsender/api/grpc/emailsendpb"
 	"github.com/miebyte/goutils/grpcutils"
@@ -12,9 +13,9 @@ type Sender struct {
 }
 
 func NewSender() (*Sender, error) {
-	conn, err := grpcutils.DialGrpcService(context.TODO(), "http://emailsender.infrastructure.svc:28082")
+	conn, err := grpcutils.DialGrpcService(context.TODO(), "http://emailsender.infrastructure.svc.cluster.local:28082")
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to dial emailsender: %w", err)
 	}
 
 	client := emailsendpb.NewEmailSenderClient(conn)
@@ -31,7 +32,7 @@ func (s *Sender) SendCode(ctx context.Context, to, code string) error {
 		Body:    body,
 	})
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to send email: %w", err)
 	}
 
 	return nil

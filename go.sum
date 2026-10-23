@@ -210,8 +210,8 @@ github.com/miebyte/authkit v1.8.0 h1:i4aMjo8vE/wv5aTI6I7B/UhxL/XVag7y37MPKofatuk
 github.com/miebyte/authkit v1.8.0/go.mod h1:bshWz77zCWasDmd4S7TzHIqu2/SY5ArLReneA7DPv2w=
 github.com/miebyte/emailsender v1.2.0 h1:tRmn6hd+LRj5+or7rUWyTNkw91MQm3ZODbLuuaEnPGs=
 github.com/miebyte/emailsender v1.2.0/go.mod h1:jWKPlu1FlKG6PFglpelVlMNZrWA6YgwPeSsP35f34vU=
-github.com/miebyte/goutils v1.14.1 h1:0rkGVHnU/um9Oeb2CmU0GXRF8tr72KKFXIVsgKD00jY=
-github.com/miebyte/goutils v1.14.1/go.mod h1:QC9IKoPTATNCAJOV53gDZZvThRNALlF4zFJ4xENx+ms=
+github.com/miebyte/goutils v1.14.2 h1:nuPDWch8FQ2DO3CpHrQm8KlKhlncf9sW7cT1W6Piutk=
+github.com/miebyte/goutils v1.14.2/go.mod h1:QC9IKoPTATNCAJOV53gDZZvThRNALlF4zFJ4xENx+ms=
 github.com/miekg/dns v1.1.56 h1:5imZaSeoRNvpM9SzWNhEcP9QliKiz20/dA2QabIGVnE=
 github.com/miekg/dns v1.1.56/go.mod h1:cRm6Oo2C8TY9ZS/TqsSrseAcncm74lfK5G+ikN2SWWY=
 github.com/mitchellh/go-homedir v1.1.0 h1:lukF9ziXFxDFPkA1vsr5zpc1XuPDn/wFntq5mG+4E0Y=
