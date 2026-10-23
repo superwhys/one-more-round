@@ -10,11 +10,12 @@ package main
 
 import (
 	"context"
+	"net/http"
 	"time"
 
 	"github.com/miebyte/authkit/admin"
 	"github.com/miebyte/goutils/cores"
-	"github.com/miebyte/goutils/flags"
+	"github.com/miebyte/goutils/flags/v2"
 	"github.com/miebyte/goutils/logging"
 
 	"github.com/superwhys/one-more-round/api"
@@ -31,17 +32,20 @@ import (
 )
 
 var (
-	listen        = flags.String("listen", "127.0.0.1:8080", "HTTP listen address")
 	runtimeConfig = flags.Struct("app", &config.Runtime{}, "application configuration")
 )
 
 // main is the composition root: it loads the configuration, builds the
 // infrastructure, wires the application services and starts the process.
 func main() {
-	flags.Parse()
+	flags.Parse(
+		flags.WithRemoteConfig(),
+	)
 
-	runtime := &config.Runtime{Listen: listen()}
-	logging.PanicError(runtimeConfig(runtime))
+	confLoader, err := runtimeConfig()
+	logging.PanicError(err)
+
+	runtime := confLoader.Load()
 	logging.PanicError(runtime.Validate())
 
 	client, err := mysql.Open(runtime.MySQL)
@@ -55,11 +59,14 @@ func main() {
 		return
 	}
 
+	emailSender, err := mail.NewSender()
+	logging.PanicError(err)
+
 	photoFiles, err := photos.NewOSS(runtime.OSS)
 	logging.PanicError(err)
 	appCtx := &services.AppContext{
 		Repos:  repos,
-		Mailer: &mail.Sender{Config: runtime.SMTP},
+		Mailer: emailSender,
 		Photos: photoFiles,
 	}
 	if runtime.Wechat.Enabled() {
@@ -102,15 +109,19 @@ func main() {
 	httpConfig.SetDefault()
 	// Allow the bounded OSS upload and compensation to finish before responding.
 	httpConfig.WriteTimeout = time.Minute
-	srv := cores.NewCores(
-		cores.WithHttpServerConfig(httpConfig),
-		cores.WithHttpHandler("/", frontend),
-		cores.WithHttpHandler("/api", backend.SetupRouter()),
-		cores.WithHttpHandler("/admin", adminHandler),
-		cores.WithHttpHandler("/swagger", backend.SwaggerRouter(runtime.IsProd)),
-		// worker
-		cores.WithNameWorker("photo-cleanup", worker.PhotoCleanup(repos, photoFiles)),
-	)
 
+	opts := withPortHttpHandler(runtime.Listen, frontend, backend.SetupRouter(), adminHandler)
+	opts = append(opts, cores.WithHttpServerConfig(httpConfig))
+	opts = append(opts, cores.WithNameWorker("photo-cleanup", worker.PhotoCleanup(repos, photoFiles)))
+
+	srv := cores.NewCores(opts...)
 	logging.PanicError(cores.Start(srv, runtime.Listen))
+}
+
+func withPortHttpHandler(addr string, frontend, backend, adminSrv http.Handler) []cores.ServiceOption {
+	return []cores.ServiceOption{
+		cores.WithHttpHandler(addr, "/", frontend),
+		cores.WithHttpHandler(addr, "/api", backend),
+		cores.WithHttpHandler(addr, "/admin", adminSrv),
+	}
 }

@@ -2,27 +2,25 @@ package config
 
 import (
 	"errors"
-	"net/mail"
 	"net/url"
 	"strings"
 
 	"github.com/miebyte/goutils/mysqlutils"
 
-	smtp "github.com/superwhys/one-more-round/internal/infra/mail"
 	"github.com/superwhys/one-more-round/internal/infra/photos"
 	"github.com/superwhys/one-more-round/internal/infra/wechat"
 )
 
 type Runtime struct {
-	Listen  string                 `json:"-"`
+	Listen  string                 `json:"listen"`
 	AdminID string                 `json:"admin_id"`
 	IsProd  bool                   `json:"is_prod"`
 	MySQL   mysqlutils.MysqlConfig `json:"mysql"`
-	SMTP    smtp.Config            `json:"smtp"`
-	Origin  string                 `json:"origin"`
-	OSS     photos.OSSConfig       `json:"oss"`
-	Wechat  wechat.Config          `json:"wechat"`
-	BGG     BGGConfig              `json:"bgg"`
+	// SMTP    smtp.Config            `json:"smtp"`
+	Origin string           `json:"origin"`
+	OSS    photos.OSSConfig `json:"oss"`
+	Wechat wechat.Config    `json:"wechat"`
+	BGG    BGGConfig        `json:"bgg"`
 }
 
 // BGGConfig holds the server-side BoardGameGeek application token. An empty
@@ -64,12 +62,12 @@ func (c *Runtime) Validate() error {
 	if e = c.OSS.Validate(); e != nil {
 		return e
 	}
-	a, e := mail.ParseAddress(c.SMTP.From)
-	if e != nil || a.Address != c.SMTP.From || strings.ContainsAny(c.SMTP.From, "\r\n") {
-		return errors.New("app.smtp.from must be a valid email")
-	}
-	if c.SMTP.Host == "" || c.SMTP.Port < 1 || c.SMTP.Port > 65535 {
-		return errors.New("app.smtp requires host and valid port")
-	}
+	// a, e := mail.ParseAddress(c.SMTP.From)
+	// if e != nil || a.Address != c.SMTP.From || strings.ContainsAny(c.SMTP.From, "\r\n") {
+	// 	return errors.New("app.smtp.from must be a valid email")
+	// }
+	// if c.SMTP.Host == "" || c.SMTP.Port < 1 || c.SMTP.Port > 65535 {
+	// 	return errors.New("app.smtp requires host and valid port")
+	// }
 	return nil
 }
