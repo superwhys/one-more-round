@@ -7,8 +7,8 @@ require (
 	github.com/gin-gonic/gin v1.12.0
 	github.com/go-sql-driver/mysql v1.8.1
 	github.com/miebyte/authkit v1.8.0
-	github.com/miebyte/emailsender v1.2.0
-	github.com/miebyte/goutils v1.15.0
+	github.com/miebyte/emailsender v1.3.0
+	github.com/miebyte/goutils v1.15.2
 	github.com/swaggo/http-swagger/v2 v2.0.2
 	github.com/swaggo/swag v1.16.6
 	golang.org/x/image v0.46.0

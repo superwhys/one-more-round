@@ -208,10 +208,10 @@ github.com/microsoft/go-mssqldb v1.7.2 h1:CHkFJiObW7ItKTJfHo1QX7QBBD1iV+mn1eOyRP
 github.com/microsoft/go-mssqldb v1.7.2/go.mod h1:kOvZKUdrhhFQmxLZqbwUV0rHkNkZpthMITIb2Ko1IoA=
 github.com/miebyte/authkit v1.8.0 h1:i4aMjo8vE/wv5aTI6I7B/UhxL/XVag7y37MPKofatuk=
 github.com/miebyte/authkit v1.8.0/go.mod h1:bshWz77zCWasDmd4S7TzHIqu2/SY5ArLReneA7DPv2w=
-github.com/miebyte/emailsender v1.2.0 h1:tRmn6hd+LRj5+or7rUWyTNkw91MQm3ZODbLuuaEnPGs=
-github.com/miebyte/emailsender v1.2.0/go.mod h1:jWKPlu1FlKG6PFglpelVlMNZrWA6YgwPeSsP35f34vU=
-github.com/miebyte/goutils v1.15.0 h1:UiPd7eLo27K/zhlWoI/gw7UkWdKCgIO6+9pMDBGLMpg=
-github.com/miebyte/goutils v1.15.0/go.mod h1:OjrwCI/QIf9OnR3nsBGDEGXIx0jhmKjVfFee45/Botc=
+github.com/miebyte/emailsender v1.3.0 h1:9z4NQDV4Xb2F6BX6uTVrn+s5wJpyVPwMTpevEGzlX3M=
+github.com/miebyte/emailsender v1.3.0/go.mod h1:3VfDk+XaNTqSGE770Iu67MQXYgahpWKeDLJon7cxs4U=
+github.com/miebyte/goutils v1.15.2 h1:Yq9NesuuRX77VVn6nbffG7zC1c833iyNQUh4EgTByfg=
+github.com/miebyte/goutils v1.15.2/go.mod h1:OjrwCI/QIf9OnR3nsBGDEGXIx0jhmKjVfFee45/Botc=
 github.com/miekg/dns v1.1.56 h1:5imZaSeoRNvpM9SzWNhEcP9QliKiz20/dA2QabIGVnE=
 github.com/miekg/dns v1.1.56/go.mod h1:cRm6Oo2C8TY9ZS/TqsSrseAcncm74lfK5G+ikN2SWWY=
 github.com/mitchellh/go-homedir v1.1.0 h1:lukF9ziXFxDFPkA1vsr5zpc1XuPDn/wFntq5mG+4E0Y=
