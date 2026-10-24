@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/miebyte/emailsender/api/grpc/emailsendpb"
+	"github.com/miebyte/goutils/consulutils"
 	"github.com/miebyte/goutils/grpcutils"
 )
 
@@ -13,7 +14,12 @@ type Sender struct {
 }
 
 func NewSender() (*Sender, error) {
-	conn, err := grpcutils.DialGrpcService(context.TODO(), "http://emailsender.infrastructure.svc.cluster.local:28082")
+	emailSenderAddr, err := consulutils.Resolve(context.TODO(), "emailsender")
+	if err != nil {
+		return nil, fmt.Errorf("failed to resolve emailsender: %w", err)
+	}
+
+	conn, err := grpcutils.DialGrpcService(context.TODO(), emailSenderAddr)
 	if err != nil {
 		return nil, fmt.Errorf("failed to dial emailsender: %w", err)
 	}
